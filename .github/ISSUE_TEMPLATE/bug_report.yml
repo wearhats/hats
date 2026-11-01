@@ -1,0 +1,25 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `hats doctor`
+      description: Paths include your username, and account warnings can include your email; redact if you prefer.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "`hats --version`, Claude Desktop version, `claude --version`, macOS version"
+    validations:
+      required: true

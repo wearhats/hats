@@ -1,0 +1,131 @@
+# Design rules
+
+The terms the code and docs use, and the rules every change keeps. The rules
+are binding. A change that breaks one starts as an issue, and the pull request
+that changes a rule edits this file and says why.
+
+## Terms
+
+- **Profile**: one Claude identity. It owns a Desktop data dir (`desktop/`,
+  Electron's `--user-data-dir`) and a Claude Code config dir (`code/`,
+  `CLAUDE_CONFIG_DIR`), or adopts an existing config dir.
+- **`default`**: the stock install (`~/Library/Application Support/Claude` and
+  `~/.claude`), shown as a read-only profile.
+- **Adopted config dir**: an existing `CLAUDE_CONFIG_DIR` registered with
+  `hats add --code-dir`. It stays where it is, with its login and history.
+- **Unmanaged config dir**: a `CLAUDE_CONFIG_DIR` that a running process uses
+  but no profile owns or adopts. `hats ps` shows it in parentheses.
+- **Instance**: a running Desktop main process or Claude Code session. Kinds:
+  `desktop`, `desktop-code`, `cli`, `ide`, `sdk`, `other`.
+- **Session registry**: Claude Code's internal `<config>/sessions/<pid>.json`
+  files, the source of a session's status, name and working directory.
+- **Launcher**: a generated `Claude (<Label>).app` in `~/Applications/Hats`
+  whose executable is a shell script that runs `hats open <name>`. A
+  `Contents/Resources/hats-launcher.json` marker identifies it.
+- **Focus**: bring an existing instance forward, or the terminal or IDE that
+  hosts a CLI session.
+
+## Rules
+
+### 1. Profiles are additive; the stock install is never touched
+
+hats never writes Claude.app, `~/Library/Application Support/Claude`,
+`~/.claude` or `~/.claude.json`. It never renames, symlinks, re-signs or
+force-quits anything to switch accounts. Each profile is another instance next
+to the stock one, and all profile data lives under one root (`HATS_HOME`).
+
+Why: switching the live data dir (rename or symlink it, then restart Desktop)
+risks data loss on a force-quit or an interrupted rename, and fights Desktop's
+updater. Adding needs no migration and leaves nothing to roll back. The cost:
+the stock Desktop keeps the `claude://` handler, so a sign-in for an added
+profile can land in another window. The workaround is in the
+[platform notes](architecture.md#8-platform-notes).
+
+### 2. No tokens, no sign-in routing, no limit stretching
+
+- hats never reads, stores, copies or relays Claude credentials or session
+  tokens. Keychain queries ask for attributes, never the secret. Account files
+  are parsed whole in memory (JSON can't be read selectively, and Desktop's
+  `config.json` holds its token cache), and only the identifiers listed in
+  [privacy.md](privacy.md) are kept.
+- hats never changes, registers or intercepts the `claude://` handler, and
+  never proxies or rewrites sign-in. Sign-in happens inside Claude. A sign-in
+  helper may quit and reopen Claude windows around it, nothing more.
+- hats ships nothing meant to stretch usage limits: no rotating sessions across
+  accounts when one runs out, no pooling, no switching accounts on rate limits.
+- hats never edits or overrides employer-managed Claude settings or
+  MDM-delivered preferences.
+
+Why: hats organizes accounts a person legitimately holds, such as a work seat
+and a personal plan, or one account per client. Each of the features above
+would put hats between a user and their Claude account, or help spread one
+person's usage across accounts. Anthropic's
+[Consumer Terms](https://www.anthropic.com/legal/consumer-terms) and
+[Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)
+govern how accounts may be used. The cost: there is no live usage view per
+account, because it needs the token. Local tools that estimate usage from a
+config dir still work per profile through `hats exec`.
+
+### 3. Read Claude's files, never write them
+
+Claude's internal files (`sessions/*.json`, Desktop's `config.json`, Claude
+Code's `.claude.json`) are undocumented and change between versions, so hats
+decodes them tolerantly. In the session registry every field except `pid` is
+optional, and files that fail to decode are skipped and reported by doctor. An
+unreadable account file means "unknown", not an error. The only writes inside a
+profile's Claude dirs create them empty. hats installs no hooks into Claude's
+settings and reads no transcripts.
+
+### 4. Of other processes, keep only what identifies the profile
+
+To tell which profile a process belongs to, hats reads its argv and environment
+block from the kernel (`KERN_PROCARGS2`). It keeps argv and
+`CLAUDE_CONFIG_DIR`. Every other variable, which may hold an API key, is
+skipped as raw bytes without being decoded. Discovery is passive: session
+registry entries count only when their PID and start time match a live Claude
+Code process.
+
+### 5. Writes outside hats' own dirs happen only on request
+
+hats' own dirs are `HATS_HOME` and the launcher dir. Anything else is written
+only for a command or flag that names it: launcher copies (`add --desktop`,
+`launcher copy`), the Dock (`add --pin`, `dock pin`, `dock unpin`) and the Trash
+(`reset`, `rm --purge`, after confirmation).
+
+- Profile data is never deleted outright: `reset` and `rm --purge` move it to
+  the Trash, and both refuse a running profile.
+- hats never lists a folder such as `~/Desktop` on its own. It revisits only the
+  launcher copies it recorded.
+- The Dock is written through CFPreferences. Only tiles that point at hats
+  launchers change (`--dedupe-claude` also drops repeated Claude.app tiles).
+  Nothing is written, and the Dock isn't restarted, when nothing changes.
+- Claude processes are only ever asked to quit, as Cmd-Q does. hats never kills
+  them.
+- Profile names match `[a-z0-9][a-z0-9-]{0,31}`, and every recursive delete
+  checks that its target is strictly inside the profile's own directory.
+
+### 6. Every OS touchpoint is injectable and listed
+
+Process, Keychain, Dock, Trash, Launch Services and filesystem access goes
+through a protocol or an injected value, with a fake in tests, so no test
+touches the real targets. [privacy.md](privacy.md) lists every read, write and
+process action. A change that adds one updates that file in the same pull
+request, and review treats it as a design change.
+
+### 7. One core, thin front ends, native APIs
+
+`HatsCore` holds all logic and has no UI and no global state. The CLI parses
+input, calls the core and renders the result. A launcher is a short shell
+script that runs `hats open <name>`, so fixes ship without rebuilding
+launchers. hats calls native APIs rather than subprocesses or AppleScript, so
+focusing a window needs no Automation prompt. The only programs it `exec`s are
+`claude` and the user's own commands.
+
+Why a script launcher: AppleScript applets trigger Automation prompts and can
+fail silently, and a compiled stub would need signing per bundle.
+
+### 8. Adopted config dirs belong to the user
+
+hats never moves or deletes an adopted config dir: `rm --purge` keeps it, and
+`reset --code` refuses it. Adoption refuses the default dir, dirs inside
+`HATS_HOME`, and a dir another profile already uses.

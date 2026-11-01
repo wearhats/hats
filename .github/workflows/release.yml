@@ -1,0 +1,263 @@
+name: Release
+
+# release-please keeps a release PR open on main. Merging it tags vX.Y.Z and
+# creates a draft GitHub Release. build compiles the binary with a read-only
+# token; publish signs, packages and uploads it, then un-drafts the release, so
+# "releases/latest/download/..." never points at a release without assets.
+# homebrew-tap then pushes the formula; it is its own job so it can be re-run
+# alone, since published release assets are immutable.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Must exist on the xcode-27 runner image (see the actions/runner-images
+  # README). Bump it together with the image; docs/releasing.md tracks it.
+  XCODE_APP: /Applications/Xcode_27.1.app
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    environment: release
+    # Only the github.token fallback uses these; App tokens carry their own.
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      HAS_APP: ${{ vars.RELEASE_APP_CLIENT_ID != '' && secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+    outputs:
+      created: ${{ steps.rp.outputs.release_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+      version: ${{ steps.rp.outputs.version }}
+      sha: ${{ steps.rp.outputs.sha }}
+    steps:
+      - id: app
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - id: rp
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          # The fallback is for forks. The wearhats org doesn't let GITHUB_TOKEN
+          # create PRs, and PRs opened with it get no CI checks.
+          token: ${{ steps.app.outputs.token || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Runs package code (build plugins, dependencies) with a read-only token and
+  # no secrets. Everything that can write lives in the later jobs.
+  build:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: xcode-27
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.release-please.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          swift --version
+
+      - name: Build universal binary
+        run: |
+          swift build -c release --arch arm64 --arch x86_64
+          BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/hats"
+          lipo -info "$BIN"
+          test "$("$BIN" --version)" = "$VERSION"
+          mkdir -p "$RUNNER_TEMP/unsigned"
+          cp "$BIN" "$RUNNER_TEMP/unsigned/hats"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: hats-unsigned
+          path: ${{ runner.temp }}/unsigned/hats
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [release-please, build]
+    runs-on: xcode-27
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+      VERSION: ${{ needs.release-please.outputs.version }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # Published assets are immutable, so re-running this job after un-drafting
+      # must not sign, attest or upload again. It succeeds without changes, so
+      # homebrew-tap still runs.
+      - name: Check the release is still a draft
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true ]; then
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$TAG is already published; nothing to do"
+            echo "draft=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: steps.state.outputs.draft == 'true'
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          persist-credentials: false
+
+      - name: Select Xcode
+        if: steps.state.outputs.draft == 'true'
+        run: sudo xcode-select -s "$XCODE_APP"
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: steps.state.outputs.draft == 'true'
+        with:
+          name: hats-unsigned
+          path: ${{ runner.temp }}/bin
+
+      # Artifacts don't keep the executable bit. The binary is never run here:
+      # this job can mint OIDC tokens, and the build job already checked it.
+      - name: Restore the binary
+        if: steps.state.outputs.draft == 'true'
+        run: |
+          BIN="$RUNNER_TEMP/bin/hats"
+          chmod 0755 "$BIN"
+          echo "BIN=$BIN" >> "$GITHUB_ENV"
+
+      # Developer ID signing and notarization when the secrets exist; an ad-hoc
+      # signature otherwise. curl and Homebrew downloads carry no quarantine
+      # flag, so ad-hoc binaries still run for those channels.
+      - name: Sign and notarize
+        if: steps.state.outputs.draft == 'true'
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+          NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+        run: |
+          if [ -z "$P12" ]; then
+            codesign --force --sign - "$BIN"
+            echo "::warning::No Developer ID secrets; release is ad-hoc signed"
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "" "$keychain"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          codesign --force --options runtime --timestamp --sign "Developer ID Application" "$BIN"
+          echo "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+          ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/hats.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/hats.zip" --wait \
+            --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER"
+
+      - name: Package
+        if: steps.state.outputs.draft == 'true'
+        run: scripts/package.sh "$BIN" dist
+
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        if: steps.state.outputs.draft == 'true'
+        with:
+          subject-path: dist/hats-macos-universal.tar.gz
+
+      - name: Upload release assets
+        if: steps.state.outputs.draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed "s#wearhats/hats#${GITHUB_REPOSITORY}#" scripts/install.sh > dist/install.sh
+          gh release upload "$TAG" dist/hats-macos-universal.tar.gz dist/SHA256SUMS dist/install.sh --clobber
+
+      - name: Publish the release
+        if: steps.state.outputs.draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$TAG" --draft=false --latest
+
+  # Its own job so a failed tap update can be re-run alone, without touching
+  # the published (immutable) release. It runs after publish because the
+  # formula's URL only resolves once the release is public.
+  homebrew-tap:
+    needs: [release-please, publish]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+      VERSION: ${{ needs.release-please.outputs.version }}
+      GH_REPO: ${{ github.repository }}
+      HAS_APP: ${{ vars.RELEASE_APP_CLIENT_ID != '' && secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+    steps:
+      - name: Check the release App is configured
+        if: env.HAS_APP != 'true'
+        run: echo "::warning::No release App configured; update the tap by hand"
+
+      - id: app
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: homebrew-tap
+          permission-contents: write
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: env.HAS_APP == 'true'
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          persist-credentials: false
+
+      # The SHA-256 comes from the published SHA256SUMS, the file Homebrew's
+      # download is checked against.
+      - name: Update the formula
+        if: env.HAS_APP == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAP_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          gh release download "$TAG" --pattern SHA256SUMS --dir "$RUNNER_TEMP"
+          sha=$(cut -d' ' -f1 "$RUNNER_TEMP/SHA256SUMS")
+          bot_id=$(GH_TOKEN="$TAP_TOKEN" gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/homebrew-tap.git" "$RUNNER_TEMP/tap"
+          mkdir -p "$RUNNER_TEMP/tap/Formula"
+          scripts/render-formula.sh "$GITHUB_REPOSITORY" "$VERSION" "$sha" > "$RUNNER_TEMP/tap/Formula/hats.rb"
+          cd "$RUNNER_TEMP/tap"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git add Formula/hats.rb
+          if git diff --cached --quiet; then
+            echo "::notice::Formula/hats.rb is already at $VERSION"
+            exit 0
+          fi
+          git commit -m "hats $VERSION"
+          git push

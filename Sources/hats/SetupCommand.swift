@@ -1,0 +1,92 @@
+import ArgumentParser
+import Foundation
+import HatsCore
+
+struct Setup: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Guided setup: adopt the Claude Code dirs you already have and add a profile for your other account.",
+        discussion: "Safe to re-run. Every step is also a plain command, printed as it runs."
+    )
+
+    func run() async throws {
+        guard Prompt.isInteractive else {
+            throw HatsError(
+                .usage, "setup asks questions and needs a terminal",
+                hint: "script it with: hats add <name> [--code-dir DIR] [--pin] [--open]")
+        }
+        let context = Context()
+        print("hats keeps your current Claude.app and ~/.claude as the 'default' profile and never changes them.")
+        if let email = AccountProbe(layout: context.layout).info(for: context.store.defaultProfile).codeEmail {
+            print("The default profile's claude CLI is signed in as \(email).")
+        }
+
+        var added: [Profile] = []
+        let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
+        for dir in AdoptionCandidates.find(layout: context.layout, profiles: try context.readableProfiles(), instances: instances) {
+            print("\nFound a Claude Code config dir you made yourself: \(dir.plainPath)")
+            guard try Prompt.confirm("Turn it into a profile? Its login and history stay as they are.", default: true) else { continue }
+            let suggested = ProfileName.suggested(forConfigDir: dir)?.rawValue ?? "work"
+            let name = try ProfileName(Prompt.ask("Profile name", default: suggested))
+            print("$ hats add \(name) --code-dir \(Output.shellQuote(dir.plainPath))")
+            added.append(try create(name, adopting: dir, context: context))
+        }
+
+        let others = try context.readableProfiles().filter { !$0.isDefault }
+        let wantsNew = try others.isEmpty || Prompt.confirm("\nAdd a profile for another account?", default: false)
+        if wantsNew {
+            let name = try ProfileName(
+                Prompt.ask(
+                    "\nName for your other account (for example personal, work, acme)", default: others.isEmpty ? "personal" : "client"))
+            print("$ hats add \(name)")
+            added.append(try create(name, adopting: nil, context: context))
+        }
+        guard !added.isEmpty else { return printNextSteps() }
+
+        let names = added.map(\.name.rawValue).joined(separator: " ")
+        if try Prompt.confirm("\nPin the new launcher(s) to the Dock? This restarts the Dock.", default: true) {
+            print("$ hats dock pin \(names)")
+            try context.pinToDock(added, dedupeClaude: false)
+        }
+        if try Prompt.confirm("Also put a copy on the Desktop?", default: false) {
+            print("$ hats launcher copy \(names)")
+            for profile in added {
+                print(
+                    "Copied to \(try LauncherBuilder(layout: context.layout).copy(for: profile.name, to: context.layout.desktopFolder).plainPath)"
+                )
+            }
+        }
+        let needSignIn = added.filter { AccountProbe(layout: context.layout).info(for: $0).desktop != .signedIn }
+        if !needSignIn.isEmpty,
+            try Prompt.confirm("Open \(needSignIn.map(\.name.rawValue).joined(separator: ", ")) now to sign in?", default: true)
+        {
+            for profile in needSignIn {
+                print("$ hats open \(profile.name)")
+                try await context.open(profile)
+            }
+            print("\n" + Context.signInGuidance)
+        }
+        printNextSteps()
+    }
+
+    private func create(_ name: ProfileName, adopting dir: URL?, context: Context) throws -> Profile {
+        let (profile, _) = try context.store.create(name, adoptingCodeDir: dir)
+        print(
+            "Launcher: \(try LauncherBuilder(layout: context.layout).build(for: profile, hatsPath: context.hatsExecutablePath()).plainPath)"
+        )
+        return profile
+    }
+
+    private func printNextSteps() {
+        print(
+            """
+
+            Everyday commands:
+              hats ls                  profiles, sign-in state and accounts
+              hats ps                  every running Claude, across profiles
+              hats open <name>         focus or launch a profile's Claude Desktop (--all for every profile)
+              hats run <name>          the claude CLI as that profile
+              hats reset <name>        start a profile fresh if it opened on the wrong account
+              hats doctor              check everything
+            """)
+    }
+}
