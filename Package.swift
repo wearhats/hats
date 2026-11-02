@@ -33,5 +33,9 @@ package.targets += [
     // Deliberately depends on nothing: these tests must see only what a user
     // sees, so renaming a field in HatsCore can't quietly keep them passing.
     .testTarget(name: "HatsE2ETests"),
+    // Started by those tests in place of a running Claude. `swift test` builds it
+    // along with everything else. It makes `swift run` ask which product, and
+    // builds that only want hats pass `--product hats` to skip compiling it.
+    .executableTarget(name: "hats-e2e-fake", path: "Tests/HatsE2EFake"),
 ]
 #endif

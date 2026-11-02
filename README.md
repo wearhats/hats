@@ -79,7 +79,7 @@ curl -fsSL https://wearhats.dev/install.sh | sh
 curl -fsSLO https://wearhats.dev/install.sh && less install.sh && sh install.sh
 ```
 
-From source: `swift build -c release && install -m 0755 .build/release/hats ~/.local/bin/`.
+From source: `swift build -c release --product hats && install -m 0755 .build/release/hats ~/.local/bin/`.
 
 Manual download: get `hats-macos-universal.tar.gz` from the Releases page and
 check its build provenance with

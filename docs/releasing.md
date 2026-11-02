@@ -8,7 +8,7 @@
 | **Install script** | `curl -fsSL https://wearhats.dev/install.sh \| sh` | No Homebrew | `scripts/install.sh`, attached to every release; the domain redirects to it (see below) |
 | **Inspect, then run** | `curl -fsSLO …/install.sh && less install.sh && sh install.sh` | Cautious users | Same script |
 | **Manual download** | `hats-macos-universal.tar.gz` from the Releases page | Air-gapped or scripted setups | Release asset |
-| **From source** | `swift build -c release` | Contributors | README |
+| **From source** | `swift build -c release --product hats` | Contributors | README |
 | **homebrew-core** | `brew install hats` | Everyone | Once the project meets homebrew-core's notability bar; core builds from source with Xcode |
 
 Not planned: Mac App Store (the sandbox forbids reading other processes and

@@ -44,8 +44,8 @@ package *build_args:
     #!/bin/sh
     set -eu
     rm -rf dist
-    swift build -c release "$@"
-    bin="$(swift build -c release "$@" --show-bin-path)/hats"
+    swift build -c release --product hats "$@"
+    bin="$(swift build -c release --product hats "$@" --show-bin-path)/hats"
     # Before the first commit package.sh has no commit time to fall back on.
     SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct 2>/dev/null || date +%s)} \
       scripts/package.sh "$bin" dist/release
