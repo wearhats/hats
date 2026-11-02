@@ -104,8 +104,7 @@ changelog. Merging it runs `.github/workflows/release.yml`:
    a draft otherwise has no tag yet).
    0.1.0 is the exception: it was tagged `hats-v0.1.0`, before
    `include-component-in-tag` was turned off, and published releases can't be
-   retagged. `last-release-sha` points release-please at it until the next
-   release exists.
+   retagged.
 2. **build** (`contents: read`, no secrets): build the universal binary on
    the `xcode-27` runner with the pinned Xcode, check `hats --version` matches the tag,
    and hand the unsigned binary to the next job as a workflow artifact.

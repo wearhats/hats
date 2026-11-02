@@ -171,7 +171,7 @@ whose `launcherVersion` is older than the current one.
 
 ## 8. Platform notes
 
-Behaviour hats relies on, last checked on Claude Desktop 4.29.0, Claude Code
+Behaviour hats relies on, last checked on Claude Desktop 4.4212.0, Claude Code
 2.1.312 and macOS 27.0.1. `scripts/compat-check.sh` re-runs the checks that
 need Claude Desktop.
 
@@ -185,6 +185,10 @@ need Claude Desktop.
   of focusing the first, so focus-if-running is mandatory.
   `NSRunningApplication.activate()` brings one specific instance forward
   without an Automation (TCC) prompt.
+- Desktop's Code tab runs Claude Code with the window's `CLAUDE_CONFIG_DIR`:
+  its `projects/` and `sessions/` land in the profile's config dir. Desktop
+  also keeps part of the Code tab's state under its own data dir, which
+  `--user-data-dir` isolates either way.
 - A launcher whose executable is a shell script, with an ICNS rendered
   in-process, launches through Launch Services like any other app.
 - `<config>/sessions/<pid>.json` holds `pid`, `sessionId`, `cwd`, `startedAt`,
@@ -204,9 +208,6 @@ need Claude Desktop.
   relaunches it). The Dock silently ignores tiles whose `file-mod-date` is 0.
 
 Not verified yet, and re-checked before each minor release:
-- Whether Desktop's Code tab uses the profile's `CLAUDE_CONFIG_DIR`. Desktop
-  also keeps part of the Code tab's state under its own data dir, which
-  `--user-data-dir` isolates either way.
 - Where a sign-in lands with several instances running. Reports conflict:
   the `claude://` link may reach whichever Desktop instance runs (they share
   one bundle ID). Supported workaround today: quit the other Claude windows
