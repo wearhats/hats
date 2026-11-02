@@ -151,7 +151,7 @@ struct List: ParsableCommand {
             headers: headers,
             rows: rows.map { row in
                 var cells = [
-                    row.shortcut.map { "\(row.name) (\($0))" } ?? row.name,
+                    Self.nameCell(row.name, shortcut: row.shortcut),
                     row.runningDesktop > 0 ? "running" : "-",
                     String(row.runningSessions),
                     Self.describe(row.account.desktop),
@@ -172,11 +172,19 @@ struct List: ParsableCommand {
         Output.printTable(
             headers: headers,
             rows: profiles.map { profile in
-                var cells = [profile.name.rawValue, Self.displayable(profile.desktopDir), Self.displayable(profile.codeDir)]
+                var cells = [
+                    Self.nameCell(profile.name.rawValue, shortcut: profile.shortcut?.rawValue),
+                    Self.displayable(profile.desktopDir),
+                    Self.displayable(profile.codeDir),
+                ]
                 if size { cells.insert(Output.bytes(diskBytes(of: profile)), at: 1) }
                 return cells
             }
         )
+    }
+
+    private static func nameCell(_ name: String, shortcut: String?) -> String {
+        shortcut.map { "\(name) (\($0))" } ?? name
     }
 
     /// A directory name can hold newlines and escape sequences, which would split the row or drive the terminal.

@@ -61,6 +61,18 @@ struct ListPathsTests {
         #expect(client.last == "\(sandbox.root)/adopted/new?line?[31m", "\(result)")
     }
 
+    @Test func showsTheShortcutBesideTheName() throws {
+        let sandbox = try E2ESandbox()
+        let managed = try sandbox.addProfile("work", shortcut: "w")
+
+        let result = try sandbox.hats(["ls", "--paths"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(
+            try row("work (w)", in: parseTable(result)) == ["work (w)", "\(sandbox.hatsHome)/profiles/work/desktop", managed],
+            "\(result)")
+    }
+
     private func parseTable(_ result: CommandResult) -> [[String]] {
         result.stdout.split(separator: "\n").map { line in
             line.split(separator: "  ").map { $0.trimmingCharacters(in: .whitespaces) }
