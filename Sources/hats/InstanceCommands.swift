@@ -77,7 +77,9 @@ struct Doctor: ParsableCommand {
             layout: context.layout,
             processes: context.processes,
             credentials: context.credentials,
-            environment: context.environment
+            environment: context.environment,
+            install: HatsInstall(
+                version: Hats.version, executable: context.runningExecutable(), launcherTarget: context.hatsExecutablePath())
         ).run()
         if json {
             try Output.printJSON(findings)

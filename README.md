@@ -86,7 +86,8 @@ Until releases are notarized, a binary downloaded with a browser is
 quarantined; clear that with `xattr -d com.apple.quarantine hats`.
 
 Then run `hats setup`. Upgrade with `brew upgrade hats` or by re-running the
-script. More in [`docs/releasing.md`](docs/releasing.md).
+script; `hats doctor` shows the command for your install. More in
+[`docs/releasing.md`](docs/releasing.md).
 
 ## Use
 

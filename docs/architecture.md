@@ -52,6 +52,7 @@ executable there.
 | `AccountProbe` | Desktop sign-in state and account IDs from `config.json` and `.claude.json`. | `AccountInfo`, `AccountProbe` |
 | `Housekeeping` | Duplicate Desktop instances, `reset` (to the Trash), adoption candidates, disk usage. `rm --purge` uses the same `Discarder`. | `DuplicateInstances`, `Discarder`, `AdoptionCandidates`, `DiskUsage` |
 | `Dock` | Opt-in pinning of launchers. | `DockPreferences` (protocol), `SystemDockPreferences`, `DockEditor` |
+| `Installation` | Tell how the running binary was installed (Homebrew `Cellar`, an `install.sh` receipt, or unknown) and which command upgrades it. hats never upgrades itself. | `InstallChannel`, `HatsInstall` |
 | `Doctor` | Run checks and produce `Finding`s. | `Check`, `Finding`, `Doctor` |
 
 ## 3. Data model and on-disk layout

@@ -29,13 +29,15 @@ public struct Doctor: Sendable {
     let credentials: any CredentialProbe
     let environment: [String: String]
     let urlSchemeHandler: @Sendable (String) -> URL?
+    let install: HatsInstall?
 
     public init(
         layout: Layout,
         processes: any ProcessTable,
         credentials: any CredentialProbe,
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        urlSchemeHandler: @escaping @Sendable (String) -> URL? = Doctor.systemURLSchemeHandler
+        urlSchemeHandler: @escaping @Sendable (String) -> URL? = Doctor.systemURLSchemeHandler,
+        install: HatsInstall? = nil
     ) {
         self.layout = layout
         store = ProfileStore(layout: layout)
@@ -43,6 +45,7 @@ public struct Doctor: Sendable {
         self.credentials = credentials
         self.environment = environment
         self.urlSchemeHandler = urlSchemeHandler
+        self.install = install
     }
 
     #if canImport(CoreServices)
@@ -72,6 +75,7 @@ public struct Doctor: Sendable {
 
     private func environmentFindings() -> [Finding] {
         var findings: [Finding] = []
+        if let install { findings.append(installFinding(install)) }
         do {
             let app = try ClaudeApp.locate(layout: layout, environment: environment)
             findings.append(Finding(.ok, "claude-app", "Claude Desktop \(app.version ?? "(unknown version)") at \(app.url.plainPath)"))
@@ -104,6 +108,12 @@ public struct Doctor: Sendable {
 
     /// Browser sign-ins come back as a `claude://` link to whichever app owns
     /// the scheme. hats never changes that registration.
+    private func installFinding(_ install: HatsInstall) -> Finding {
+        let channel = InstallChannel.detect(executable: install.executable, layout: layout)
+        let upgrade = channel.upgradeCommand(home: layout.home.plainPath).map { "; upgrade with: \($0)" } ?? ""
+        return Finding(.ok, "install", "hats \(install.version) at \(install.executable.plainPath), \(channel.installedWith)\(upgrade)")
+    }
+
     private func signInHandlerFinding() -> Finding {
         guard let handler = urlSchemeHandler("claude") else {
             return Finding(
@@ -193,6 +203,15 @@ public struct Doctor: Sendable {
             return [
                 Finding(
                     .fail, check, "launcher points to a missing hats binary (\(launcher.marker.hatsPath))",
+                    hint: "run: hats launcher rebuild")
+            ]
+        }
+        if let target = install?.launcherTarget,
+            URL(filePath: launcher.marker.hatsPath).canonicalPath != URL(filePath: target).canonicalPath
+        {
+            return [
+                Finding(
+                    .warn, check, "launcher calls \(launcher.marker.hatsPath) instead of \(target)",
                     hint: "run: hats launcher rebuild")
             ]
         }
