@@ -101,6 +101,8 @@ only for a command or flag that names it: launcher copies (`add --desktop`,
   Nothing is written, and the Dock isn't restarted, when nothing changes.
 - Claude processes are only ever asked to quit, as Cmd-Q does. hats never kills
   them.
+- Commands that remove or quit things (`rm`, `reset`, `dedupe`) have no
+  one-letter shortcut, so running one always means typing its name.
 - Profile names match `[a-z0-9][a-z0-9-]{0,31}`, and every recursive delete
   checks that its target is strictly inside the profile's own directory.
 

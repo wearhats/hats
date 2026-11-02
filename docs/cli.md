@@ -33,8 +33,8 @@ things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 | `hats x` | `hats exec` |
 | `hats f` | `hats focus` |
 
-Commands that remove or quit things (`rm`, `reset`, `dedupe`) have no
-single-letter shortcut, so a typo can't reach them.
+`rm`, `reset` and `dedupe` remove or quit things, so they have no one-letter
+shortcut.
 
 ## Environment
 
