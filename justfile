@@ -49,8 +49,9 @@ package *build_args:
     # Before the first commit package.sh has no commit time to fall back on.
     SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct 2>/dev/null || date +%s)} \
       scripts/package.sh "$bin" dist/release
-    HATS_BASE_URL="file://$PWD/dist/release" HATS_INSTALL_DIR="$PWD/dist/bin" sh scripts/install.sh
+    HATS_BASE_URL="file://$PWD/dist/release" HATS_INSTALL_DIR="$PWD/dist/bin" HATS_HOME="$PWD/dist/hats-home" sh scripts/install.sh
     dist/bin/hats --version
+    grep -q "\"path\":\"$PWD/dist/bin/hats\"" dist/hats-home/install.json
     scripts/render-formula.sh wearhats/hats 0.0.0 "$(cut -d' ' -f1 dist/release/SHA256SUMS)" > dist/hats.rb
     ruby -c dist/hats.rb
 

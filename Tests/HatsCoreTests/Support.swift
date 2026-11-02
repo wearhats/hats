@@ -28,11 +28,12 @@ struct Sandbox {
     func doctor(
         processes: any ProcessTable = FakeProcessTable(),
         credentials: any CredentialProbe = FakeCredentialProbe(),
-        claudeURLHandler: URL? = nil
+        claudeURLHandler: URL? = nil,
+        install: HatsInstall? = nil
     ) -> Doctor {
         Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
-            urlSchemeHandler: { _ in claudeURLHandler })
+            urlSchemeHandler: { _ in claudeURLHandler }, install: install)
     }
 
     /// Never registers bundles with the real Launch Services database.
@@ -51,6 +52,19 @@ struct Sandbox {
         let url = root.appending(path: relativePath, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
+    }
+
+    func makeExecutable(_ relativePath: String) throws -> URL {
+        let url = root.appending(path: relativePath, directoryHint: .notDirectory)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("#!/bin/sh\n".utf8).write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.plainPath)
+        return url
+    }
+
+    func writeReceipt(_ contents: String) throws {
+        try FileManager.default.createDirectory(at: layout.hatsHome, withIntermediateDirectories: true)
+        try Data(contents.utf8).write(to: layout.installReceipt)
     }
 
     func cleanUp() {

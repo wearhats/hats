@@ -5,13 +5,18 @@
 #   curl -fsSL https://wearhats.dev/install.sh | sh
 #   sh install.sh --version v0.2.0 --dir /usr/local/bin
 #
-# Installs to ~/.local/bin by default. Never uses sudo and never edits shell
-# startup files.
+# Installs to ~/.local/bin by default and records the install path in
+# $HATS_HOME/install.json, so `hats doctor` can name the upgrade command.
+# Never uses sudo and never edits shell startup files.
 set -eu
 
 fail() {
   echo "hats install: $*" >&2
   exit 1
+}
+
+json_string() {
+  printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
 }
 
 usage() {
@@ -21,7 +26,7 @@ Usage: install.sh [--version vX.Y.Z] [--dir DIR]
   --version  Release tag to install (default: latest)
   --dir      Install directory (default: ~/.local/bin)
 
-Environment: HATS_VERSION, HATS_INSTALL_DIR, HATS_REPO, HATS_BASE_URL
+Environment: HATS_VERSION, HATS_INSTALL_DIR, HATS_REPO, HATS_BASE_URL, HATS_HOME
 USAGE
 }
 
@@ -79,14 +84,23 @@ main() {
 
   tar -xzf "$tmp/$asset" -C "$tmp" hats
   mkdir -p "$dir"
+  dir=$(cd "$dir" && pwd -P)
   install -m 0755 "$tmp/hats" "$dir/hats"
-  echo "Installed $("$dir/hats" --version) to $dir/hats"
+  installed=$("$dir/hats" --version)
+  echo "Installed $installed to $dir/hats"
+
+  # Tells `hats doctor` which command upgrades this copy.
+  hats_home=${HATS_HOME:-$HOME/Library/Application Support/hats}
+  mkdir -p "$hats_home"
+  printf '{"installer":"install.sh","path":%s,"version":%s}\n' \
+    "$(json_string "$dir/hats")" "$(json_string "$installed")" >"$hats_home/install.json"
 
   case ":$PATH:" in
     *":$dir:"*) ;;
     *) echo "Add it to your PATH, for example: echo 'export PATH=\"$dir:\$PATH\"' >> ~/.zshrc" ;;
   esac
   echo "Get started: hats setup"
+  echo "Upgrade later by running this script again; hats doctor shows the exact command."
   echo "Moved hats from another install? Point existing launchers at this one: hats launcher rebuild"
 }
 

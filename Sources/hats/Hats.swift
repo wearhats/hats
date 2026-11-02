@@ -78,7 +78,11 @@ struct Context {
         if let onPath = ExecutableLocator.find("hats", environment: environment) {
             return onPath.plainPath
         }
-        return URL(filePath: CommandLine.arguments[0]).standardizedFileURL.resolvingSymlinksInPath().plainPath
+        return runningExecutable().plainPath
+    }
+
+    func runningExecutable() -> URL {
+        (Bundle.main.executableURL ?? URL(filePath: CommandLine.arguments[0])).standardizedFileURL.resolvingSymlinksInPath()
     }
 }
 

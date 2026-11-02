@@ -38,6 +38,8 @@ Nothing else is written: never Claude.app, `~/Library/Application Support/Claude
 | Process table (`KERN_PROC_ALL`: PID, parent, start time, kernel name) | instance discovery |
 | Argv and environment block of candidate processes (`KERN_PROCARGS2`); only argv and `CLAUDE_CONFIG_DIR` are kept, other variables are skipped as raw bytes | profile attribution |
 | Keychain attribute query for `Claude Code-credentials[-<hash>]` (`kSecReturnAttributes`, never data) | CLI login present or not |
+| `$HATS_HOME/install.json`, a receipt `install.sh` writes with the path it installed to; hats never writes it | doctor names the upgrade command |
+| The path of the running `hats` binary, and of the `hats` on `PATH` | doctor: install channel, launchers that call another `hats` |
 | hats' own environment (`HOME`, `PATH`, `HATS_*`, `CLAUDE_CONFIG_DIR`, `NO_COLOR`) | configuration |
 | Names and allocated sizes of files under each profile's Claude dirs, the stock dirs, and adopted config dirs (file metadata only, contents never opened) | `ls --size` disk usage |
 

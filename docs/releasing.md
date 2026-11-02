@@ -70,12 +70,16 @@ Each GitHub Release carries:
 
 ## Upgrades and uninstall
 
-- `brew upgrade hats`, or re-run the install script.
+- `brew upgrade hats`, or re-run the install script. hats doesn't check for
+  updates. `hats doctor` names the upgrade command: Homebrew installs are
+  recognized by their `Cellar` path, script installs by the
+  `$HATS_HOME/install.json` receipt that `install.sh` writes.
 - Launchers record the `hats` path they call. Homebrew's
   `$(brew --prefix)/bin/hats` symlink and `~/.local/bin/hats` stay the same
   across upgrades, so launchers keep working. After moving between channels,
-  `hats launcher rebuild` repoints them; doctor fails on a launcher whose
-  `hats` is missing.
+  `hats launcher rebuild` repoints them. Doctor fails on a launcher whose
+  `hats` is missing, and warns on one that calls a different `hats` from the
+  one on `PATH`.
 - Uninstall: `hats rm --all --purge` (optional), then `brew uninstall hats` or
   `rm ~/.local/bin/hats`, then remove `~/Applications/Hats`.
 
