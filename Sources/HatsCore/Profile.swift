@@ -113,6 +113,7 @@ public struct ProfileMetadata: Codable, Equatable, Sendable {
     public var externalCodeDir: String?
     /// Absent in profiles written before icons existed; they keep the letter.
     public var icon: LauncherIcon?
+    public var shortcut: ProfileName?
 
     public init(label: String, color: ProfileColor, createdAt: Date, externalCodeDir: String? = nil, icon: LauncherIcon? = nil) {
         schemaVersion = Self.currentSchemaVersion
@@ -133,6 +134,7 @@ public struct Profile: Equatable, Sendable {
     public let createdAt: Date?
     public let codeDirIsExternal: Bool
     public var icon: LauncherIcon = .letter
+    public var shortcut: ProfileName? = nil
 
     public var isDefault: Bool { name.isDefault }
 

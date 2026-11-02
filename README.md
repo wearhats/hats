@@ -96,6 +96,7 @@ script; `hats doctor` shows the command for your install. More in
 ```sh
 hats setup                         # guided: adopt existing dirs, add your other account
 hats add personal --pin            # profile + launcher in ~/Applications/Hats, pinned to the Dock
+hats add work --shortcut w         # then hats run w works like hats run work
 hats open personal                 # or click the launcher; hats open --all opens every profile
 hats run personal                  # claude CLI on the personal account (then /login once)
 hats ps                            # every running Claude, across accounts

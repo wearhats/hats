@@ -16,7 +16,10 @@ struct PS: ParsableCommand {
 
     func run() throws {
         let context = Context()
-        let filter = try profile.map { try ProfileName($0) }
+        let filter = try profile.map { raw in
+            let name = try ProfileName(raw)
+            return (try? context.profile(raw))?.name ?? name
+        }
         let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
             .filter { filter == nil || $0.profile == filter }
         if json { return try Output.printJSON(instances) }

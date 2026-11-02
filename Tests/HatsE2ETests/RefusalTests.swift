@@ -34,6 +34,32 @@ struct Refusal: Sendable, CustomTestStringConvertible {
             try sandbox.addProfile("work", label: "Work")
             return ["add", "t1", "--label", "WORK"]
         },
+        Refusal("add: invalid shortcut", exit: 64, stderr: "invalid shortcut 'W'", argv: ["add", "t1", "--shortcut", "W"]),
+        Refusal(
+            "add: shortcut and no shortcut", exit: 64, stderr: "--shortcut or --no-shortcut",
+            argv: ["add", "t1", "--shortcut", "w", "--no-shortcut"]),
+        Refusal(
+            "add: shortcut is default", exit: 64, stderr: "'default' can't be a shortcut", argv: ["add", "t1", "--shortcut", "default"]),
+        Refusal("add: shortcut is another name", exit: 1, stderr: "is the name of profile 'work'") { sandbox in
+            try sandbox.addProfile("work")
+            return ["add", "t1", "--shortcut", "work"]
+        },
+        Refusal("add: shortcut taken", exit: 1, stderr: "already used by profile 'work'") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["add", "t1", "--shortcut", "w"]
+        },
+        Refusal("add: name is another profile's shortcut", exit: 1, stderr: "is the shortcut of profile 'work'") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["add", "w"]
+        },
+        Refusal("reset: shortcut", exit: 64, stderr: "this command takes the full name: work") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["reset", "w", "--yes"]
+        },
+        Refusal("rm: shortcut", exit: 64, stderr: "this command takes the full name: work") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["rm", "w", "--purge", "--yes"]
+        },
         Refusal("add: adopted dir is missing", exit: 1, stderr: "is not an existing directory") { sandbox in
             ["add", "t1", "--code-dir", "\(sandbox.root)/missing"]
         },

@@ -62,7 +62,7 @@ executable there.
 $HATS_HOME = ~/Library/Application Support/hats
   profiles/
     <name>/
-      profile.json                # {schemaVersion, label, color, icon?, createdAt, externalCodeDir?}
+      profile.json                # {schemaVersion, label, color, icon?, shortcut?, createdAt, externalCodeDir?}
       desktop/                    # Electron --user-data-dir (Claude-owned)
       code/                       # CLAUDE_CONFIG_DIR       (Claude-owned; absent when adopted)
 ~/Applications/Hats/

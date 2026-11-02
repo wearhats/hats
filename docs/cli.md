@@ -6,8 +6,8 @@ things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 | Command | Summary |
 |---|---|
 | `hats setup` | Guided first run: adopt hand-made `~/.claude-*` dirs, add a profile for the other account, optionally pin it, copy it to the Desktop and open it to sign in. Prints the equivalent command for each step. |
-| `hats add <name> [--label L] [--color NAME|#RRGGBB] [--icon letter\|briefcase\|person] [--code-dir DIR] [--desktop] [--pin] [--open]` | Create a profile and its launcher. Idempotent: re-running rebuilds the launcher and keeps data. Labels are unique across profiles, ignoring case. `--color` takes blue, green, red, purple, orange, teal, pink, brown or a hex value. `--code-dir` adopts an existing `CLAUDE_CONFIG_DIR` (such as `~/.claude-work`), which hats never deletes. While another profile's `profile.json` cannot be read, this refuses and names that profile, since the label and adopted-dir checks can't finish; `setup` does the same. |
-| `hats ls [--json] [--size]` | List profiles (`default` included): running instances, Desktop sign-in, CLI login, the CLI account (email and organization), launcher state. `--size` adds disk usage. Profiles whose `profile.json` cannot be read are left out, with a warning for each on stderr; `hats doctor` names them. |
+| `hats add <name> [--label L] [--color NAME|#RRGGBB] [--icon letter\|briefcase\|person] [--code-dir DIR] [--shortcut S\|--no-shortcut] [--desktop] [--pin] [--open]` | Create a profile and its launcher. Idempotent: re-running rebuilds the launcher and keeps data. Labels are unique across profiles, ignoring case. `--color` takes blue, green, red, purple, orange, teal, pink, brown or a hex value. `--code-dir` adopts an existing `CLAUDE_CONFIG_DIR` (such as `~/.claude-work`), which hats never deletes. `--shortcut` sets a short name for the profile (see below). While another profile's `profile.json` cannot be read, this refuses and names that profile, since the label and adopted-dir checks can't finish; `setup` does the same. |
+| `hats ls [--json] [--size]` | List profiles (`default` included), with any shortcut beside the name: running instances, Desktop sign-in, CLI login, the CLI account (email and organization), launcher state. `--size` adds disk usage. Profiles whose `profile.json` cannot be read are left out, with a warning for each on stderr; `hats doctor` names them. |
 | `hats open <name…> \| --all` | Focus each profile's Desktop instance, or launch it. `default` opens stock Claude.app; `--all` opens every other profile. If a running instance can't be brought forward, `open` fails with a hint instead of starting a second instance on the same data dir. |
 | `hats run <name> [-- claude-args…]` | `exec claude` with `CLAUDE_CONFIG_DIR` set. |
 | `hats exec <name> -- <cmd…>` | Run any command with the profile's env. |
@@ -35,6 +35,19 @@ things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 
 `rm`, `reset` and `dedupe` remove or quit things, so they have no one-letter
 shortcut.
+
+## Profile shortcuts
+
+`hats add work --shortcut w` lets `w` stand in for `work` wherever a command takes
+a profile: `hats run w`, `hats r w`, `hats open w`, `hats ps --profile w`. Run it again with
+another value to change the shortcut, or with `--no-shortcut` to remove it.
+
+A shortcut uses the same characters as a profile name, and means one profile
+only: `add` refuses a shortcut that is another profile's name or shortcut, and a
+new profile named after an existing shortcut. `default` has no shortcut.
+
+`rm` and `reset` take the full name, so removing a profile always means typing
+its name.
 
 ## Environment
 

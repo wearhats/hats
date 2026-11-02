@@ -10,6 +10,11 @@ public struct UnreadableProfile: Sendable {
     public let error: HatsError
 }
 
+public enum ShortcutChange: Sendable {
+    case set(ProfileName)
+    case clear
+}
+
 public struct ProfileStore: Sendable {
     public let layout: Layout
 
@@ -73,12 +78,42 @@ public struct ProfileStore: Sendable {
         return try load(name)
     }
 
+    /// What a person typed: a profile's name or, failing that, its shortcut.
+    public func profile(matching raw: String) throws(HatsError) -> Profile {
+        let name = try ProfileName(raw)
+        if exists(name) { return try profile(named: name) }
+        let known = try inventory()
+        let owners = known.profiles.filter { $0.shortcut == name }
+        // Only a hand-edited profile.json gets here. Picking one could run a
+        // command on the wrong account.
+        guard owners.count <= 1 else {
+            let names = owners.map { "'\($0.name)'" }.joined(separator: ", ")
+            throw HatsError(.conflict, "the shortcut '\(name)' is claimed by \(names)", hint: "use the full name")
+        }
+        if let owner = owners.first { return owner }
+        if let broken = known.unreadableProfiles.first {
+            throw cannotCheck("cannot check whether '\(name)' is a shortcut", because: broken)
+        }
+        return try profile(named: name)
+    }
+
+    /// For commands that discard data, so doing that always means typing the name.
+    public func profile(fullName raw: String) throws(HatsError) -> Profile {
+        let name = try ProfileName(raw)
+        if !exists(name), let owner = try? profile(matching: raw) {
+            throw HatsError(
+                .usage, "'\(name)' is the shortcut of profile '\(owner.name)'",
+                hint: "this command takes the full name: \(owner.name)")
+        }
+        return try profile(named: name)
+    }
+
     public func exists(_ name: ProfileName) -> Bool {
         name.isDefault || FileManager.default.fileExists(atPath: layout.metadataFile(name).plainPath)
     }
 
     /// Idempotent: an existing profile keeps its data, and only the given
-    /// label, colour, icon or adopted code dir is updated.
+    /// label, colour, icon, shortcut or adopted code dir is updated.
     @discardableResult
     public func create(
         _ name: ProfileName,
@@ -86,6 +121,7 @@ public struct ProfileStore: Sendable {
         color: ProfileColor? = nil,
         adoptingCodeDir externalCodeDir: URL? = nil,
         icon: LauncherIcon? = nil,
+        shortcut: ShortcutChange? = nil,
         now: Date = Date()
     ) throws(HatsError) -> (profile: Profile, created: Bool) {
         guard !name.isDefault else {
@@ -102,7 +138,13 @@ public struct ProfileStore: Sendable {
         if let icon { metadata.icon = icon }
         if let color { metadata.color = color }
         if let externalCodeDir { metadata.externalCodeDir = externalCodeDir.plainPath }
+        switch shortcut {
+        case .set(let value)?: metadata.shortcut = value
+        case .clear?: metadata.shortcut = nil
+        case nil: break
+        }
         try requireUnique(label: metadata.label, for: name)
+        try requireUnambiguous(name: name, shortcut: metadata.shortcut)
 
         do {
             var ownedDirs = [layout.desktopDir(name)]
@@ -163,6 +205,29 @@ public struct ProfileStore: Sendable {
         }
     }
 
+    /// Names and shortcuts share one lookup, and a name wins it. Without this,
+    /// a later `hats add w` would silently move `hats run w` to another account.
+    private func requireUnambiguous(name: ProfileName, shortcut: ProfileName?) throws(HatsError) {
+        let others = try inventory().profiles.filter { !$0.isDefault && $0.name != name }
+        if let owner = others.first(where: { $0.shortcut == name }) {
+            throw HatsError(
+                .conflict, "'\(name)' is the shortcut of profile '\(owner.name)'",
+                hint: "pick another name, or free it with: hats add \(owner.name) --no-shortcut")
+        }
+        guard let shortcut else { return }
+        guard !shortcut.isDefault else {
+            throw HatsError(.usage, "'default' can't be a shortcut: it always means the stock Claude install")
+        }
+        if let owner = others.first(where: { $0.name == shortcut }) {
+            throw HatsError(.conflict, "the shortcut '\(shortcut)' is the name of profile '\(owner.name)'")
+        }
+        if let owner = others.first(where: { $0.shortcut == shortcut }) {
+            throw HatsError(
+                .conflict, "the shortcut '\(shortcut)' is already used by profile '\(owner.name)'",
+                hint: "free it with: hats add \(owner.name) --no-shortcut")
+        }
+    }
+
     /// Refusing is the only safe answer while a profile cannot be read: its
     /// label and adopted dir are unknown, so it may already own what is claimed.
     private func cannotCheck(_ check: String, because broken: UnreadableProfile) -> HatsError {
@@ -212,7 +277,8 @@ public struct ProfileStore: Sendable {
             codeDir: metadata.externalCodeDir.map { URL(filePath: $0, directoryHint: .isDirectory) } ?? layout.codeDir(name),
             createdAt: metadata.createdAt,
             codeDirIsExternal: metadata.externalCodeDir != nil,
-            icon: metadata.icon ?? .letter
+            icon: metadata.icon ?? .letter,
+            shortcut: metadata.shortcut
         )
     }
 

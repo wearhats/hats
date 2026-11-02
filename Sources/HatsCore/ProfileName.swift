@@ -19,6 +19,16 @@ public struct ProfileName: Hashable, Comparable, Sendable, CustomStringConvertib
         self.rawValue = rawValue
     }
 
+    /// A shortcut shares a name's alphabet because both are typed in the same
+    /// place and looked up together.
+    public init(shortcut raw: String) throws(HatsError) {
+        do {
+            try self.init(raw)
+        } catch {
+            throw HatsError(.usage, "invalid shortcut '\(raw)'", hint: error.hint)
+        }
+    }
+
     private init(unchecked rawValue: String) {
         self.rawValue = rawValue
     }
