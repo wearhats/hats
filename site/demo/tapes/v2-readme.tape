@@ -2,13 +2,13 @@
 # V2, README GIF: add a profile, then ls, then ps. 25s, 800px wide, 3 MB at most.
 Source tapes/settings.tape
 Output out/v2-readme.gif
+Set Width 800
 
 Hide
-Type "export PS1='$ '; clear"
+Type "[ -n \"$HATS_TEST_SANDBOX\" ] || exit 1; export PS1='$ '; clear"
 Enter
 Show
 
-Set Width 800
 
 Type "hats add personal"
 Sleep 400ms
