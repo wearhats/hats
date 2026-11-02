@@ -35,7 +35,7 @@ struct ProfileShortcutTests {
 
         let rows = try #require(try JSONSerialization.jsonObject(with: Data(result.stdout.utf8)) as? [[String: Any]], "\(result)")
         #expect(rows.first { $0["name"] as? String == "work" }?["shortcut"] as? String == "w", "\(result)")
-        #expect(rows.first { $0["name"] as? String == "other" }?["shortcut"] == nil, "\(result)")
+        #expect(rows.first { $0["name"] as? String == "other" }?["shortcut"] is NSNull, "\(result)")
     }
 
     @Test func lsTableShowsTheShortcutBesideTheName() throws {

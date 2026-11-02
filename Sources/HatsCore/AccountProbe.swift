@@ -29,6 +29,16 @@ public struct AccountInfo: Codable, Equatable, Sendable {
 
     /// The account to compare across profiles, preferring Desktop's.
     public var accountID: String? { desktop == .signedIn ? desktopAccountID ?? codeAccountID : codeAccountID }
+
+    /// Part of the `--json` contract: a missing value prints as `null`.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(desktop, forKey: .desktop)
+        try container.encode(desktopAccountID, forKey: .desktopAccountID)
+        try container.encode(codeAccountID, forKey: .codeAccountID)
+        try container.encode(codeEmail, forKey: .codeEmail)
+        try container.encode(codeOrganization, forKey: .codeOrganization)
+    }
 }
 
 public struct AccountProbe: Sendable {
