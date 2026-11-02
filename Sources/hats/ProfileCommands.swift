@@ -387,9 +387,12 @@ struct Launcher: ParsableCommand {
                 names.isEmpty
                 ? try context.readableProfiles().filter { !$0.isDefault }
                 : try names.map { try context.profile($0) }
+            guard !targets.contains(where: \.isDefault) else {
+                throw HatsError(.usage, "the default profile is launched by Claude.app itself")
+            }
             let builder = context.launchers
             let hatsPath = context.hatsExecutablePath()
-            for profile in targets where !profile.isDefault {
+            for profile in targets {
                 print("Rebuilt \(try builder.build(for: profile, hatsPath: hatsPath).plainPath)")
             }
         }
