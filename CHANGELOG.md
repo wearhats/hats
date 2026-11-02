@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [SemVer](https://semver.org/).
 
+## 0.1.0 (2026-11-02)
+
+
+### Features
+
+* initial public release of hats ([10c6b91](https://github.com/wearhats/hats/commit/10c6b9187ee6703b1d5a25687a5abdaae4261ff0))
+* show how to upgrade in hats doctor ([#8](https://github.com/wearhats/hats/issues/8)) ([557c53a](https://github.com/wearhats/hats/commit/557c53a793454007c93b500901ad95ee328964c4))
+* warn when a newer release is available ([#9](https://github.com/wearhats/hats/issues/9)) ([d9bc6c3](https://github.com/wearhats/hats/commit/d9bc6c31c7bda40fb27c968ce7463d04f1579c23))
+
+
+### Bug Fixes
+
+* harden release packaging and correct the provenance claim ([#10](https://github.com/wearhats/hats/issues/10)) ([59c274d](https://github.com/wearhats/hats/commit/59c274d5b3920884fdd6d711185f6f3e407f814c))
+
 ## [Unreleased]
 
 ### Added
