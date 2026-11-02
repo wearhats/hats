@@ -1,5 +1,6 @@
 import AppKit
-import Darwin
+import CoreServices
+@preconcurrency import Darwin
 import Foundation
 
 // A stand-in for a running Claude, for the end-to-end tests. hats tells processes
@@ -13,6 +14,9 @@ import Foundation
 //   HATS_FAKE_TIMESTAMPS  procStart, startedAt, both (default) or none
 //   HATS_FAKE_STALE       seconds to shift those timestamps into the past
 //   HATS_FAKE_SPAWN       a program to start as a child, sharing stdin and stdout
+//   HATS_FAKE_PROBE       lookup:<mach service>, apple-event or register:<app path>.
+//                         Prints the call's status and exits, instead of all of the
+//                         below, so the guard's tests can see what its rules deny.
 //
 // Prints `ready <pid>` once set up, then blocks on stdin and exits at EOF, so a
 // crashed test process takes its fakes down with it. A host outlives its child, so
@@ -49,6 +53,43 @@ let pid = getpid()
     exit(0)
 }
 
+/// Swift doesn't import `servers/bootstrap.h`.
+@_silgen_name("bootstrap_look_up")
+func bootstrapLookUp(_ bootstrap: mach_port_t, _ service: UnsafePointer<CChar>, _ port: UnsafeMutablePointer<mach_port_t>) -> kern_return_t
+
+/// `ascr/gdte`, spelled as its four-char codes because Swift doesn't import them, asks
+/// for an app's scripting dictionary. It changes nothing and raised no Automation
+/// prompt when measured, unlike an event that drives the app.
+func sendReadOnlyAppleEvent() -> OSStatus {
+    var target = AEAddressDesc()
+    var event = AppleEvent()
+    var reply = AppleEvent()
+    let bundleID = Array("com.apple.finder".utf8)
+    guard AECreateDesc(DescType(typeApplicationBundleID), bundleID, bundleID.count, &target) == noErr,
+        AECreateAppleEvent(
+            AEEventClass(0x6173_6372), AEEventID(0x6764_7465), &target, AEReturnID(kAutoGenerateReturnID),
+            AETransactionID(kAnyTransactionID), &event) == noErr
+    else { fatalError("hats-e2e-fake: couldn't build the Apple event") }
+    return AESendMessage(&event, &reply, AESendMode(kAEWaitReply), 300)
+}
+
+func runProbe(_ probe: String) -> Never {
+    let status: Int32
+    if probe == "apple-event" {
+        status = sendReadOnlyAppleEvent()
+    } else if probe.hasPrefix("lookup:") {
+        var port = mach_port_t()
+        status = bootstrapLookUp(bootstrap_port, String(probe.dropFirst("lookup:".count)), &port)
+    } else if probe.hasPrefix("register:") {
+        status = LSRegisterURL(URL(filePath: String(probe.dropFirst("register:".count))) as CFURL, true)
+    } else {
+        fatalError("hats-e2e-fake: unknown probe \(probe)")
+    }
+    print(status)
+    exit(0)
+}
+
+if let probe = environment["HATS_FAKE_PROBE"] { runProbe(probe) }
 if Bundle.main.bundleIdentifier == "dev.wearhats.e2e.fake-claude" { runAsApp() }
 
 func kernelStartTime() -> Date {

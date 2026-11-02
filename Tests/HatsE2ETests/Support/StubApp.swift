@@ -30,7 +30,7 @@ func waitUntil<T>(_ what: String, timeoutSeconds: TimeInterval = 20, _ value: ()
 /// Claude's ID or `claude://` could take over for the real one.
 final class StubApp {
     static let bundleID = "dev.wearhats.e2e.fake-claude"
-    private static let lsregister =
+    static let lsregister =
         "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
     let path: String

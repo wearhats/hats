@@ -119,4 +119,26 @@ struct DisposableHostTests {
         #expect(report.arguments == ["--user-data-dir=\(profile)/desktop"])
         #expect(report.configDir == "\(profile)/code")
     }
+
+    /// The other guard rules can be proved anywhere, but a failure of this one would
+    /// write to Launch Services, so it's only proved on a machine that gets thrown away.
+    @Test func theGuardStopsARealRegistration() throws {
+        let sandbox = try E2ESandbox()
+        let stub = try StubApp(at: "\(sandbox.root)/GuardDecoy.app", in: sandbox)
+        defer { #expect(throws: Never.self) { try stub.stopEverything() } }
+        let fake = try FakeBinary.path()
+        let register = ["HATS_FAKE_PROBE": "register:\(stub.path)"]
+        func isRegistered() throws -> Bool {
+            try CommandRunner.run(executable: StubApp.lsregister, arguments: ["-dump"], environment: [:]).stdout.contains(stub.path)
+        }
+        #expect(try !isRegistered())
+
+        let guarded = try sandbox.guarded(fake, [], environment: register)
+        #expect(guarded.exit == 0, "\(guarded)")
+        #expect(try !isRegistered(), "\(guarded)")
+
+        let unguarded = try CommandRunner.run(executable: fake, arguments: [], environment: register)
+        #expect(unguarded.stdout.hasPrefix("0"), "\(unguarded)")
+        _ = try waitUntil("the unguarded registration to show up") { try isRegistered() ? true : nil }
+    }
 }

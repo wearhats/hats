@@ -133,6 +133,38 @@ struct GuardTests {
         #expect(guarded.exit == 7, "\(guarded)")
     }
 
+    private func probe(_ probe: String, guardedIn sandbox: E2ESandbox?) throws -> String {
+        let fake = try FakeBinary.path()
+        let environment = ["HATS_FAKE_PROBE": probe]
+        let result =
+            try sandbox?.guarded(fake, [], environment: environment)
+            ?? CommandRunner.run(executable: fake, arguments: [], environment: environment)
+        #expect(result.exit == 0, "\(result)")
+        return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// `1100` is `BOOTSTRAP_NOT_PRIVILEGED`.
+    @Test func guardBlocksTheServiceThatWritesLaunchServices() throws {
+        let sandbox = try E2ESandbox()
+        let service = "lookup:com.apple.lsd.modifydb"
+
+        #expect(try probe(service, guardedIn: nil) == "0")
+        #expect(try probe(service, guardedIn: sandbox) == "1100")
+    }
+
+    @Test func guardLeavesTheServiceThatReadsLaunchServices() throws {
+        #expect(try probe("lookup:com.apple.lsd.mapdb", guardedIn: try E2ESandbox()) == "0")
+    }
+
+    /// `-600` is `procNotFound`, which would also mean Finder isn't running, so the
+    /// same event has to reach it without the guard.
+    @Test func guardBlocksAppleEvents() throws {
+        let sandbox = try E2ESandbox()
+
+        #expect(try probe("apple-event", guardedIn: nil) == "0")
+        #expect(try probe("apple-event", guardedIn: sandbox) == "-600")
+    }
+
     @Test func guardLetsAProcessSignalItself() throws {
         let sandbox = try E2ESandbox()
 
