@@ -19,6 +19,15 @@ public struct Finding: Codable, Equatable, Sendable {
         self.message = message
         self.hint = hint
     }
+
+    /// Part of the `--json` contract: a missing value prints as `null`.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(level, forKey: .level)
+        try container.encode(check, forKey: .check)
+        try container.encode(message, forKey: .message)
+        try container.encode(hint, forKey: .hint)
+    }
 }
 
 /// Read-only health checks. Never writes anything.

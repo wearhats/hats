@@ -36,6 +36,22 @@ public struct Instance: Codable, Equatable, Sendable {
     public let dataDir: String
     /// Desktop only: the `CLAUDE_CONFIG_DIR` handed to it, `nil` when absent.
     public let configDir: String?
+
+    /// Part of the `--json` contract: a missing value prints as `null`.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(profile, forKey: .profile)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(pid, forKey: .pid)
+        try container.encode(startedAt, forKey: .startedAt)
+        try container.encode(status, forKey: .status)
+        try container.encode(name, forKey: .name)
+        try container.encode(cwd, forKey: .cwd)
+        try container.encode(sessionId, forKey: .sessionId)
+        try container.encode(version, forKey: .version)
+        try container.encode(dataDir, forKey: .dataDir)
+        try container.encode(configDir, forKey: .configDir)
+    }
 }
 
 public struct InstanceScan: Sendable {

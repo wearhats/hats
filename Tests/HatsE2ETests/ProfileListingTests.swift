@@ -87,3 +87,55 @@ struct ProfileListingTests {
         #expect(result.stdout.split(separator: "\n").contains { $0.hasPrefix("work") && $0.hasSuffix("missing") }, "\(result)")
     }
 }
+
+/// Every key always appears, with `null` for no value. Exact key sets also catch a
+/// field forgotten in a hand-written encoder. Adding a key is fine and means
+/// updating these; renaming or removing one breaks scripts.
+@Suite("JSON contract", .tags(.e2e))
+struct JSONContractTests {
+    private let listKeys: Set<String> = [
+        "name", "shortcut", "label", "color", "icon", "desktopDir", "codeDir", "launcher", "cliLogin", "account", "runningDesktop",
+        "runningSessions", "diskBytes",
+    ]
+    private let accountKeys: Set<String> = ["desktop", "desktopAccountID", "codeAccountID", "codeEmail", "codeOrganization"]
+    private let findingKeys: Set<String> = ["level", "check", "message", "hint"]
+
+    @Test func lsAlwaysPrintsEveryKey() throws {
+        let sandbox = try E2ESandbox()
+        let rows = try sandbox.json(try sandbox.hats(["ls", "--json"]))
+
+        let row = try #require(rows.first)
+        #expect(Set(row.keys) == listKeys)
+        #expect(row["launcher"] is NSNull)
+        #expect(row["diskBytes"] is NSNull)
+        #expect(row["shortcut"] is NSNull)
+        let account = try #require(row["account"] as? [String: Any])
+        #expect(Set(account.keys) == accountKeys)
+        #expect(account["codeEmail"] is NSNull)
+    }
+
+    @Test func lsValuesHaveTheDocumentedTypes() throws {
+        let sandbox = try E2ESandbox()
+        #expect(try sandbox.hats(["add", "work", "--shortcut", "w"]).exit == 0)
+
+        let rows = try sandbox.json(try sandbox.hats(["ls", "--json", "--size"]))
+
+        let row = try #require(rows.first { $0["name"] as? String == "work" })
+        #expect(Set(row.keys) == listKeys)
+        for key in ["name", "shortcut", "label", "color", "icon", "desktopDir", "codeDir", "launcher", "cliLogin"] {
+            #expect(row[key] is String, "\(key)")
+        }
+        for key in ["runningDesktop", "runningSessions", "diskBytes"] { #expect(row[key] is Int, "\(key)") }
+    }
+
+    @Test func doctorAlwaysPrintsEveryKey() throws {
+        let sandbox = try E2ESandbox()
+
+        let findings = try sandbox.json(try sandbox.hats(["doctor", "--json"]))
+
+        #expect(!findings.isEmpty)
+        for finding in findings { #expect(Set(finding.keys) == findingKeys, "\(finding)") }
+        #expect(findings.contains { $0["hint"] is NSNull })
+        #expect(findings.contains { $0["hint"] is String })
+    }
+}

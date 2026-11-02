@@ -3,6 +3,10 @@
 `hats <command> [options]`. Every command is scriptable. Commands that list
 things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 
+A `--json` object always has every key, with `null` for no value. Keys may be
+added, so scripts should ignore ones they don't know. Renaming or removing a key
+is a breaking change.
+
 | Command | Summary |
 |---|---|
 | `hats setup` | Guided first run: adopt hand-made `~/.claude-*` dirs, add a profile for the other account, optionally pin it, copy it to the Desktop and open it to sign in. Prints the equivalent command for each step. |

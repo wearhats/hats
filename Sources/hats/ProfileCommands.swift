@@ -117,6 +117,29 @@ struct List: ParsableCommand {
         let runningDesktop: Int
         let runningSessions: Int
         let diskBytes: Int64?
+
+        private enum Key: String, CodingKey {
+            case name, shortcut, label, color, icon, desktopDir, codeDir, launcher, cliLogin, account, runningDesktop, runningSessions,
+                diskBytes
+        }
+
+        /// Part of the `--json` contract: a missing value prints as `null`.
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: Key.self)
+            try container.encode(name, forKey: .name)
+            try container.encode(shortcut, forKey: .shortcut)
+            try container.encode(label, forKey: .label)
+            try container.encode(color, forKey: .color)
+            try container.encode(icon, forKey: .icon)
+            try container.encode(desktopDir, forKey: .desktopDir)
+            try container.encode(codeDir, forKey: .codeDir)
+            try container.encode(launcher, forKey: .launcher)
+            try container.encode(cliLogin, forKey: .cliLogin)
+            try container.encode(account, forKey: .account)
+            try container.encode(runningDesktop, forKey: .runningDesktop)
+            try container.encode(runningSessions, forKey: .runningSessions)
+            try container.encode(diskBytes, forKey: .diskBytes)
+        }
     }
 
     func run() throws {

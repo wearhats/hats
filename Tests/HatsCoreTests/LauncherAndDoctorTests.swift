@@ -231,6 +231,36 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
 }
 #endif
 
+/// `--json` objects always carry every key, and the encoders are hand-written to
+/// get that, so a stored property missing from one must fail here.
+@Suite struct JSONEncodingTests {
+    private func keys(of value: some Encodable) throws -> Set<String> {
+        let object = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(value))
+        return Set(try #require(object as? [String: Any]).keys)
+    }
+
+    private func storedProperties(of value: Any) -> Set<String> {
+        Set(Mirror(reflecting: value).children.compactMap(\.label))
+    }
+
+    @Test func aFindingEncodesEveryProperty() throws {
+        let finding = Finding(.ok, "check", "message")
+        #expect(try keys(of: finding) == storedProperties(of: finding))
+    }
+
+    @Test func anAccountEncodesEveryProperty() throws {
+        let account = AccountInfo(desktop: .unknown)
+        #expect(try keys(of: account) == storedProperties(of: account))
+    }
+
+    @Test func anInstanceEncodesEveryProperty() throws {
+        let instance = Instance(
+            profile: nil, kind: .cli, pid: 1, startedAt: Date(timeIntervalSince1970: 0), status: nil, name: nil, cwd: nil,
+            sessionId: nil, version: nil, dataDir: "/d", configDir: nil)
+        #expect(try keys(of: instance) == storedProperties(of: instance))
+    }
+}
+
 @Suite struct AbbreviatingHomeTests {
     private let layout = Layout(environment: ["HOME": "/home/me"])
 
