@@ -18,7 +18,10 @@ within 3 business days.
 - To show sign-in state, hats parses Desktop's `config.json` (which contains
   Desktop's token cache) and Claude Code's `.claude.json` in memory, and keeps
   only key presence, account ID, email and organization name.
-- hats makes no network connections and collects no telemetry.
+- hats collects no telemetry. Its only network request is a daily check of
+  GitHub's latest-release API for an update notice; it sends nothing but the
+  User-Agent, never downloads or installs anything, and `HATS_NO_UPDATE_CHECK=1`
+  turns it off.
 - hats writes only inside its data root (`HATS_HOME`), its launcher directory
   and launcher copies the user asked for. Opt-in exceptions: the Dock
   preference (`dock pin`) and the Trash (`reset`, `rm --purge`). It never
