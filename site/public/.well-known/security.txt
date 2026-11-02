@@ -1,0 +1,5 @@
+Contact: https://github.com/wearhats/hats/security/advisories/new
+Expires: 2027-10-01T00:00:00Z
+Canonical: https://wearhats.dev/.well-known/security.txt
+Policy: https://github.com/wearhats/hats/blob/main/SECURITY.md
+Preferred-Languages: en
