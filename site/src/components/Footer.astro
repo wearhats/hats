@@ -1,0 +1,35 @@
+---
+import { LICENSE_URL, REPO_URL } from '../data/site';
+import { TESTED_WITH } from '../data/release';
+
+const links = [
+  { label: 'GitHub', href: REPO_URL },
+  { label: 'Docs', href: '/docs' },
+  { label: 'Changelog', href: '/changelog' },
+  { label: 'Security', href: '/security' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'License (MIT)', href: LICENSE_URL },
+];
+---
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <ul class="footer-links">
+        {links.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+      </ul>
+    </nav>
+    <p>
+      hats is an independent open-source project. It is not affiliated with, endorsed by or sponsored by Anthropic, PBC.
+      Claude, Claude Code and Anthropic are trademarks of Anthropic, PBC, named here only to describe the software hats
+      works with.
+    </p>
+    <p class="muted">
+      Tested with Claude Desktop {TESTED_WITH.desktop}, Claude Code {TESTED_WITH.code} and macOS {TESTED_WITH.macos}.
+    </p>
+    <p class="muted">
+      This site sets no cookies. It counts visits with self-hosted Umami. <a href="/privacy#this-website">Details</a>
+    </p>
+    <p class="muted">© 2026 The hats authors. Built by Max Novak.</p>
+  </div>
+</footer>

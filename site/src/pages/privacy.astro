@@ -1,0 +1,42 @@
+---
+import { getEntry, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import { DISCUSSIONS_URL, PRIVACY_SOURCE_URL } from '../data/site';
+
+const entry = await getEntry('docs', 'privacy');
+if (!entry) throw new Error('docs/privacy.md is missing');
+const { Content } = await render(entry);
+const title = entry.body?.match(/^# (.+)$/m)?.[1];
+if (!title) throw new Error('docs/privacy.md has no title');
+---
+
+<Base
+  path="/privacy"
+  title="What hats reads and writes on your Mac"
+  description="The complete list of what hats reads, writes and runs on your Mac, and what this website records about visits."
+>
+  <header class="wrap holding-header">
+    <a class="wordmark" href="/">hats</a>
+  </header>
+  <main id="main" class="wrap prose">
+    <h1>{title}</h1>
+    <p class="lede">
+      This is the complete list of what hats reads and writes on your Mac. It comes straight from{' '}
+      <a href={PRIVACY_SOURCE_URL}><code>docs/privacy.md</code></a>, which changes in the same pull request as any code
+      that adds to it.
+    </p>
+    <Content />
+    <h2 id="this-website">This website</h2>
+    <p>
+      This website sets no cookies. It counts visits with <a href="https://umami.is">Umami</a>, self-hosted by the
+      maintainer at <code>umami.maxondev.com</code>: the page, the referring site, and browser, device and country. It
+      uses no cookies and no cross-site tracking, and it respects Do Not Track. The site is hosted on Cloudflare, which
+      processes visitors' IP addresses and request details to serve and protect it. Downloads come from GitHub, under
+      GitHub's terms. None of this applies to the hats tool itself, which has no telemetry. Questions:{' '}
+      <a href={DISCUSSIONS_URL}>GitHub Discussions</a>.
+    </p>
+    <p><a href={PRIVACY_SOURCE_URL}>Source on GitHub</a></p>
+  </main>
+  <Footer />
+</Base>

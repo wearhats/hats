@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import { INSTALL_OPTIONS, REPO_URL, SUBHEAD } from '../data/site';
+---
+
+<Base path="/">
+  <header class="wrap holding-header">
+    <span class="wordmark">hats</span>
+  </header>
+  <main id="main" class="wrap holding">
+    <h1>Wear every hat at once.</h1>
+    <p class="lede">{SUBHEAD}</p>
+
+    <dl class="install-list">
+      {
+        INSTALL_OPTIONS.map(({ label, command }) => (
+          <div>
+            <dt>{label}</dt>
+            <dd>
+              <code tabindex="0">{command}</code>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+
+    <p>Then run <code>hats setup</code>. macOS 14+ · Free, MIT</p>
+    <p>No telemetry. One update check, which you can turn off.</p>
+    <p>Never writes to Claude.app or your default install. <a href="/privacy">See what hats touches →</a></p>
+
+    <nav aria-label="Project">
+      <ul class="footer-links">
+        <li><a href={REPO_URL}>GitHub</a></li>
+        <li><a href="/docs">Docs</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/security">Security</a></li>
+      </ul>
+    </nav>
+
+    <p class="notice">Unofficial community tool. Not affiliated with or endorsed by Anthropic. Built by Max Novak.</p>
+  </main>
+  <Footer />
+</Base>
