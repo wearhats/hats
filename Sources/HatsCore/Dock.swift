@@ -55,15 +55,9 @@ public enum DockChange: Equatable, Sendable {
 public struct DockEditor: Sendable {
     let preferences: any DockPreferences
 
-    #if canImport(AppKit)
-    public init(preferences: any DockPreferences = SystemDockPreferences()) {
-        self.preferences = preferences
-    }
-    #else
     public init(preferences: any DockPreferences) {
         self.preferences = preferences
     }
-    #endif
 
     public func pinnedURLs() -> [URL] {
         preferences.persistentApps().compactMap(Self.url(of:))

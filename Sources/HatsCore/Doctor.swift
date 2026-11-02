@@ -29,14 +29,16 @@ public struct Doctor: Sendable {
     let credentials: any CredentialProbe
     let environment: [String: String]
     let urlSchemeHandler: @Sendable (String) -> URL?
+    let appSearch: ClaudeAppSearch
     let install: HatsInstall?
 
     public init(
         layout: Layout,
         processes: any ProcessTable,
         credentials: any CredentialProbe,
-        environment: [String: String] = ProcessInfo.processInfo.environment,
-        urlSchemeHandler: @escaping @Sendable (String) -> URL? = Doctor.systemURLSchemeHandler,
+        environment: [String: String],
+        urlSchemeHandler: @escaping @Sendable (String) -> URL?,
+        appSearch: ClaudeAppSearch,
         install: HatsInstall? = nil
     ) {
         self.layout = layout
@@ -45,6 +47,7 @@ public struct Doctor: Sendable {
         self.credentials = credentials
         self.environment = environment
         self.urlSchemeHandler = urlSchemeHandler
+        self.appSearch = appSearch
         self.install = install
     }
 
@@ -78,7 +81,7 @@ public struct Doctor: Sendable {
         var findings: [Finding] = []
         if let install { findings.append(installFinding(install)) }
         do {
-            let app = try ClaudeApp.locate(layout: layout, environment: environment)
+            let app = try ClaudeApp.locate(layout: layout, environment: environment, search: appSearch)
             findings.append(Finding(.ok, "claude-app", "Claude Desktop \(app.version ?? "(unknown version)") at \(app.url.plainPath)"))
         } catch {
             findings.append(Finding(.fail, "claude-app", error.message, hint: error.hint))
@@ -219,7 +222,7 @@ public struct Doctor: Sendable {
     }
 
     private func launcherFindings(_ profile: Profile, check: String) -> [Finding] {
-        guard let launcher = LauncherBuilder(layout: layout).status(for: profile.name) else {
+        guard let launcher = LauncherBuilder.reading(layout: layout).status(for: profile.name) else {
             return [Finding(.warn, check, "no launcher", hint: "create it with: hats launcher rebuild \(profile.name)")]
         }
         if !launcher.hatsExecutableExists {

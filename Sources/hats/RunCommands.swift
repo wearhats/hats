@@ -16,7 +16,7 @@ struct Run: ParsableCommand {
     var claudeArguments: [String] = []
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let target = try context.profile(profile.name)
         guard
             let claude = ExecutableLocator.find(
@@ -24,6 +24,7 @@ struct Run: ParsableCommand {
         else {
             throw HatsError(.environment, "claude CLI not found on PATH", hint: "install Claude Code, or set HATS_CLAUDE_BIN")
         }
+        try context.testSandbox?.requireInside(claude.plainPath, what: "the claude CLI")
         try ProcessExec.replace(
             with: claude, arguments: ["claude"] + claudeArguments, environment: ProfileEnvironment.apply(target, to: context.environment))
     }
@@ -46,7 +47,7 @@ struct Exec: ParsableCommand {
     }
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let target = try context.profile(profile.name)
         let environment = ProfileEnvironment.apply(target, to: context.environment)
         guard let executable = ExecutableLocator.find(command[0], environment: environment) else {

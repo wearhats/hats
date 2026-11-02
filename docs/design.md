@@ -119,6 +119,19 @@ touches the real targets. [privacy.md](privacy.md) lists every read, write and
 process action. A change that adds one updates that file in the same pull
 request, and review treats it as a design change.
 
+Commands get all of these from one `Touchpoints` value, built in the CLI's
+`Context`, and nothing below it defaults to a real implementation.
+`HATS_TEST_SANDBOX=<dir>` swaps them for stand-ins that stay inside `<dir>`, so the
+end-to-end tests can run the shipped binary on a contributor's Mac. It only
+narrows what hats does: other processes are invisible unless their executable is
+inside `<dir>`, and hats refuses to start unless everything it would touch is
+inside too, and `<dir>` holds a marker file, so it can't be pointed at real data.
+
+Why ship a test switch: a separate test build wouldn't test the binary people
+run, and without one `swift test` couldn't safely cover the commands that scan
+processes, or that touch the Dock or the Trash, on a Mac with real Claude windows
+open. The cost is a small amount of test support in the release binary.
+
 ### 7. One core, thin front ends, native APIs
 
 `HatsCore` holds all logic and has no UI and no global state. The CLI parses

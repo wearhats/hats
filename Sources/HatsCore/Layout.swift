@@ -9,7 +9,7 @@ public struct Layout: Sendable, Equatable {
     public let defaultDesktopDir: URL
     public let defaultCodeDir: URL
 
-    public init(environment: [String: String] = ProcessInfo.processInfo.environment) {
+    public init(environment: [String: String]) {
         let home = URL(filePath: environment["HOME"] ?? NSHomeDirectory(), directoryHint: .isDirectory)
         self.home = home
         hatsHome =

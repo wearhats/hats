@@ -8,7 +8,8 @@ struct ProfileShortcutTests {
         let codeDir = try sandbox.addProfile("work", shortcut: "w")
 
         let result = try sandbox.hats(
-            ["run", "w", "--", "-c", #"echo "$CLAUDE_CONFIG_DIR $HATS_PROFILE""#], environment: ["HATS_CLAUDE_BIN": "/bin/bash"])
+            ["run", "w", "--", "-c", #"echo "$CLAUDE_CONFIG_DIR $HATS_PROFILE""#], environment: ["HATS_CLAUDE_BIN": "/bin/bash"],
+            removing: ["HATS_TEST_SANDBOX"])
 
         #expect(result.exit == 0, "\(result)")
         #expect(result.stdout == "\(codeDir) work\n", "\(result)")

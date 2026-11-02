@@ -23,7 +23,7 @@ struct Reset: AsyncParsableCommand {
     var dryRun = false
 
     func run() async throws {
-        let context = Context()
+        let context = try Context()
         let target = try context.store.profile(fullName: profile.name)
         guard !target.isDefault else {
             throw HatsError(.usage, "the default profile is the stock Claude install; sign out inside Claude instead")
@@ -37,10 +37,10 @@ struct Reset: AsyncParsableCommand {
         guard try Prompt.confirm("Start '\(target.name)' fresh?", default: false, assumeYes: yes) else {
             return print("Nothing changed.")
         }
-        for dir in try context.store.reset(target.name, includingCode: code) {
+        for dir in try context.store.reset(target.name, includingCode: code, discarder: context.touchpoints.discarder) {
             print("Moved \(dir.plainPath) to the Trash.")
         }
-        try LauncherBuilder(layout: context.layout).build(for: target, hatsPath: context.hatsExecutablePath())
+        try context.launchers.build(for: target, hatsPath: context.hatsExecutablePath())
         if open {
             try await context.open(target)
             print("\n" + Context.signInGuidance)
@@ -67,7 +67,7 @@ struct Dedupe: AsyncParsableCommand {
     var dryRun = false
 
     func run() async throws {
-        let context = Context()
+        let context = try Context()
         let profiles = try context.readableProfiles()
         let groups = DuplicateInstances.groups(in: InstanceScanner(profiles: profiles, processes: context.processes).scan().instances)
         guard !groups.isEmpty else { return print("No duplicate Claude Desktop instances.") }
@@ -109,7 +109,7 @@ struct Dock: ParsableCommand {
         var dedupeClaude = false
 
         func run() throws {
-            let context = Context()
+            let context = try Context()
             let targets =
                 names.isEmpty
                 ? try context.readableProfiles().filter { !$0.isDefault }
@@ -127,13 +127,13 @@ struct Dock: ParsableCommand {
         var names: [String] = []
 
         func run() throws {
-            let context = Context()
-            let launchers = LauncherBuilder(layout: context.layout)
+            let context = try Context()
+            let launchers = context.launchers
             let bundles: [URL] =
                 names.isEmpty
                 ? try launchers.installed().map(\.bundle)
                 : try names.compactMap { launchers.status(for: try context.profile($0).name)?.bundle }
-            let changes = try DockEditor().unpin(bundles)
+            let changes = try context.dock.unpin(bundles)
             if changes.isEmpty { print("No launchers were in the Dock.") }
             changes.forEach { print(Output.describe($0)) }
         }

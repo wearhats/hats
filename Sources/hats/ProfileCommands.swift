@@ -49,9 +49,9 @@ struct Add: AsyncParsableCommand {
     }
 
     func run() async throws {
-        let context = Context()
+        let context = try Context()
         let profileName = try ProfileName(name)
-        let adopted = codeDir.map { URL(filePath: ($0 as NSString).expandingTildeInPath, directoryHint: .isDirectory) }
+        let adopted = try codeDir.map { try context.directoryArgument($0, flag: "--code-dir") }
         let shortcutChange =
             noShortcut ? ShortcutChange.clear : try shortcut.map { ShortcutChange.set(try ProfileName(shortcut: $0)) }
         let (profile, created) = try context.store.create(
@@ -62,7 +62,7 @@ struct Add: AsyncParsableCommand {
             icon: icon,
             shortcut: shortcutChange
         )
-        let launchers = LauncherBuilder(layout: context.layout)
+        let launchers = context.launchers
         let bundle = try launchers.build(for: profile, hatsPath: context.hatsExecutablePath())
 
         print(created ? "Created profile '\(profile.name)'." : "Profile '\(profile.name)' already exists; launcher rebuilt.")
@@ -120,13 +120,13 @@ struct List: ParsableCommand {
     }
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let profiles = try context.readableProfiles()
         if paths && !json { return printPaths(of: profiles) }
         let instances = InstanceScanner(profiles: profiles, processes: context.processes).scan().instances
         let probe = context.credentials
         let accounts = AccountProbe(layout: context.layout)
-        let launchers = LauncherBuilder(layout: context.layout)
+        let launchers = context.launchers
         let rows = profiles.map { profile in
             Row(
                 name: profile.name.rawValue,
@@ -229,7 +229,7 @@ struct Open: AsyncParsableCommand {
     }
 
     func run() async throws {
-        let context = Context()
+        let context = try Context()
         let targets = all ? try context.readableProfiles().filter { !$0.isDefault } : try names.map { try context.profile($0) }
         if targets.isEmpty { return print("No profiles yet. Create one with: hats add <name>") }
         for target in targets { try await context.open(target) }
@@ -266,7 +266,7 @@ struct Remove: ParsableCommand {
     }
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let targets =
             all
             ? try context.readableProfiles().filter { !$0.isDefault }
@@ -300,10 +300,10 @@ struct Remove: ParsableCommand {
             }
         }
 
-        try LauncherBuilder(layout: context.layout).remove(for: target.name)
+        try context.launchers.remove(for: target.name)
         print("Removed launcher for '\(target.name)'.")
         if purge {
-            try context.store.purge(target.name, processes: context.processes)
+            try context.store.purge(target.name, processes: context.processes, discarder: context.touchpoints.discarder)
             print("Moved the data of '\(target.name)' to the Trash.")
             if target.codeDirIsExternal {
                 print("Kept the adopted Claude Code dir \(target.codeDir.plainPath).")
@@ -334,10 +334,9 @@ struct Launcher: ParsableCommand {
         var to: String?
 
         func run() throws {
-            let context = Context()
-            let destination =
-                to.map { URL(filePath: ($0 as NSString).expandingTildeInPath, directoryHint: .isDirectory) } ?? context.layout.desktopFolder
-            let builder = LauncherBuilder(layout: context.layout)
+            let context = try Context()
+            let destination = try to.map { try context.directoryArgument($0, flag: "--to") } ?? context.layout.desktopFolder
+            let builder = context.launchers
             for name in names {
                 print("Copied to \(try builder.copy(for: try context.profile(name).name, to: destination).plainPath)")
             }
@@ -348,8 +347,8 @@ struct Launcher: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Show the launchers folder in Finder.")
 
         func run() throws {
-            let context = Context()
-            try revealLaunchers(layout: context.layout, opener: context.folderOpener)
+            let context = try Context()
+            try revealLaunchers(layout: context.layout, opener: context.touchpoints.folderOpener)
         }
     }
 
@@ -360,12 +359,12 @@ struct Launcher: ParsableCommand {
         var names: [String] = []
 
         func run() throws {
-            let context = Context()
+            let context = try Context()
             let targets =
                 names.isEmpty
                 ? try context.readableProfiles().filter { !$0.isDefault }
                 : try names.map { try context.profile($0) }
-            let builder = LauncherBuilder(layout: context.layout)
+            let builder = context.launchers
             let hatsPath = context.hatsExecutablePath()
             for profile in targets where !profile.isDefault {
                 print("Rebuilt \(try builder.build(for: profile, hatsPath: hatsPath).plainPath)")

@@ -59,17 +59,20 @@ public struct DesktopLauncher: Sendable {
     let processes: any ProcessTable
     let control: any AppControl
     let environment: [String: String]
+    let appSearch: ClaudeAppSearch
 
     public init(
         layout: Layout,
         processes: any ProcessTable,
         control: any AppControl,
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String],
+        appSearch: ClaudeAppSearch
     ) {
         self.layout = layout
         self.processes = processes
         self.control = control
         self.environment = environment
+        self.appSearch = appSearch
     }
 
     /// Focuses the profile's running Desktop instance, or launches one. Never
@@ -95,7 +98,7 @@ public struct DesktopLauncher: Sendable {
             }
         }
 
-        let app = try ClaudeApp.locate(layout: layout, environment: environment)
+        let app = try ClaudeApp.locate(layout: layout, environment: environment, search: appSearch)
         if profile.isDefault {
             return .launched(pid: try await control.launch(appURL: app.url, newInstance: false, arguments: [], environment: [:]))
         }

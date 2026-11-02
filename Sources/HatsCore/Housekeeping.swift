@@ -25,7 +25,7 @@ public enum DuplicateInstances {
     }
 }
 
-/// Where deleted profile data goes. The default is the user's Trash, so a
+/// Where deleted profile data goes. For real runs that's the user's Trash, so a
 /// mistaken reset can be undone in Finder.
 public struct Discarder: Sendable {
     let discard: @Sendable (URL) throws -> Void
@@ -49,7 +49,7 @@ extension ProfileStore {
     /// empty, so the next launch asks for a sign-in. Fixes a profile that
     /// opens on the wrong account. Callers make sure it isn't running.
     @discardableResult
-    public func reset(_ name: ProfileName, includingCode: Bool, discarder: Discarder = .trash) throws(HatsError) -> [URL] {
+    public func reset(_ name: ProfileName, includingCode: Bool, discarder: Discarder) throws(HatsError) -> [URL] {
         guard !name.isDefault else {
             throw HatsError(.usage, "the default profile is the stock Claude install; sign out inside Claude instead")
         }

@@ -53,9 +53,14 @@ public struct LauncherBuilder: Sendable {
     let layout: Layout
     let registrar: AppRegistrar
 
-    public init(layout: Layout, registrar: AppRegistrar = .launchServices) {
+    public init(layout: Layout, registrar: AppRegistrar) {
         self.layout = layout
         self.registrar = registrar
+    }
+
+    /// For callers that only look at launchers, and so never register anything.
+    public static func reading(layout: Layout) -> LauncherBuilder {
+        LauncherBuilder(layout: layout, registrar: AppRegistrar { _ in })
     }
 
     /// Writes (or rewrites) the profile's launcher and removes stale bundles

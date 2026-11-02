@@ -16,12 +16,12 @@ struct UpdateNotifier {
     static func start(for command: any ParsableCommand) -> UpdateNotifier? {
         // `run` and `exec` replace this process, so they would never print a notice.
         guard !(command is Run || command is Exec) else { return nil }
-        let context = Context()
-        guard
+        // A sandbox that can't be contained is reported by the command itself.
+        guard let context = try? Context(), let feed = context.touchpoints.releaseFeed,
             UpdateCheck.isEnabled(
                 currentVersion: Hats.version, environment: context.environment, stderrIsTerminal: isatty(STDERR_FILENO) != 0)
         else { return nil }
-        let check = UpdateCheck(layout: context.layout, feed: GitHubReleaseFeed(currentVersion: Hats.version))
+        let check = UpdateCheck(layout: context.layout, feed: feed)
         let refresh = check.isDue() ? Task { await check.refresh() } : nil
         return UpdateNotifier(context: context, check: check, refresh: refresh)
     }

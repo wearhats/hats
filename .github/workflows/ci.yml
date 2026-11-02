@@ -29,6 +29,8 @@ jobs:
           swift --version
       - name: Install just
         run: brew install just
+      - name: Record the runner's state
+        run: scripts/ci-host-state.sh > "$RUNNER_TEMP/host-state-before"
       - name: Test
         run: just test --parallel
         env:
@@ -36,6 +38,14 @@ jobs:
           HATS_E2E_REQUIRE_GUARD: "1"
       - name: Package and install through install.sh (universal)
         run: just package --arch arm64 --arch x86_64
+      - name: End-to-end tests against the packaged binary
+        run: just e2e --parallel
+        env:
+          HATS_E2E_BINARY: ${{ github.workspace }}/dist/bin/hats
+      - name: Check the tests left the runner's real state alone
+        # A failed test step is when this evidence matters most.
+        if: ${{ !cancelled() }}
+        run: scripts/ci-host-state.sh | diff "$RUNNER_TEMP/host-state-before" -
 
   lint:
     runs-on: xcode-27

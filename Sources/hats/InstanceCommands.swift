@@ -15,7 +15,7 @@ struct PS: ParsableCommand {
     var profile: String?
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let filter = try profile.map { try context.store.instanceFilter(matching: $0) }
         let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
             .filter { filter == nil || $0.profile == filter }
@@ -49,7 +49,7 @@ struct Focus: AsyncParsableCommand {
     var target: String
 
     func run() async throws {
-        let context = Context()
+        let context = try Context()
         let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
         let matches = instances.filter { String($0.pid) == target || $0.name == target || $0.sessionId == target }
         guard let instance = matches.first else {
@@ -73,12 +73,14 @@ struct Doctor: ParsableCommand {
     var json = false
 
     func run() throws {
-        let context = Context()
+        let context = try Context()
         let findings = HatsCore.Doctor(
             layout: context.layout,
             processes: context.processes,
             credentials: context.credentials,
             environment: context.environment,
+            urlSchemeHandler: context.touchpoints.urlSchemeHandler,
+            appSearch: context.touchpoints.appSearch,
             install: HatsInstall(
                 version: Hats.version, executable: context.runningExecutable(), launcherTarget: context.hatsExecutablePath())
         ).run()
