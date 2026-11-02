@@ -96,14 +96,12 @@ checks without that profile's data. Looking up a name that exists still works,
 but `profile(matching:)` refuses anything else, shortcuts included, because the
 unreadable profile may own it. That covers every command that looks up a profile,
 including `ps --profile`, `rm` and `reset`. `rm --purge` of a full name refuses
-only when the profile being purged is itself unreadable.
+only when the profile being purged is itself unreadable. A schema bump needs a
+migration function plus a test.
 
 `add` refuses ambiguous shortcuts, but a hand edit or a profile put back from
 the Trash can still create them. At lookup a name wins over a shortcut, and a
 shortcut two profiles claim is refused. Doctor warns about both.
-
-A schema bump needs a migration function plus a
-test.
 
 ## 4. Key flows
 
