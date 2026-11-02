@@ -261,3 +261,12 @@ jobs:
           fi
           git commit -m "hats $VERSION"
           git push
+
+  # /install.sh must still reach the new release's asset once it's public.
+  site-check:
+    needs: publish
+    if: vars.SITE_CHECK_ENABLED == 'true'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/site-check.yml
