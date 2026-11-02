@@ -129,8 +129,9 @@ struct DisposableHostTests {
         let decoy = try StubApp(at: "\(sandbox.root)/GuardedDecoy.app", in: sandbox)
         let control = try StubApp(at: "\(sandbox.root)/UnguardedControl.app", in: sandbox)
         defer {
-            #expect(throws: Never.self) { try decoy.stopEverything() }
             #expect(throws: Never.self) { try control.stopEverything() }
+            // Fails when the guard worked, because then there's nothing to unregister.
+            _ = try? CommandRunner.run(executable: StubApp.lsregister, arguments: ["-u", decoy.path], environment: [:])
         }
         func isRegistered(_ app: StubApp) throws -> Bool {
             let dump = try CommandRunner.run(
