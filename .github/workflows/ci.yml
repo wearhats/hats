@@ -19,6 +19,9 @@ env:
 jobs:
   test:
     runs-on: xcode-27
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,10 +33,15 @@ jobs:
       - name: Install just
         run: brew install just
       - name: Test
-        run: just test --parallel
+        run: just test --parallel --xunit-output test-results/junit.xml
         env:
           # Fail rather than run the end-to-end tests without their Seatbelt guard.
           HATS_E2E_REQUIRE_GUARD: "1"
+      - name: TestGlance
+        if: always()
+        uses: testglance/action@bc91504f787a5a3bd0068b6359278219506e30d1 # v1
+        with:
+          github-token: ${{ github.token }}
       - name: Package and install through install.sh (universal)
         run: just package --arch arm64 --arch x86_64
 
