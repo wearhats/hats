@@ -68,7 +68,7 @@ jobs:
     env:
       VERSION: ${{ needs.release-please.outputs.version }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
@@ -122,7 +122,7 @@ jobs:
             echo "draft=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.state.outputs.draft == 'true'
         with:
           ref: ${{ needs.release-please.outputs.sha }}
@@ -230,7 +230,7 @@ jobs:
           repositories: homebrew-tap
           permission-contents: write
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.HAS_APP == 'true'
         with:
           ref: ${{ needs.release-please.outputs.sha }}
