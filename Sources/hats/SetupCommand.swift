@@ -14,7 +14,7 @@ struct Setup: AsyncParsableCommand {
                 .usage, "setup asks questions and needs a terminal",
                 hint: "script it with: hats add <name> [--code-dir DIR] [--pin] [--open]")
         }
-        let context = Context()
+        let context = try Context()
         print("hats keeps your current Claude.app and ~/.claude as the 'default' profile and never changes them.")
         if let email = AccountProbe(layout: context.layout).info(for: context.store.defaultProfile).codeEmail {
             print("The default profile's claude CLI is signed in as \(email).")
@@ -52,7 +52,7 @@ struct Setup: AsyncParsableCommand {
             print("$ hats launcher copy \(names)")
             for profile in added {
                 print(
-                    "Copied to \(try LauncherBuilder(layout: context.layout).copy(for: profile.name, to: context.layout.desktopFolder).plainPath)"
+                    "Copied to \(try context.launchers.copy(for: profile.name, to: context.layout.desktopFolder).plainPath)"
                 )
             }
         }
@@ -70,9 +70,10 @@ struct Setup: AsyncParsableCommand {
     }
 
     private func create(_ name: ProfileName, adopting dir: URL?, context: Context) throws -> Profile {
+        if let dir { try context.testSandbox?.requireInside(dir.plainPath, what: "the dir to adopt") }
         let (profile, _) = try context.store.create(name, adoptingCodeDir: dir)
         print(
-            "Launcher: \(try LauncherBuilder(layout: context.layout).build(for: profile, hatsPath: context.hatsExecutablePath()).plainPath)"
+            "Launcher: \(try context.launchers.build(for: profile, hatsPath: context.hatsExecutablePath()).plainPath)"
         )
         return profile
     }

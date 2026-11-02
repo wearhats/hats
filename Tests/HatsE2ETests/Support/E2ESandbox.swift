@@ -26,6 +26,7 @@ final class E2ESandbox {
         defaultConfigDir = "\(home)/.claude"
         try makeDirectory(home)
         try makeDirectory("\(root)/tmp")
+        try write("", to: "\(root)/.hats-test-sandbox")
         try write(#"{"oauthAccount":{"accessToken":"\#(sentinel)"}}"#, to: "\(home)/.claude.json")
         try write(#"{"oauth:tokenCache":"\#(sentinel)"}"#, to: "\(home)/Library/Application Support/Claude/config.json")
     }
@@ -36,6 +37,7 @@ final class E2ESandbox {
 
     var environment: [String: String] {
         [
+            "HATS_TEST_SANDBOX": root,
             "HOME": home,
             "HATS_HOME": hatsHome,
             "HATS_LAUNCHER_DIR": launcherDir,
@@ -52,10 +54,11 @@ final class E2ESandbox {
     func hats(
         _ arguments: [String],
         environment overrides: [String: String] = [:],
+        removing removed: Set<String> = [],
         sourceLocation: SourceLocation = #_sourceLocation
     ) throws -> CommandResult {
-        let result = try guarded(try HatsBinary.path(), arguments, environment: overrides)
-        if leaksSentinel(result) {
+        let result = try guarded(try HatsBinary.path(), arguments, environment: overrides, removing: removed)
+        if leaksSentinel(result) || eventLogText.contains(sentinel) {
             Issue.record("A planted secret reached the output.\n\(result)", sourceLocation: sourceLocation)
         }
         return result
@@ -65,6 +68,7 @@ final class E2ESandbox {
         _ executable: String,
         _ arguments: [String],
         environment overrides: [String: String] = [:],
+        removing removed: Set<String> = [],
         protectedHome: String = SeatbeltGuard.realHome
     ) throws -> CommandResult {
         let wrapped = try SeatbeltGuard.wrap(
@@ -72,7 +76,7 @@ final class E2ESandbox {
         return try CommandRunner.run(
             executable: wrapped.executable,
             arguments: wrapped.arguments,
-            environment: environment.merging(overrides) { _, override in override },
+            environment: environment.merging(overrides) { _, override in override }.filter { !removed.contains($0.key) },
             workingDirectory: URL(filePath: root, directoryHint: .isDirectory)
         )
     }
@@ -81,8 +85,8 @@ final class E2ESandbox {
         result.stdout.contains(sentinel) || result.stderr.contains(sentinel)
     }
 
-    /// Written by hand from the documented schema rather than by `hats add`,
-    /// which would register the launcher with the real Launch Services.
+    /// Written by hand from the documented schema rather than by `hats add`, so
+    /// these tests double as a check that hats reads a profile written earlier.
     @discardableResult
     func addProfile(
         _ name: String, label: String? = nil, adopting adoptedDir: String? = nil, shortcut: String? = nil, schemaVersion: Int = 1

@@ -71,3 +71,23 @@ No other signal is ever sent, and never SIGKILL.
 If the reply names a newer version, hats prints a notice on stderr with the
 upgrade command for your install. It never downloads or installs anything.
 Set `HATS_NO_UPDATE_CHECK=1` to turn the check off.
+
+## Test mode
+
+`HATS_TEST_SANDBOX=<dir>` exists for hats' own end-to-end tests. It only narrows
+the lists above. hats refuses to start unless `<dir>` is an existing directory that
+holds a `.hats-test-sandbox` file and doesn't contain the real home, and `HOME`,
+`HATS_HOME`, `HATS_LAUNCHER_DIR`, `HATS_DEFAULT_CONFIG_DIR`, `HATS_CLAUDE_APP`,
+`HATS_CLAUDE_BIN`, the `claude` that `run` would start, `add --code-dir`, `launcher
+copy --to`, the Desktop folder, the stand-ins' `.test` folder, every profile's dirs,
+every launcher and every recorded launcher copy all resolve inside it. `hats exec` still runs the command it's given. In this mode:
+
+| Normally | In test mode |
+|---|---|
+| Moving data to the Trash | Moved into `<dir>/.test/trash/` |
+| Launch Services registration, Claude launch, activate, quit, Finder reveal, Dock restart | Only recorded, in `<dir>/.test/events.jsonl`. Activate and quit are refused unless the executable is an `.app` inside `<dir>` |
+| Dock preferences | `<dir>/.test/dock.plist` |
+| Keychain attribute query | A list of service names in `<dir>/.test/keychain.json`; the Keychain isn't queried |
+| `claude://` handler and Claude.app lookups | `<dir>/.test/claude-url-handler` for the handler; only `HATS_CLAUDE_APP` for the app |
+| `KERN_PROCARGS2` of candidate processes | Read only if `proc_pidpath` says the executable is inside `<dir>`; `proc_pidpath` is used only in this mode. The process table itself is still read, because finding a host app needs real parents |
+| The update check | Off |

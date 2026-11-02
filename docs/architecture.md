@@ -24,8 +24,8 @@
 `HatsCore` holds all logic. The CLI and the launchers are thin front ends.
 Every OS touchpoint sits behind a protocol or injected value (`ProcessTable`,
 `AppControl`, `CredentialProbe`, `DockPreferences`, `Discarder`, `AppRegistrar`,
-`FolderOpener`, Doctor's URL-scheme lookup, and filesystem roots via `Layout`), so tests
-inject fakes. The rules every change keeps, and the terms used here, are in
+`FolderOpener`, Doctor's URL-scheme lookup, `ClaudeAppSearch`, `ReleaseFeed`, and filesystem roots via
+`Layout`), gathered in `Touchpoints`, so tests inject fakes. The rules every change keeps, and the terms used here, are in
 [design.md](design.md). Everything hats reads and writes is in
 [privacy.md](privacy.md).
 
@@ -55,6 +55,8 @@ executable there.
 | `Installation` | Tell how the running binary was installed (Homebrew `Cellar`, an `install.sh` receipt, or unknown) and which command upgrades it. hats never upgrades itself. | `InstallChannel`, `HatsInstall` |
 | `UpdateCheck` | The daily release check: ask GitHub at most once a day, keep the latest version, build the notice. Warns only; never downloads. | `UpdateCheck`, `ReleaseFeed` (protocol), `GitHubReleaseFeed`, `SemanticVersion` |
 | `Doctor` | Run checks and produce `Finding`s. | `Check`, `Finding`, `Doctor` |
+| `Touchpoints` | The one value that holds every OS touchpoint. `.system` is the real set. Built once in the CLI's `Context`; nothing below it defaults to a real implementation, so forgetting one is a compile error. | `Touchpoints`, `ClaudeAppSearch` |
+| `TestSandbox` | `HATS_TEST_SANDBOX`: stand-ins for every touchpoint, kept inside one directory, for the end-to-end tests. Refuses to start if anything would be outside it ([privacy.md](privacy.md#test-mode)). | `TestSandbox` |
 
 ## 3. Data model and on-disk layout
 

@@ -45,7 +45,8 @@ extension Context {
     }
 
     func open(_ profile: Profile) async throws {
-        let launcher = DesktopLauncher(layout: layout, processes: processes, control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: layout, processes: processes, control: control, environment: environment, appSearch: touchpoints.appSearch)
         switch try await launcher.open(profile, among: try readableProfiles()) {
         case .focused(let pid): print("Focused Claude (\(profile.label)), pid \(pid).")
         case .launched(let pid): print("Launched Claude (\(profile.label)), pid \(pid).")
@@ -53,7 +54,6 @@ extension Context {
     }
 
     func pinToDock(_ profiles: [Profile], dedupeClaude: Bool) throws {
-        let launchers = LauncherBuilder(layout: layout)
         let bundles = try profiles.map { profile in
             guard let status = launchers.status(for: profile.name) else {
                 throw HatsError(
@@ -61,8 +61,8 @@ extension Context {
             }
             return status.bundle
         }
-        let claude = dedupeClaude ? try ClaudeApp.locate(layout: layout, environment: environment).url : nil
-        for change in try DockEditor().pin(bundles, dedupeClaude: claude) {
+        let claude = dedupeClaude ? try ClaudeApp.locate(layout: layout, environment: environment, search: touchpoints.appSearch).url : nil
+        for change in try dock.pin(bundles, dedupeClaude: claude) {
             print(Output.describe(change))
         }
     }

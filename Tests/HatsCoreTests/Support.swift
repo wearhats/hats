@@ -33,7 +33,7 @@ struct Sandbox {
     ) -> Doctor {
         Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
-            urlSchemeHandler: { _ in claudeURLHandler }, install: install)
+            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere, install: install)
     }
 
     /// Never registers bundles with the real Launch Services database.

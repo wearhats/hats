@@ -1,9 +1,7 @@
 import Foundation
 import Testing
 
-/// Each case must exit before hats scans processes or calls Launch Services,
-/// the Keychain, the Dock or the Trash. Only cases checked against the code for
-/// that belong here. Everything else waits for the test-mode seam.
+/// Every case must print nothing on stdout and change nothing in the sandbox.
 struct Refusal: Sendable, CustomTestStringConvertible {
     let name: String
     let exit: Int32

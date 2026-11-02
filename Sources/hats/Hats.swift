@@ -46,15 +46,28 @@ struct Context {
     let environment = ProcessInfo.processInfo.environment
     let layout: Layout
     let store: ProfileStore
-    let processes: any ProcessTable = DarwinProcessTable()
-    let control: any AppControl = WorkspaceAppControl()
-    let folderOpener: any FolderOpener = WorkspaceFolderOpener()
-    let credentials: any CredentialProbe = KeychainCredentialProbe()
+    let touchpoints: Touchpoints
+    let testSandbox: TestSandbox?
     let unreadableWarnings = UnreadableProfileWarnings()
 
-    init() {
+    init() throws {
         layout = Layout(environment: environment)
         store = ProfileStore(layout: layout)
+        testSandbox = try TestSandbox(environment: environment, layout: layout)
+        touchpoints = testSandbox?.touchpoints ?? .system(hatsVersion: Hats.version)
+    }
+
+    var processes: any ProcessTable { touchpoints.processes }
+    var control: any AppControl { touchpoints.control }
+    var credentials: any CredentialProbe { touchpoints.credentials }
+    var launchers: LauncherBuilder { LauncherBuilder(layout: layout, registrar: touchpoints.registrar) }
+    var dock: DockEditor { DockEditor(preferences: touchpoints.dock) }
+
+    /// A folder named on the command line, which test mode must keep contained.
+    func directoryArgument(_ path: String, flag: String) throws -> URL {
+        let directory = URL(filePath: (path as NSString).expandingTildeInPath, directoryHint: .isDirectory)
+        try testSandbox?.requireInside(directory.plainPath, what: flag)
+        return directory
     }
 
     func profile(_ raw: String) throws -> Profile {

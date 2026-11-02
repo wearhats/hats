@@ -21,3 +21,7 @@ public struct HatsError: Error, Equatable, CustomStringConvertible, Sendable {
 
     public var description: String { message }
 }
+
+extension HatsError: LocalizedError {
+    public var errorDescription: String? { message }
+}

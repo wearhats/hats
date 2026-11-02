@@ -40,7 +40,8 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = try makeClaudeApp(in: sandbox)
 
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: table, control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: table, control: control, environment: environment, appSearch: .nowhere)
         let outcome = try await launcher.open(work, among: try sandbox.store.list())
         #expect(outcome == .focused(pid: 101))
         #expect(control.launches.isEmpty)
@@ -54,7 +55,9 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         let app = try makeClaudeApp(in: sandbox)
         environment["HATS_CLAUDE_APP"] = app
 
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: FakeProcessTable(), control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: FakeProcessTable(), control: control, environment: environment,
+            appSearch: .nowhere)
         #expect(try await launcher.open(work, among: try sandbox.store.list()) == .launched(pid: 9_999))
         let launch = try #require(control.launches.first)
         #expect(launch.newInstance)
@@ -72,7 +75,8 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = try makeClaudeApp(in: sandbox)
 
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: table, control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: table, control: control, environment: environment, appSearch: .nowhere)
         do {
             let outcome = try await launcher.open(work, among: try sandbox.store.list())
             Issue.record("expected a conflict error, got \(outcome)")
@@ -91,7 +95,8 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = try makeClaudeApp(in: sandbox)
 
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: table, control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: table, control: control, environment: environment, appSearch: .nowhere)
         #expect(try await launcher.open(work, among: try sandbox.store.list()) == .launched(pid: 9_999))
         #expect(control.inner.launches.count == 1)
         #expect(control.inner.launches.first?.newInstance == true)
@@ -102,7 +107,9 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         let control = FakeAppControl()
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = try makeClaudeApp(in: sandbox)
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: FakeProcessTable(), control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: FakeProcessTable(), control: control, environment: environment,
+            appSearch: .nowhere)
         _ = try await launcher.open(sandbox.store.defaultProfile, among: try sandbox.store.list())
         #expect(control.launches.first?.newInstance == false)
         #expect(control.launches.first?.arguments == [])
@@ -116,7 +123,8 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = try makeClaudeApp(in: sandbox)
 
-        let launcher = DesktopLauncher(layout: sandbox.layout, processes: table, control: control, environment: environment)
+        let launcher = DesktopLauncher(
+            layout: sandbox.layout, processes: table, control: control, environment: environment, appSearch: .nowhere)
         #expect(try await launcher.open(sandbox.store.defaultProfile, among: try sandbox.store.list()) == .launched(pid: 9_999))
         #expect(control.launches.first?.newInstance == false)
     }
@@ -175,19 +183,31 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
             .write(to: app.appending(path: "Info.plist"))
         var environment = sandbox.environment
         environment["HATS_CLAUDE_APP"] = app.deletingLastPathComponent().plainPath
-        let located = try ClaudeApp.locate(layout: sandbox.layout, environment: environment, lookUpBundleID: { _ in nil })
+        let located = try ClaudeApp.locate(layout: sandbox.layout, environment: environment, search: .nowhere)
         #expect(located.version == "9.9.9")
 
         environment["HATS_CLAUDE_APP"] = sandbox.root.appending(path: "Missing.app").plainPath
         #expect(throws: HatsError.self) {
-            try ClaudeApp.locate(layout: sandbox.layout, environment: environment, lookUpBundleID: { _ in nil })
+            try ClaudeApp.locate(layout: sandbox.layout, environment: environment, search: .nowhere)
         }
     }
 
-    @Test func prefersLaunchServicesResult() throws {
+    @Test func looksUpTheBundleIDBeforeTheInstallLocations() {
+        let layout = Layout(environment: ["HOME": "/home/me"])
+        let found = URL(filePath: "/found/Claude.app", directoryHint: .isDirectory)
+        let search = ClaudeAppSearch.installed { $0 == ClaudeApp.bundleIdentifier ? found : nil }
+        #expect(
+            search.candidates(layout).map(\.plainPath) == [
+                "/found/Claude.app", "/Applications/Claude.app", "/home/me/Applications/Claude.app",
+            ])
+    }
+
+    @Test func takesTheFirstCandidateThatExists() throws {
         let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
         let app = try sandbox.makeDirectory("Elsewhere/Claude.app")
-        let located = try ClaudeApp.locate(layout: sandbox.layout, environment: sandbox.environment, lookUpBundleID: { _ in app })
+        let missing = sandbox.root.appending(path: "Missing.app")
+        let located = try ClaudeApp.locate(
+            layout: sandbox.layout, environment: sandbox.environment, search: ClaudeAppSearch { _ in [missing, app] })
         #expect(located.url.plainPath == app.plainPath)
     }
 }

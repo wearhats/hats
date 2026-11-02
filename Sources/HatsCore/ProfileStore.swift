@@ -180,11 +180,11 @@ public struct ProfileStore: Sendable {
         return (try load(name), created)
     }
 
-    /// Moves the profile's own directory to the Trash (or `discarder`). An
+    /// Moves the profile's own directory to `discarder`, usually the Trash. An
     /// adopted code dir lives outside it and is left alone. A running profile
     /// is never purged, whatever the caller asks. Callers confirm with the
     /// user first.
-    public func purge(_ name: ProfileName, processes: any ProcessTable, discarder: Discarder = .trash) throws(HatsError) {
+    public func purge(_ name: ProfileName, processes: any ProcessTable, discarder: Discarder) throws(HatsError) {
         guard !name.isDefault else { throw HatsError(.usage, "refusing to delete the default Claude install") }
         let dir = layout.profileDir(name)
         guard Layout.isStrictlyInside(dir, root: layout.profilesDir) else {

@@ -51,7 +51,11 @@ enum SeatbeltGuard {
             (version 1)
             (allow default)
             (deny file-write* (subpath "/"))
-            (allow file-write* (subpath \(quoted(sandboxRoot))) (literal "/dev/null") (regex #"^/dev/(fd|tty)"))
+            (allow file-write*
+              (subpath \(quoted(sandboxRoot)))
+              (subpath \(quoted(foundationTemporaryItems)))
+              (literal "/dev/null")
+              (regex #"^/dev/(fd|tty)"))
             (deny file-read*
               (subpath \(quoted(protectedHome + "/.claude")))
               (literal \(quoted(protectedHome + "/.claude.json")))
@@ -65,6 +69,14 @@ enum SeatbeltGuard {
             (deny mach-lookup (global-name "com.apple.lsd.modifydb"))
             """
     }
+
+    /// Foundation's atomic writes stage the file here whatever TMPDIR says, then
+    /// rename it into place, so hats can't write `profile.json` without it.
+    static let foundationTemporaryItems: String = {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        guard confstr(_CS_DARWIN_USER_TEMP_DIR, &buffer, buffer.count) > 0 else { return "/nonexistent" }
+        return canonicalPath(String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)) + "/TemporaryItems"
+    }()
 
     private static func quoted(_ path: String) -> String {
         "\"" + path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
