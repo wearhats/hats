@@ -371,6 +371,257 @@ import Testing
         }
     }
 
+    @Test func aShortcutIsRefusedWhenAnotherClaimantIsUnreadable() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("acme"))
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "acme", in: sandbox)
+        try setShortcut("w", of: "work", in: sandbox)
+        try corrupt("acme", in: sandbox)
+
+        #expect {
+            try sandbox.store.profile(matching: "w")
+        } throws: { error in
+            (error as? HatsError)?.message.contains("cannot check whether 'w' is a shortcut") == true
+        }
+    }
+
+    @Test func exactNamesKeepWorkingWithABrokenSibling() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let work = try ProfileName("work")
+        try sandbox.store.create(work, shortcut: .set(try ProfileName("w")))
+        try sandbox.store.create(ProfileName("zeta"))
+        try corrupt("zeta", in: sandbox)
+
+        #expect(try sandbox.store.profile(matching: "work").name == work)
+        #expect(try sandbox.store.profile(fullName: "work").name == work)
+        #expect(try sandbox.store.profile(matching: "default").isDefault)
+    }
+
+    @Test func fullNameLookupReportsAnAmbiguousShortcutAsAConflict() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("acme"))
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "acme", in: sandbox)
+        try setShortcut("w", of: "work", in: sandbox)
+
+        #expect {
+            try sandbox.store.profile(fullName: "w")
+        } throws: { error in
+            let refusal = error as? HatsError
+            return refusal?.kind == .conflict && refusal?.message == "the shortcut 'w' is claimed by 'acme', 'work'"
+        }
+    }
+
+    @Test func fullNameLookupReportsAnUnreadableProfileRatherThanAMissingOne() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+        try corrupt("work", in: sandbox)
+
+        #expect {
+            try sandbox.store.profile(fullName: "w")
+        } throws: { error in
+            let refusal = error as? HatsError
+            return refusal?.kind == .io && refusal?.message.contains("cannot check whether 'w' is a shortcut") == true
+        }
+    }
+
+    @Test func fullNameLookupStillReportsAMissingProfile() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        #expect {
+            try sandbox.store.profile(fullName: "ghost")
+        } throws: { error in
+            (error as? HatsError)?.kind == .notFound
+        }
+    }
+
+    @Test func instanceFilterResolvesAShortcutToItsProfilesInstances() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let (work, _) = try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+        let table = FakeProcessTable()
+        table.addDesktop(pid: 100, userDataDir: work.desktopDir.plainPath, configDir: work.codeDir.plainPath)
+
+        let filter = try sandbox.store.instanceFilter(matching: "w")
+
+        #expect(filter == work.name)
+        let instances = InstanceScanner(profiles: try sandbox.store.list(), processes: table).scan().instances
+        #expect(instances.filter { $0.profile == filter }.map(\.pid) == [100])
+    }
+
+    @Test func instanceFilterFallsBackToTheTypedNameOnlyWhenNoProfileHasIt() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        #expect(try sandbox.store.instanceFilter(matching: "ghost").rawValue == "ghost")
+    }
+
+    @Test func instanceFilterRefusesAnAmbiguousShortcut() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("acme"))
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "acme", in: sandbox)
+        try setShortcut("w", of: "work", in: sandbox)
+
+        #expect {
+            try sandbox.store.instanceFilter(matching: "w")
+        } throws: { error in
+            (error as? HatsError)?.kind == .conflict
+        }
+    }
+
+    @Test(arguments: ["zeta", "w", "ghost"])
+    func instanceFilterRefusesWhatAnUnreadableProfileMayOwn(typed: String) throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("zeta"), shortcut: .set(try ProfileName("w")))
+        try corrupt("zeta", in: sandbox)
+
+        #expect {
+            try sandbox.store.instanceFilter(matching: typed)
+        } throws: { error in
+            (error as? HatsError)?.kind == .io
+        }
+    }
+
+    @Test func aRerunIsNotBlockedByAStoredShortcutOrName() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let w = try ProfileName("w")
+        let work = try ProfileName("work")
+        try sandbox.store.create(w)
+        try sandbox.store.create(work)
+        try setShortcut("w", of: "work", in: sandbox)
+        let red = try ProfileColor(parsing: "red")
+
+        #expect(try sandbox.store.create(work, color: red).profile.color == red)
+        #expect(try sandbox.store.create(work).profile.shortcut == w)
+        #expect(try sandbox.store.create(w, color: red).profile.color == red)
+    }
+
+    @Test func settingAConflictingShortcutIsStillRefusedOnARerun() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let w = try ProfileName("w")
+        let work = try ProfileName("work")
+        try sandbox.store.create(w)
+        try sandbox.store.create(work)
+        try setShortcut("w", of: "work", in: sandbox)
+
+        #expect {
+            try sandbox.store.create(work, shortcut: .set(w))
+        } throws: { error in
+            (error as? HatsError)?.message == "the shortcut 'w' is the name of profile 'w'"
+        }
+    }
+
+    @Test func clearingAClaimedShortcutResolvesTheConflict() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let acme = try ProfileName("acme")
+        try sandbox.store.create(acme)
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "acme", in: sandbox)
+        try setShortcut("w", of: "work", in: sandbox)
+
+        try sandbox.store.create(acme, shortcut: .clear)
+
+        #expect(try sandbox.store.profile(matching: "w").name.rawValue == "work")
+    }
+
+    @Test func aShortcutCannotBeTheProfilesOwnName() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let work = try ProfileName("work")
+
+        #expect {
+            try sandbox.store.create(work, shortcut: .set(work))
+        } throws: { error in
+            let refusal = error as? HatsError
+            return refusal?.kind == .usage && refusal?.message == "the shortcut 'work' is the profile's own name"
+        }
+        #expect(!sandbox.store.exists(work))
+    }
+
+    @Test func aNameThatIsAShortcutIsRefusedWithAHintThatKeepsTheShortcut() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+
+        #expect {
+            try sandbox.store.create(ProfileName("w"))
+        } throws: { error in
+            let hint = (error as? HatsError)?.hint
+            return hint?.hasPrefix("to change it, run: hats add work;") == true && hint?.contains("pick another name") == true
+        }
+    }
+
+    @Test func aRefusalWhileASiblingIsUnreadableNamesTheShortcutThatWasAskedFor() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("zeta"))
+        try corrupt("zeta", in: sandbox)
+
+        #expect {
+            try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+        } throws: { error in
+            (error as? HatsError)?.message.contains("cannot check that the shortcut 'w' is unused") == true
+        }
+        #expect(!sandbox.store.exists(try ProfileName("work")))
+    }
+
+    @Test func doctorReportsAShortcutTwoProfilesClaim() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("acme"))
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "acme", in: sandbox)
+        try setShortcut("w", of: "work", in: sandbox)
+
+        let findings = sandbox.doctor().run().filter { $0.check == "shortcuts" }
+
+        #expect(findings.count == 1)
+        #expect(findings.first?.level == .warn)
+        #expect(findings.first?.message == "profiles acme, work claim the shortcut 'w', so commands refuse it")
+        #expect(findings.first?.hint == "keep it on one of them, for example: hats add acme --no-shortcut")
+    }
+
+    @Test func doctorReportsAShortcutThatIsAnotherProfilesName() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("w"))
+        try sandbox.store.create(ProfileName("work"))
+        try setShortcut("w", of: "work", in: sandbox)
+
+        let findings = sandbox.doctor().run().filter { $0.check == "shortcuts" }
+
+        #expect(findings.count == 1)
+        #expect(findings.first?.level == .warn)
+        #expect(findings.first?.message == "the shortcut 'w' of profile 'work' is also a profile's name, which wins")
+        #expect(findings.first?.hint == "remove it with: hats add work --no-shortcut")
+    }
+
+    @Test func doctorIsQuietAboutShortcutsThatAreFine() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("acme"), shortcut: .set(try ProfileName("a")))
+        try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+
+        #expect(!sandbox.doctor().run().contains { $0.check == "shortcuts" })
+    }
+
+    @Test func doctorDoesNotSuggestAdoptingUnderAShortcut() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        try sandbox.store.create(ProfileName("work"), shortcut: .set(try ProfileName("w")))
+        let table = FakeProcessTable()
+        table.addCLI(pid: 300, configDir: "/Users/alice/.claude-w")
+
+        let findings = sandbox.doctor(processes: table).run()
+
+        #expect(findings.contains { $0.hint == "adopt it with: hats add <name> --code-dir /Users/alice/.claude-w" })
+    }
+
+    @Test func aSuggestedNameIsDroppedWhenItIsAShortcut() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let w = try ProfileName("w")
+        let (work, _) = try sandbox.store.create(ProfileName("work"), shortcut: .set(w))
+
+        #expect(w.unlessShortcut(in: [work]) == nil)
+        #expect(work.name.unlessShortcut(in: [work]) == work.name)
+        #expect(w.unlessShortcut(in: []) == w)
+    }
+
+    private func corrupt(_ profile: String, in sandbox: Sandbox) throws {
+        try Data("{ not json".utf8).write(to: sandbox.layout.metadataFile(try ProfileName(profile)))
+    }
+
     private func setShortcut(_ shortcut: String, of profile: String, in sandbox: Sandbox) throws {
         let file = sandbox.layout.metadataFile(try ProfileName(profile))
         var json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])

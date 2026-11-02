@@ -21,12 +21,13 @@ struct Setup: AsyncParsableCommand {
         }
 
         var added: [Profile] = []
-        let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
-        for dir in AdoptionCandidates.find(layout: context.layout, profiles: try context.readableProfiles(), instances: instances) {
+        let profiles = try context.readableProfiles()
+        let instances = InstanceScanner(profiles: profiles, processes: context.processes).scan().instances
+        for dir in AdoptionCandidates.find(layout: context.layout, profiles: profiles, instances: instances) {
             print("\nFound a Claude Code config dir you made yourself: \(dir.plainPath)")
             guard try Prompt.confirm("Turn it into a profile? Its login and history stay as they are.", default: true) else { continue }
-            let suggested = ProfileName.suggested(forConfigDir: dir)?.rawValue ?? "work"
-            let name = try ProfileName(Prompt.ask("Profile name", default: suggested))
+            let suggested = try (ProfileName.suggested(forConfigDir: dir) ?? ProfileName("work")).unlessShortcut(in: profiles)
+            let name = try ProfileName(Prompt.ask("Profile name", default: suggested?.rawValue))
             print("$ hats add \(name) --code-dir \(Output.shellQuote(dir.plainPath))")
             added.append(try create(name, adopting: dir, context: context))
         }
@@ -34,9 +35,9 @@ struct Setup: AsyncParsableCommand {
         let others = try context.readableProfiles().filter { !$0.isDefault }
         let wantsNew = try others.isEmpty || Prompt.confirm("\nAdd a profile for another account?", default: false)
         if wantsNew {
+            let suggested = try ProfileName(others.isEmpty ? "personal" : "client").unlessShortcut(in: others)
             let name = try ProfileName(
-                Prompt.ask(
-                    "\nName for your other account (for example personal, work, acme)", default: others.isEmpty ? "personal" : "client"))
+                Prompt.ask("\nName for your other account (for example personal, work, acme)", default: suggested?.rawValue))
             print("$ hats add \(name)")
             added.append(try create(name, adopting: nil, context: context))
         }

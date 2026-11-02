@@ -29,7 +29,7 @@ struct Add: AsyncParsableCommand {
     @Option(help: "Launcher icon: letter, briefcase or person (default: picked from the name).")
     var icon: LauncherIcon?
 
-    @Option(help: "A short name that works wherever the profile name does, e.g. w for work. rm and reset still take the full name.")
+    @Option(help: "A short name for the profile, e.g. w for work. add, rm and reset still take the full name.")
     var shortcut: String?
 
     @Flag(help: "Remove the profile's shortcut.")

@@ -69,6 +69,7 @@ public struct Doctor: Sendable {
         findings += profiles.flatMap { profileFindings($0, account: accounts[$0.name]!) }
         findings += inventory.unreadableProfiles.map { Finding(.fail, "profile:\($0.name)", $0.error.message, hint: $0.error.hint) }
         findings += sharedAccountFindings(profiles, accounts: accounts)
+        findings += shortcutFindings(profiles)
         findings += instanceFindings(profiles)
         return findings
     }
@@ -195,6 +196,28 @@ public struct Doctor: Sendable {
         }
     }
 
+    /// `add` refuses these, but a hand edit or a profile put back from the Trash
+    /// gets past it. Then `ls` can suggest a different account from the one
+    /// that a command runs on, or a command refuses with no sign why.
+    private func shortcutFindings(_ profiles: [Profile]) -> [Finding] {
+        let claims = Dictionary(grouping: profiles.filter { $0.shortcut != nil }) { $0.shortcut! }
+        var findings: [Finding] = []
+        for (shortcut, owners) in claims.sorted(by: { $0.key < $1.key }) {
+            if profiles.contains(where: { $0.name == shortcut }) {
+                for owner in owners where owner.name != shortcut {
+                    let message = "the shortcut '\(shortcut)' of profile '\(owner.name)' is also a profile's name, which wins"
+                    findings.append(Finding(.warn, "shortcuts", message, hint: "remove it with: hats add \(owner.name) --no-shortcut"))
+                }
+            } else if owners.count > 1 {
+                let names = owners.map(\.name.rawValue).sorted()
+                let message = "profiles \(names.joined(separator: ", ")) claim the shortcut '\(shortcut)', so commands refuse it"
+                findings.append(
+                    Finding(.warn, "shortcuts", message, hint: "keep it on one of them, for example: hats add \(names[0]) --no-shortcut"))
+            }
+        }
+        return findings
+    }
+
     private func launcherFindings(_ profile: Profile, check: String) -> [Finding] {
         guard let launcher = LauncherBuilder(layout: layout).status(for: profile.name) else {
             return [Finding(.warn, check, "no launcher", hint: "create it with: hats launcher rebuild \(profile.name)")]
@@ -252,7 +275,7 @@ public struct Doctor: Sendable {
         }
         let unmanagedConfigDirs = Set(scan.instances.filter { $0.kind != .desktop && $0.profile == nil }.map(\.dataDir))
         for dir in unmanagedConfigDirs.sorted() {
-            let name = ProfileName.suggested(forConfigDir: URL(filePath: dir))?.rawValue ?? "<name>"
+            let name = ProfileName.suggested(forConfigDir: URL(filePath: dir))?.unlessShortcut(in: profiles)?.rawValue ?? "<name>"
             findings.append(
                 Finding(
                     .warn, "instances",

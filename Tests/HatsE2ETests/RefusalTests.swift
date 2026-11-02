@@ -60,6 +60,42 @@ struct Refusal: Sendable, CustomTestStringConvertible {
             try sandbox.addProfile("work", shortcut: "w")
             return ["rm", "w", "--purge", "--yes"]
         },
+        Refusal("add: shortcut is its own name", exit: 64, stderr: "the profile's own name", argv: ["add", "t1", "--shortcut", "t1"]),
+        Refusal("reset: ambiguous shortcut", exit: 1, stderr: "the shortcut 'w' is claimed by 'acme', 'work'") { sandbox in
+            try sandbox.addProfile("acme", shortcut: "w")
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["reset", "w", "--yes"]
+        },
+        Refusal("rm: ambiguous shortcut", exit: 1, stderr: "the shortcut 'w' is claimed by 'acme', 'work'") { sandbox in
+            try sandbox.addProfile("acme", shortcut: "w")
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["rm", "w", "--purge", "--yes"]
+        },
+        Refusal("reset: shortcut of an unreadable profile", exit: 1, stderr: "cannot check whether 'w' is a shortcut") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            try sandbox.write("{ not json", to: "\(sandbox.hatsHome)/profiles/work/profile.json")
+            return ["reset", "w", "--yes"]
+        },
+        Refusal("rm: shortcut of an unreadable profile", exit: 1, stderr: "cannot check whether 'w' is a shortcut") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            try sandbox.write("{ not json", to: "\(sandbox.hatsHome)/profiles/work/profile.json")
+            return ["rm", "w", "--purge", "--yes"]
+        },
+        Refusal("ps: ambiguous shortcut", exit: 1, stderr: "the shortcut 'w' is claimed by 'acme', 'work'") { sandbox in
+            try sandbox.addProfile("acme", shortcut: "w")
+            try sandbox.addProfile("work", shortcut: "w")
+            return ["ps", "--profile", "w"]
+        },
+        Refusal("ps: unreadable profile", exit: 1, stderr: "cannot read") { sandbox in
+            try sandbox.addProfile("work")
+            try sandbox.write("{ not json", to: "\(sandbox.hatsHome)/profiles/work/profile.json")
+            return ["ps", "--profile", "work"]
+        },
+        Refusal("ps: shortcut of an unreadable profile", exit: 1, stderr: "cannot check whether 'w' is a shortcut") { sandbox in
+            try sandbox.addProfile("work", shortcut: "w")
+            try sandbox.write("{ not json", to: "\(sandbox.hatsHome)/profiles/work/profile.json")
+            return ["ps", "--profile", "w"]
+        },
         Refusal("add: adopted dir is missing", exit: 1, stderr: "is not an existing directory") { sandbox in
             ["add", "t1", "--code-dir", "\(sandbox.root)/missing"]
         },
