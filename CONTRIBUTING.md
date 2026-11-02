@@ -23,6 +23,19 @@ just linux          # HatsCore on Linux, in Docker
 Each recipe is a few plain commands in the [`justfile`](justfile), so you can
 also run them by hand. CI runs the same recipes.
 
+### Linux
+
+hats is macOS only, but HatsCore builds and its tests run on Linux in Docker.
+Install [just](https://github.com/casey/just) (your package manager or its
+install script) and Docker, then:
+
+```sh
+just linux          # builds and tests HatsCore in the swift:6.4-noble image
+```
+
+`just lint`, `just test` and `just check` need the macOS toolchain, so they
+don't run on Linux.
+
 ## Tests
 
 | Layer | What | How |
