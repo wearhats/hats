@@ -119,6 +119,9 @@ changelog. Merging it runs `.github/workflows/release.yml`:
    from the published `SHA256SUMS` and push it to the tap. This runs after
    un-drafting because draft assets aren't publicly downloadable, so the
    formula's URL only works once the release is public.
+   The tap can't be fixed before the release is public, so every CI run checks
+   the formula first: `just package` renders it and `scripts/check-formula.sh`
+   runs `brew style` and `brew audit --strict` on it in a throwaway tap.
 
 Splitting build from publish keeps the write-scoped token, the OIDC token and
 the signing secrets out of the job that runs package code (SwiftPM plugins and
