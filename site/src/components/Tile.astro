@@ -1,0 +1,18 @@
+---
+import work from '../assets/brand/tile-work.svg?raw';
+import personal from '../assets/brand/tile-personal.svg?raw';
+import acme from '../assets/brand/tile-acme.svg?raw';
+import fallback from '../assets/brand/tile-default.svg?raw';
+import claudeApp from '../assets/brand/tile-claude-app.svg?raw';
+
+const TILES = { work, personal, acme, default: fallback, 'claude-app': claudeApp };
+
+interface Props {
+  name: keyof typeof TILES;
+  class?: string;
+}
+
+const { name, class: className } = Astro.props;
+---
+
+<span class:list={['tile', className]} aria-hidden="true" set:html={TILES[name]} />
