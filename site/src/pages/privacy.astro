@@ -2,6 +2,7 @@
 import { getEntry, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Footer from '../components/Footer.astro';
+import Logo from '../components/Logo.astro';
 import { DISCUSSIONS_URL, PRIVACY_SOURCE_URL } from '../data/site';
 
 const entry = await getEntry('docs', 'privacy');
@@ -17,7 +18,7 @@ if (!title) throw new Error('docs/privacy.md has no title');
   description="The complete list of what hats reads, writes and runs on your Mac, and what this website records about visits."
 >
   <header class="wrap holding-header">
-    <a class="wordmark" href="/">hats</a>
+    <Logo href="/" />
   </header>
   <main id="main" class="wrap prose">
     <h1>{title}</h1>
