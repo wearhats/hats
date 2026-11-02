@@ -41,7 +41,8 @@ struct PS: ParsableCommand {
 
 struct Focus: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Bring a running instance forward: its Desktop window, or the terminal or IDE hosting a session."
+        abstract: "Bring a running instance forward: its Desktop window, or the terminal or IDE hosting a session.",
+        aliases: ["f"]
     )
 
     @Argument(help: "PID or session name (see 'hats ps').")

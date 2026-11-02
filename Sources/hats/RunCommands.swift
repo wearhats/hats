@@ -6,7 +6,8 @@ import HatsCore
 struct Run: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Run the claude CLI with the profile's account and settings.",
-        discussion: "Example: hats run personal -- --resume"
+        discussion: "Example: hats run personal -- --resume",
+        aliases: ["r"]
     )
 
     @OptionGroup var profile: ProfileArgument
@@ -31,7 +32,8 @@ struct Run: ParsableCommand {
 struct Exec: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Run any command with the profile's environment.",
-        discussion: "Example: hats exec personal -- printenv CLAUDE_CONFIG_DIR"
+        discussion: "Example: hats exec personal -- printenv CLAUDE_CONFIG_DIR",
+        aliases: ["x"]
     )
 
     @OptionGroup var profile: ProfileArgument

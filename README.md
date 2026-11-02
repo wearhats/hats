@@ -105,6 +105,9 @@ hats reset personal --open         # it opened on the wrong account: start it fr
 hats doctor                        # explain what's set up and what's wrong
 ```
 
+The everyday commands have one-letter shortcuts: `hats r` (`run`), `hats o`
+(`open`), `hats x` (`exec`) and `hats f` (`focus`).
+
 Per-directory accounts with direnv: `echo 'eval "$(hats env personal)"' > ~/oss/.envrc`.
 
 Other tools that honour `CLAUDE_CONFIG_DIR`, such as usage reporters, work per
