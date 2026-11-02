@@ -167,7 +167,7 @@ whose `launcherVersion` is older than the current one.
 | Profile data on reset or purge | Accidental loss | `reset` and `rm --purge` move data to the Trash, never delete; both refuse running profiles (`--force` never overrides that for `--purge`), and neither touches an adopted code dir. |
 | Launchers of other profiles | A label collision repoints another profile's launcher or Dock tile | Labels are unique ignoring case; a build refuses a bundle whose marker names another profile. |
 | Account identifiers | Leakage of tokens while reading `config.json` | The file is parsed whole in memory (it holds Desktop's token cache), and only key presence and `lastKnownAccountUuid` are kept before the parsed object is dropped; token values are never kept or printed. |
-| Supply chain | A malicious release | One dependency, pinned by `Package.resolved`. Releases are Developer ID signed and notarized once the project has a Developer ID (ad-hoc signed until then), with SHA256SUMS and GitHub build provenance attestations. `install.sh` refuses a checksum or provenance mismatch; the tap job's token can write only the tap ([releasing.md](releasing.md)). |
+| Supply chain | A malicious release | One dependency, pinned by `Package.resolved`. Releases are Developer ID signed and notarized once the project has a Developer ID (ad-hoc signed until then), with SHA256SUMS and GitHub build provenance attestations. `install.sh` refuses a checksum mismatch, and a provenance mismatch when a signed-in `gh` can check it; the tap job's token can write only the tap ([releasing.md](releasing.md)). |
 
 ## 8. Platform notes
 

@@ -18,8 +18,10 @@ if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
 fi
 stamp=$(date -u -r "$SOURCE_DATE_EPOCH" +%Y%m%d%H%M.%S)
 
-stage=$(mktemp -d)
-trap 'rm -rf "$stage"' EXIT
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+stage=$work/stage
+mkdir "$stage"
 mkdir -p "$out"
 cp "$binary" "$stage/hats"
 cp LICENSE README.md "$stage/"
@@ -30,9 +32,11 @@ TZ=UTC touch -h -t "$stamp" "$stage/hats" "$stage/LICENSE" "$stage/README.md"
 # Entries are listed explicitly, so their order is fixed. ustar has no fields
 # for atime, ctime or xattrs, unlike bsdtar's default pax format.
 # A fixed, version-free asset name lets "releases/latest/download/<asset>" work.
-COPYFILE_DISABLE=1 tar -c -f - --format ustar --no-xattrs --no-mac-metadata --no-acls --no-fflags \
+# No pipe into gzip: sh has no pipefail, so a failed tar would still leave a
+# tarball, and a checksum for it.
+COPYFILE_DISABLE=1 tar -c -f "$work/hats.tar" --format ustar --no-xattrs --no-mac-metadata --no-acls --no-fflags \
   --uid 0 --gid 0 --uname '' --gname '' \
-  -C "$stage" LICENSE README.md hats |
-  gzip -n -9 >"$out/$asset"
+  -C "$stage" LICENSE README.md hats
+gzip -n -9 -c "$work/hats.tar" >"$out/$asset"
 (cd "$out" && shasum -a 256 "$asset" >SHA256SUMS)
 cat "$out/SHA256SUMS"
