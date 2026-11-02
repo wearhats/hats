@@ -53,7 +53,7 @@ package *build_args:
     dist/bin/hats --version
     grep -q "\"path\":\"$PWD/dist/bin/hats\"" dist/hats-home/install.json
     scripts/render-formula.sh wearhats/hats 0.0.0 "$(cut -d' ' -f1 dist/release/SHA256SUMS)" > dist/hats.rb
-    ruby -c dist/hats.rb
+    scripts/check-formula.sh dist/hats.rb
 
 # Build and test HatsCore on Linux in Docker, as the linux CI job does.
 linux:
