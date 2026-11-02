@@ -128,6 +128,11 @@ test('security.txt expires more than 30 days from now', () => {
   assert.ok(new Date(expires) - Date.now() > 30 * 86_400_000, expires);
 });
 
+test('the Open Graph card stays small enough to unfurl', () => {
+  assert.ok(gzipSize(join(DIST, 'og/home.png')) <= 100 * 1024);
+  assert.match(home.html, /property="og:image" content="https:\/\/wearhats\.dev\/og\/home\.png"/);
+});
+
 const KB = 1024;
 const budgets = (ext) => filesIn(DIST).filter((file) => file.endsWith(ext) && file.includes('_astro'));
 const total = (files) => files.reduce((sum, file) => sum + gzipSize(file), 0);
