@@ -86,7 +86,7 @@ struct List: ParsableCommand {
     @Flag(help: "Also show disk usage per profile (slower; Cowork's VM alone is about 12 GB).")
     var size = false
 
-    @Flag(help: "Also show each profile's Desktop data dir and Claude Code config dir. --json always includes them.")
+    @Flag(help: "Show each profile's Desktop data dir and Claude Code config dir instead of its status. --json always includes them.")
     var paths = false
 
     struct Row: Encodable {
@@ -107,6 +107,7 @@ struct List: ParsableCommand {
     func run() throws {
         let context = Context()
         let profiles = try context.readableProfiles()
+        if paths && !json { return printPaths(of: profiles) }
         let instances = InstanceScanner(profiles: profiles, processes: context.processes).scan().instances
         let probe = context.credentials
         let accounts = AccountProbe(layout: context.layout)
@@ -124,13 +125,12 @@ struct List: ParsableCommand {
                 account: accounts.info(for: profile),
                 runningDesktop: instances.count { $0.profile == profile.name && $0.kind == .desktop },
                 runningSessions: instances.count { $0.profile == profile.name && $0.kind != .desktop },
-                diskBytes: size ? DiskUsage.allocatedSize(of: profile.desktopDir) + DiskUsage.allocatedSize(of: profile.codeDir) : nil
+                diskBytes: size ? diskBytes(of: profile) : nil
             )
         }
         if json { return try Output.printJSON(rows) }
         var headers = ["PROFILE", "DESKTOP", "SESSIONS", "DESKTOP LOGIN", "CLI LOGIN", "ACCOUNT", "LAUNCHER"]
         if size { headers.insert("DISK", at: 6) }
-        if paths { headers += ["DESKTOP DIR", "CONFIG DIR"] }
         Output.printTable(
             headers: headers,
             rows: rows.map { row in
@@ -144,10 +144,33 @@ struct List: ParsableCommand {
                     row.name == "default" ? "Claude.app" : (row.launcher == nil ? "missing" : "ok"),
                 ]
                 if let bytes = row.diskBytes { cells.insert(Output.bytes(bytes), at: 6) }
-                if paths { cells += [row.desktopDir, row.codeDir] }
                 return cells
             }
         )
+    }
+
+    /// In place of the status columns, not beside them: a row with both runs to about 200 columns and wraps on nearly every terminal.
+    private func printPaths(of profiles: [Profile]) {
+        var headers = ["PROFILE", "DESKTOP DIR", "CONFIG DIR"]
+        if size { headers.insert("DISK", at: 1) }
+        Output.printTable(
+            headers: headers,
+            rows: profiles.map { profile in
+                var cells = [profile.name.rawValue, Self.displayable(profile.desktopDir), Self.displayable(profile.codeDir)]
+                if size { cells.insert(Output.bytes(diskBytes(of: profile)), at: 1) }
+                return cells
+            }
+        )
+    }
+
+    /// A directory name can hold newlines and escape sequences, which would split the row or drive the terminal.
+    /// `--json` keeps the exact path.
+    private static func displayable(_ directory: URL) -> String {
+        directory.plainPath.unicodeScalars.map { $0.properties.generalCategory == .control ? "?" : String($0) }.joined()
+    }
+
+    private func diskBytes(of profile: Profile) -> Int64 {
+        DiskUsage.allocatedSize(of: profile.desktopDir) + DiskUsage.allocatedSize(of: profile.codeDir)
     }
 
     static func describe(_ signIn: AccountInfo.SignIn) -> String {

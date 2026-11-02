@@ -1,9 +1,11 @@
 import Foundation
 import Testing
 
+/// Only `--paths` without `--json` belongs here: it returns before hats scans
+/// processes or queries the Keychain, which every other form of `ls` does.
 @Suite("hats ls --paths", .tags(.e2e))
 struct ListPathsTests {
-    @Test func addsFullPathsAsTheLastColumns() throws {
+    @Test func showsFullPathsInPlaceOfTheStatusColumns() throws {
         let sandbox = try E2ESandbox()
         let managed = try sandbox.addProfile("work")
         let adopted = try sandbox.addProfile("client", adopting: "\(sandbox.root)/adopted/client dir")
@@ -11,29 +13,30 @@ struct ListPathsTests {
         let result = try sandbox.hats(["ls", "--paths"])
 
         #expect(result.exit == 0, "\(result)")
-        let lines = result.stdout.split(separator: "\n").map(String.init)
-        let header = try #require(lines.first, "\(result)")
-        #expect(cells(header).suffix(2) == ["DESKTOP DIR", "CONFIG DIR"], "\(result)")
-        #expect(cells(of: "work", in: lines).suffix(2) == ["\(sandbox.hatsHome)/profiles/work/desktop", managed], "\(result)")
-        #expect(cells(of: "client", in: lines).suffix(2) == ["\(sandbox.hatsHome)/profiles/client/desktop", adopted], "\(result)")
+        let table = parseTable(result)
+        #expect(table.first == ["PROFILE", "DESKTOP DIR", "CONFIG DIR"], "\(result)")
+        #expect(try row("work", in: table) == ["work", "\(sandbox.hatsHome)/profiles/work/desktop", managed], "\(result)")
+        #expect(try row("client", in: table) == ["client", "\(sandbox.hatsHome)/profiles/client/desktop", adopted], "\(result)")
         #expect(
-            cells(of: "default", in: lines).suffix(2) == ["\(sandbox.home)/Library/Application Support/Claude", sandbox.defaultConfigDir],
+            try row("default", in: table) == ["default", "\(sandbox.home)/Library/Application Support/Claude", sandbox.defaultConfigDir],
             "\(result)")
     }
 
-    @Test func stayAfterTheDiskColumnWithEachCellUnderItsHeader() throws {
+    @Test func sizeAddsADiskColumnWithEveryCellUnderItsHeader() throws {
         let sandbox = try E2ESandbox()
         let managed = try sandbox.addProfile("work")
 
         let result = try sandbox.hats(["ls", "--paths", "--size"])
 
         #expect(result.exit == 0, "\(result)")
-        let lines = result.stdout.split(separator: "\n").map(String.init)
-        let header = cells(try #require(lines.first, "\(result)"))
-        let work = cells(of: "work", in: lines)
-        #expect(header.suffix(4) == ["DISK", "LAUNCHER", "DESKTOP DIR", "CONFIG DIR"], "\(result)")
-        #expect(work.count == header.count, "\(result)")
-        #expect(work.suffix(3) == ["missing", "\(sandbox.hatsHome)/profiles/work/desktop", managed], "\(result)")
+        let table = parseTable(result)
+        #expect(table.first == ["PROFILE", "DISK", "DESKTOP DIR", "CONFIG DIR"], "\(result)")
+        let work = try row("work", in: table)
+        #expect(work.count == 4, "\(result)")
+        #expect(work.dropFirst().first?.hasSuffix("B") == true, "\(result)")
+        #expect(work.suffix(2) == ["\(sandbox.hatsHome)/profiles/work/desktop", managed], "\(result)")
+        let columnLayouts = Set(result.stdout.split(separator: "\n").map(columnStarts))
+        #expect(columnLayouts.count == 1, "\(result)")
     }
 
     @Test func anEmojiInAPathDoesNotCutOffTheCell() throws {
@@ -43,29 +46,38 @@ struct ListPathsTests {
         let result = try sandbox.hats(["ls", "--paths"])
 
         #expect(result.exit == 0, "\(result)")
-        let lines = result.stdout.split(separator: "\n").map(String.init)
-        #expect(
-            cells(of: "widest-profile-name", in: lines).suffix(2) == ["\(sandbox.hatsHome)/profiles/widest-profile-name/desktop", managed],
-            "\(result)")
+        let desktopDir = "\(sandbox.hatsHome)/profiles/widest-profile-name/desktop"
+        #expect(try row("widest-profile-name", in: parseTable(result)) == ["widest-profile-name", desktopDir, managed], "\(result)")
     }
 
-    @Test func theDefaultTableLeavesPathsOut() throws {
+    @Test func aControlCharacterInAPathCannotSplitTheRow() throws {
         let sandbox = try E2ESandbox()
-        let managed = try sandbox.addProfile("work")
+        try sandbox.addProfile("client", adopting: "\(sandbox.root)/adopted/new\nline\u{1B}[31m")
 
-        let result = try sandbox.hats(["ls"])
+        let result = try sandbox.hats(["ls", "--paths"])
 
         #expect(result.exit == 0, "\(result)")
-        #expect(!result.stdout.contains("DESKTOP DIR"), "\(result)")
-        #expect(!result.stdout.contains("CONFIG DIR"), "\(result)")
-        #expect(!result.stdout.contains(managed), "\(result)")
+        let client = try row("client", in: parseTable(result))
+        #expect(client.last == "\(sandbox.root)/adopted/new?line?[31m", "\(result)")
     }
 
-    private func cells(_ line: String) -> [String] {
-        line.split(separator: "  ").map { $0.trimmingCharacters(in: .whitespaces) }
+    private func parseTable(_ result: CommandResult) -> [[String]] {
+        result.stdout.split(separator: "\n").map { line in
+            line.split(separator: "  ").map { $0.trimmingCharacters(in: .whitespaces) }
+        }
     }
 
-    private func cells(of profile: String, in lines: [String]) -> [String] {
-        cells(lines.first { $0.hasPrefix("\(profile) ") } ?? "")
+    private func row(_ profile: String, in table: [[String]]) throws -> [String] {
+        let match = table.first { $0.first == profile }
+        return try #require(match, "no row for \(profile) in \(table)")
+    }
+
+    /// `parseTable` can't see this: a cell padded to the wrong width still splits into the same cells.
+    private func columnStarts(_ line: Substring) -> [Int] {
+        let characters = Array(line)
+        let separator = Array(repeating: Character(" "), count: 2)
+        return characters.indices.filter { index in
+            index == 0 || (characters[index] != " " && characters[..<index].suffix(2).elementsEqual(separator))
+        }
     }
 }
