@@ -25,11 +25,13 @@ struct Hats: AsyncParsableCommand {
     static func main() async {
         do {
             var command = try parseAsRoot()
+            let updates = UpdateNotifier.start(for: command)
             if var asyncCommand = command as? AsyncParsableCommand {
                 try await asyncCommand.run()
             } else {
                 try command.run()
             }
+            await updates?.finish()
         } catch let error as HatsError {
             Output.printError(error)
             Darwin.exit(error.kind == .usage ? EX_USAGE : EXIT_FAILURE)

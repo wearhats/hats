@@ -209,3 +209,17 @@ func ctime(_ date: Date) -> String {
     formatter.dateFormat = "EEE MMM d HH:mm:ss yyyy"
     return formatter.string(from: date)
 }
+
+/// Answers with `latest`, or fails like an offline Mac when it is nil.
+final class FakeReleaseFeed: ReleaseFeed, @unchecked Sendable {
+    let latest: String?
+    private(set) var requests = 0
+
+    init(latest: String? = nil) { self.latest = latest }
+
+    func latestVersion() async throws -> String {
+        requests += 1
+        guard let latest else { throw URLError(.notConnectedToInternet) }
+        return latest
+    }
+}

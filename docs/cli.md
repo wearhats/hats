@@ -34,6 +34,7 @@ things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 | `HATS_CLAUDE_BIN` | Path to the `claude` CLI for `run` (default: first on `PATH`). |
 | `HATS_DEFAULT_CONFIG_DIR` | The `default` profile's Claude Code dir (default `~/.claude`). An inherited `CLAUDE_CONFIG_DIR` never changes it. |
 | `HATS_PROFILE` | Set by hats, not read: `run` and `exec` export the profile name to the child, for prompts and scripts. |
+| `HATS_NO_UPDATE_CHECK` | Set to `1` to turn off the daily update check. It also stays off when `CI` is set, output isn't a terminal, or hats is a dev build. |
 | `NO_COLOR` | Disable colour output. |
 
 ## Examples

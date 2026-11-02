@@ -44,7 +44,9 @@ existing install alone:
   sessions across all accounts, with live status (busy, idle, waiting).
 - **Already juggling `CLAUDE_CONFIG_DIR`?** `hats add work --code-dir ~/.claude-work`
   adopts the existing directory with its login and history intact.
-- **Native and auditable.** Swift, one dependency, no telemetry, no network.
+- **Native and auditable.** Swift, one dependency, no telemetry. The one
+  network request is a daily update check (`HATS_NO_UPDATE_CHECK=1` turns it
+  off).
   Keychain queries ask for *attributes* only, never the secret. Of other
   processes' environments it keeps only `CLAUDE_CONFIG_DIR`. Claude's account
   files are parsed in memory and only the account ID, email, organization and

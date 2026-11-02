@@ -70,8 +70,9 @@ Each GitHub Release carries:
 
 ## Upgrades and uninstall
 
-- `brew upgrade hats`, or re-run the install script. hats doesn't check for
-  updates. `hats doctor` names the upgrade command: Homebrew installs are
+- `brew upgrade hats`, or re-run the install script. hats checks GitHub for a
+  newer release once a day and prints a notice with the upgrade command; it
+  never upgrades itself. `hats doctor` names the same command: Homebrew installs are
   recognized by their `Cellar` path, script installs by the
   `$HATS_HOME/install.json` receipt that `install.sh` writes.
 - Launchers record the `hats` path they call. Homebrew's

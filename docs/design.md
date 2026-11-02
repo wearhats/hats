@@ -106,7 +106,7 @@ only for a command or flag that names it: launcher copies (`add --desktop`,
 
 ### 6. Every OS touchpoint is injectable and listed
 
-Process, Keychain, Dock, Trash, Launch Services and filesystem access goes
+Process, Keychain, Dock, Trash, Launch Services, network and filesystem access goes
 through a protocol or an injected value, with a fake in tests, so no test
 touches the real targets. [privacy.md](privacy.md) lists every read, write and
 process action. A change that adds one updates that file in the same pull
@@ -129,3 +129,16 @@ fail silently, and a compiled stub would need signing per bundle.
 hats never moves or deletes an adopted config dir: `rm --purge` keeps it, and
 `reset --code` refuses it. Adoption refuses the default dir, dirs inside
 `HATS_HOME`, and a dir another profile already uses.
+
+### 9. One network request, and it only warns
+
+The only network request is the update check: a GET of GitHub's latest-release
+API, at most once a day, sending nothing but the User-Agent. It runs only for a
+person at a terminal (not for launchers, scripts, piped output or CI), and
+`HATS_NO_UPDATE_CHECK=1` turns it off. A newer release produces a notice with
+the upgrade command. hats never downloads, installs or replaces itself.
+
+Why: users of the install script have no package manager to tell them about
+fixes, so without a check they stay on old versions. A self-updater would put
+code that rewrites the binary in every install; Homebrew and the install
+script already verify and replace it.

@@ -31,6 +31,8 @@ public struct Layout: Sendable, Equatable {
     /// Written by `install.sh`, read by doctor; hats itself never writes it.
     public var installReceipt: URL { hatsHome.appending(path: "install.json", directoryHint: .notDirectory) }
 
+    public var updateCheckState: URL { hatsHome.appending(path: "update-check.json", directoryHint: .notDirectory) }
+
     public func profileDir(_ name: ProfileName) -> URL {
         profilesDir.appending(path: name.rawValue, directoryHint: .isDirectory)
     }
