@@ -16,9 +16,10 @@ enum Output {
         let widths = headers.indices.map { column in
             ([headers[column]] + rows.map { $0[column] }).map(\.count).max() ?? 0
         }
+        // Not String.padding(toLength:): it counts UTF-16 units, so it would cut the end off a cell holding an emoji.
         func line(_ cells: [String]) -> String {
             zip(cells, widths).enumerated()
-                .map { index, pair in index == cells.count - 1 ? pair.0 : pair.0.padding(toLength: pair.1, withPad: " ", startingAt: 0) }
+                .map { index, pair in index == cells.count - 1 ? pair.0 : pair.0 + String(repeating: " ", count: pair.1 - pair.0.count) }
                 .joined(separator: "  ")
         }
         print(useColor ? "\u{1B}[1m\(line(headers))\u{1B}[0m" : line(headers))
