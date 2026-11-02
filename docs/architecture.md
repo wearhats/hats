@@ -181,8 +181,8 @@ whose `launcherVersion` is older than the current one.
 ## 8. Platform notes
 
 Behaviour hats relies on, last checked on Claude Desktop 4.4212.0, Claude Code
-2.1.312 and macOS 27.0.1. `scripts/compat-check.sh` re-runs the checks that
-need Claude Desktop.
+2.1.312 and macOS 27.0.1. `scripts/compat-check.sh` drives hats against Claude
+Desktop, then re-runs the checks that need it directly.
 
 - Electron's `--user-data-dir` isolates cookies, local storage, the login
   session, `claude_desktop_config.json` (MCP) and Cowork's VM.

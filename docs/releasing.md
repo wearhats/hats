@@ -214,7 +214,8 @@ hats depends on Claude Desktop and Claude Code internals it doesn't control
 merged until it records the versions it was verified against:
 
 - [ ] Re-run `scripts/compat-check.sh` against the current Claude Desktop and
-      Claude Code, and re-check the "Not verified yet" items in the
+      Claude Code (it needs the `hats` to release on `PATH`, or in `HATS_BIN`, and
+      exits 1 if a check isn't confirmed), and re-check the "Not verified yet" items in the
       [platform notes](architecture.md#8-platform-notes). The script prints the
       Claude Desktop version; get the Claude Code one with `claude --version`.
 - [ ] Put "Verified on Claude Desktop X, Claude Code Y, macOS Z" in the release
