@@ -34,6 +34,8 @@ conventions on top of it:
   Trash or Launch Services (`sandbox.doctor()`, `sandbox.discarder`,
   `sandbox.launchers`). End-to-end tests use `E2ESandbox`, which runs the binary
   under `HATS_TEST_SANDBOX` and a Seatbelt profile.
+  The one exception is `DisposableHostTests`, which refuses to run anywhere but a
+  GitHub-hosted runner.
 
 ## Docs to keep in sync
 

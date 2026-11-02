@@ -56,7 +56,7 @@ executable there.
 | `UpdateCheck` | The daily release check: ask GitHub at most once a day, keep the latest version, build the notice. Warns only; never downloads. | `UpdateCheck`, `ReleaseFeed` (protocol), `GitHubReleaseFeed`, `SemanticVersion` |
 | `Doctor` | Run checks and produce `Finding`s. | `Check`, `Finding`, `Doctor` |
 | `Touchpoints` | The one value that holds every OS touchpoint. `.system` is the real set. Built once in the CLI's `Context`; nothing below it defaults to a real implementation, so forgetting one is a compile error. | `Touchpoints`, `ClaudeAppSearch` |
-| `TestSandbox` | `HATS_TEST_SANDBOX`: stand-ins for every touchpoint, kept inside one directory, for the end-to-end tests. Refuses to start if anything would be outside it ([privacy.md](privacy.md#test-mode)). | `TestSandbox` |
+| `TestSandbox` | `HATS_TEST_SANDBOX`: stand-ins for every touchpoint, kept inside one directory, for the end-to-end tests. `HATS_TEST_APP_CONTROL=guarded` makes launch, activate and quit real for apps inside it. Refuses to start if anything would be outside it ([privacy.md](privacy.md#test-mode)). | `TestSandbox` |
 
 ## 3. Data model and on-disk layout
 

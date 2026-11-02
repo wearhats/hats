@@ -3,6 +3,8 @@ import Testing
 
 extension Tag {
     @Tag static var e2e: Self
+    @Tag static var gui: Self
+    @Tag static var disposableHost: Self
 }
 
 /// A throwaway root per test, with an explicit environment that is never
@@ -19,6 +21,11 @@ final class E2ESandbox {
     /// Held here so a fake lives as long as the sandbox it was started in, however
     /// early the optimizer would release a test's own reference.
     var fakes: [FakeProcess] = []
+    /// For the GUI tests alone. `NSWorkspace` drops the launch arguments and
+    /// environment of a sandboxed caller (measured), and a quit request is an Apple
+    /// event, so hats can't do its job under the guard. Those tests rely on the
+    /// stand-ins and the guarded `AppControl` instead.
+    var runsWithoutSeatbelt = false
 
     init(hatsHomeName: String = "hats-home") throws {
         let parent = canonicalPath(FileManager.default.temporaryDirectory.path(percentEncoded: false))
@@ -75,8 +82,10 @@ final class E2ESandbox {
         removing removed: Set<String> = [],
         protectedHome: String = SeatbeltGuard.realHome
     ) throws -> CommandResult {
-        let wrapped = try SeatbeltGuard.wrap(
-            executable: executable, arguments: arguments, sandboxRoot: root, protectedHome: protectedHome)
+        let wrapped =
+            runsWithoutSeatbelt
+            ? (executable: executable, arguments: arguments)
+            : try SeatbeltGuard.wrap(executable: executable, arguments: arguments, sandboxRoot: root, protectedHome: protectedHome)
         return try CommandRunner.run(
             executable: wrapped.executable,
             arguments: wrapped.arguments,

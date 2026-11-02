@@ -258,3 +258,36 @@ struct TildeTests {
         #expect(try sandbox.snapshot() == before, "\(result)")
     }
 }
+
+@Suite("Host test gates", .tags(.e2e))
+struct HostTestGateTests {
+    @Test func anUnknownAppControlIsRefused() throws {
+        let sandbox = try E2ESandbox()
+
+        let result = try sandbox.hats(["ls"], environment: ["HATS_TEST_APP_CONTROL": "real"])
+
+        #expect(result.exit == 1, "\(result)")
+        #expect(result.stderr.contains("HATS_TEST_APP_CONTROL must be 'guarded'"), "\(result)")
+    }
+
+    @Test func theGuardedModeNeedsASandbox() throws {
+        let sandbox = try E2ESandbox()
+
+        let result = try sandbox.hats(["ls"], environment: ["HATS_TEST_APP_CONTROL": "guarded"], removing: ["HATS_TEST_SANDBOX"])
+
+        #expect(result.exit == 1, "\(result)")
+        #expect(result.stderr.contains("HATS_TEST_APP_CONTROL needs HATS_TEST_SANDBOX"), "\(result)")
+    }
+
+    @Test(arguments: [
+        [:], ["GITHUB_ACTIONS": "true"], ["RUNNER_ENVIRONMENT": "github-hosted"],
+        ["GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "self-hosted"],
+    ])
+    func theDisposableHostTestsRefuseAnyOtherMachine(environment: [String: String]) {
+        #expect(throws: DisposableHost.Refused.self) { try DisposableHost.requireThrowawayMachine(environment: environment) }
+    }
+
+    @Test func theDisposableHostTestsAcceptAHostedRunner() throws {
+        try DisposableHost.requireThrowawayMachine(environment: ["GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted"])
+    }
+}

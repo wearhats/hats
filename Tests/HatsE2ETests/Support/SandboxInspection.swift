@@ -91,7 +91,7 @@ extension E2ESandbox {
     /// Never declares Claude's bundle ID or a `claude://` URL type: Launch Services
     /// can register any app it sees, and such a bundle could take the real handler.
     @discardableResult
-    func makeApp(named name: String = "Claude", bundleID: String = "dev.wearhats.e2e.fake-claude") throws -> String {
+    func makeApp(named name: String = "Claude", bundleID: String = "dev.wearhats.e2e.not-running") throws -> String {
         let app = "\(root)/apps/\(name).app"
         let info: [String: Any] = ["CFBundleIdentifier": bundleID, "CFBundleShortVersionString": "9.9.9", "CFBundleExecutable": name]
         try makeDirectory("\(app)/Contents/MacOS")
