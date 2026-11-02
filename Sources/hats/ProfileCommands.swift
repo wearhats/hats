@@ -144,7 +144,7 @@ struct List: ParsableCommand {
                     row.name == "default" ? "Claude.app" : (row.launcher == nil ? "missing" : "ok"),
                 ]
                 if let bytes = row.diskBytes { cells.insert(Output.bytes(bytes), at: 6) }
-                if paths { cells += [row.desktopDir, row.codeDir].map(Output.abbreviateHome) }
+                if paths { cells += [row.desktopDir, row.codeDir] }
                 return cells
             }
         )
