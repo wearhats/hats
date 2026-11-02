@@ -80,9 +80,13 @@ final class E2ESandbox {
         return try CommandRunner.run(
             executable: wrapped.executable,
             arguments: wrapped.arguments,
-            environment: environment.merging(overrides) { _, override in override }.filter { !removed.contains($0.key) },
+            environment: processEnvironment(overrides, removing: removed),
             workingDirectory: URL(filePath: root, directoryHint: .isDirectory)
         )
+    }
+
+    func processEnvironment(_ overrides: [String: String], removing removed: Set<String>) -> [String: String] {
+        environment.merging(overrides) { _, override in override }.filter { !removed.contains($0.key) }
     }
 
     func leaksSentinel(_ result: CommandResult) -> Bool {

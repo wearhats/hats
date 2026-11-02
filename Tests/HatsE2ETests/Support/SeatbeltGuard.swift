@@ -66,6 +66,7 @@ enum SeatbeltGuard {
             (deny signal)
             (allow signal (target self))
             (deny appleevent-send)
+            (deny network-outbound (remote ip))
             (deny mach-lookup (global-name "com.apple.lsd.modifydb"))
             """
     }
