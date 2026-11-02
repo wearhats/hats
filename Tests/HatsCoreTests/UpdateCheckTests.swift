@@ -9,6 +9,11 @@ import Testing
         #expect(SemanticVersion("v1.2.3") == SemanticVersion("1.2.3"))
     }
 
+    @Test func readsReleaseTagsWithOrWithoutTheComponent() {
+        #expect(GitHubReleaseFeed.version(fromTag: "v0.1.1") == "v0.1.1")
+        #expect(GitHubReleaseFeed.version(fromTag: "hats-v0.1.0") == "v0.1.0")
+    }
+
     @Test func rejectsPrereleasesAndJunk() {
         #expect(SemanticVersion("0.1.0-dev") == nil)
         #expect(SemanticVersion("1.2") == nil)
@@ -47,7 +52,7 @@ import Testing
             check(sandbox, FakeReleaseFeed(), at: start).notice(currentVersion: "0.1.0", channel: .homebrew, home: "/Users/alice"))
         #expect(notice.message == "A new release of hats is available: 0.1.0 → 0.2.0")
         #expect(notice.upgradeCommand == "brew upgrade hats")
-        #expect(notice.releaseURL == "https://github.com/wearhats/hats/releases/tag/v0.2.0")
+        #expect(notice.releaseURL == "https://github.com/wearhats/hats/releases/latest")
     }
 
     @Test func noNoticeWhenUpToDateOrAhead() async throws {

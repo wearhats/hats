@@ -46,7 +46,12 @@ public struct GitHubReleaseFeed: ReleaseFeed {
         defer { session.finishTasksAndInvalidate() }
         let (data, response) = try await session.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
-        return try JSONDecoder().decode(Release.self, from: data).tagName
+        return Self.version(fromTag: try JSONDecoder().decode(Release.self, from: data).tagName)
+    }
+
+    /// 0.1.0 was tagged `hats-v0.1.0`; later releases are tagged `v<version>`.
+    static func version(fromTag tag: String) -> String {
+        tag.hasPrefix("hats-") ? String(tag.dropFirst("hats-".count)) : tag
     }
 
     private struct Release: Decodable {
@@ -61,7 +66,7 @@ public struct UpdateNotice: Equatable, Sendable {
     public let upgradeCommand: String?
 
     public var message: String { "A new release of hats is available: \(current) → \(latest)" }
-    public var releaseURL: String { "https://github.com/wearhats/hats/releases/tag/v\(latest)" }
+    public var releaseURL: String { "https://github.com/wearhats/hats/releases/latest" }
 }
 
 /// Warns about a newer release; never downloads or installs it. Asks the
