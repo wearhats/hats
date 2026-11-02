@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [SemVer](https://semver.org/).
 
+## [0.1.2](https://github.com/wearhats/hats/compare/v0.1.1...v0.1.2) (2026-11-02)
+
+
+### Features
+
+* add one-letter command shortcuts ([#17](https://github.com/wearhats/hats/issues/17)) ([4966317](https://github.com/wearhats/hats/commit/4966317311bf0716690b212589d58c56d72eb3fc))
+* add per-profile shortcuts ([#19](https://github.com/wearhats/hats/issues/19)) ([3be110f](https://github.com/wearhats/hats/commit/3be110f6d7255123f2b8d7a7d9fba89c406c10f7))
+* show profile dirs with hats ls --paths ([#20](https://github.com/wearhats/hats/issues/20)) ([14754db](https://github.com/wearhats/hats/commit/14754dbf1bba9b41ea61f34a89a897ddd4ecc529))
+
 ## [0.1.1](https://github.com/wearhats/hats/compare/hats-v0.1.0...v0.1.1) (2026-11-02)
 
 
