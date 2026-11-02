@@ -164,7 +164,7 @@ struct List: ParsableCommand {
 }
 
 struct Open: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Focus each profile's Claude Desktop, or launch it.")
+    static let configuration = CommandConfiguration(abstract: "Focus each profile's Claude Desktop, or launch it.", aliases: ["o"])
 
     @Argument(help: "Profile names (use 'default' for the stock install).")
     var names: [String] = []

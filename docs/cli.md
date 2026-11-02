@@ -24,6 +24,18 @@ things take `--json`. Exit codes: 0 ok, 1 failure, 64 usage error.
 | `hats dock pin [<name>…] [--dedupe-claude]` | Pin launchers to the Dock (all by default), next to Claude.app. Restarts the Dock. `--dedupe-claude` keeps one Claude.app tile. |
 | `hats dock unpin [<name>…]` | Remove launchers from the Dock. |
 
+## Shortcuts
+
+| Shortcut | Command |
+|---|---|
+| `hats r` | `hats run` |
+| `hats o` | `hats open` |
+| `hats x` | `hats exec` |
+| `hats f` | `hats focus` |
+
+`rm`, `reset` and `dedupe` remove or quit things, so they have no one-letter
+shortcut.
+
 ## Environment
 
 | Variable | Effect |
