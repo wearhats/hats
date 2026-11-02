@@ -141,6 +141,20 @@ struct TestModeTests {
         #expect(result.stdout.isEmpty, "\(result)")
     }
 
+    @Test(arguments: [["add", "t1", "--code-dir", ""], ["launcher", "copy", "t1", "--to", ""]])
+    func anEmptyDirectoryArgumentIsAUsageError(arguments: [String]) throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.addProfile("t1", label: "T1")
+        #expect(try sandbox.hats(["launcher", "rebuild", "t1"]).exit == 0)
+        let before = try sandbox.snapshot()
+
+        let result = try sandbox.hats(arguments)
+
+        #expect(result.exit == 64, "\(result)")
+        #expect(result.stderr.contains("needs a directory"), "\(result)")
+        #expect(try sandbox.snapshot() == before, "\(result)")
+    }
+
     @Test(arguments: [["env", "t1"], ["exec", "t1", "--", "/usr/bin/true"], ["run", "t1"], ["doctor"], ["dock", "pin"]])
     func everyCommandRefuses(arguments: [String]) throws {
         let sandbox = try E2ESandbox()
@@ -195,5 +209,61 @@ struct TestModeTests {
 
         #expect(result.exit == 0, "\(result)")
         #expect(try sandbox.json(result).isEmpty, "\(result)")
+    }
+}
+
+@Suite("A tilde means this HOME", .tags(.e2e))
+struct TildeTests {
+    @Test func adoptingATildePathStaysInHome() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeDirectory("\(sandbox.home)/.claude-work")
+
+        let result = try sandbox.hats(["add", "work", "--code-dir", "~/.claude-work"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("code      \(sandbox.home)/.claude-work (adopted)"), "\(result)")
+    }
+
+    @Test func copyingToATildePathStaysInHome() throws {
+        let sandbox = try E2ESandbox()
+        #expect(try sandbox.hats(["add", "t1"]).exit == 0)
+
+        let result = try sandbox.hats(["launcher", "copy", "t1", "--to", "~/x"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(sandbox.exists("\(sandbox.home)/x/Claude (T1).app"), "\(result)")
+    }
+
+    @Test func aTildeInHatsHomeStaysInHome() throws {
+        let sandbox = try E2ESandbox()
+
+        let result = try sandbox.hats(["add", "t1"], environment: ["HATS_HOME": "~/hats-data"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(sandbox.exists("\(sandbox.home)/hats-data/profiles/t1/profile.json"), "\(result)")
+    }
+
+    @Test func aRelativeAdoptedDirIsRecordedAsAbsolute() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeDirectory("\(sandbox.root)/relative-dir")
+
+        let result = try sandbox.hats(["add", "t1", "--code-dir", "relative-dir"])
+
+        #expect(result.exit == 0, "\(result)")
+        let metadata = try #require(
+            try JSONSerialization.jsonObject(with: Data(sandbox.read("\(sandbox.profileDir("t1"))/profile.json").utf8)) as? [String: Any])
+        #expect(metadata["externalCodeDir"] as? String == "\(sandbox.root)/relative-dir", "\(result)")
+    }
+
+    @Test func aStoredLabelThatLeavesTheLauncherDirMakesTheProfileUnreadable() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.addProfile("t1", label: "../../escaped")
+        let before = try sandbox.snapshot()
+
+        let result = try sandbox.hats(["launcher", "rebuild", "t1"])
+
+        #expect(result.exit == 1, "\(result)")
+        #expect(result.stderr.contains("invalid label"), "\(result)")
+        #expect(try sandbox.snapshot() == before, "\(result)")
     }
 }

@@ -46,11 +46,6 @@ enum Output {
         }
     }
 
-    static func abbreviateHome(_ path: String) -> String {
-        let home = NSHomeDirectory()
-        return path == home ? "~" : path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
-    }
-
     static func printError(_ error: HatsError) {
         writeDiagnostic(label: "hats:", colorCode: "31", message: error.message, hint: error.hint)
     }
