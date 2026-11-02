@@ -23,7 +23,7 @@ is a breaking change.
 | `hats rm <name…> \| --all [--purge] [--yes] [--force] [--dry-run]` | Remove launchers and the copies hats placed. `--purge` also moves the profile's data to the Trash after typed confirmation (`--yes` for scripts); an adopted code dir is kept. Refuses a running profile; `--force` removes only the launcher and never allows `--purge`. A profile whose `profile.json` cannot be read is refused by `--purge` until that file is repaired. |
 | `hats doctor [--json]` | Read-only health checks, including how hats was installed and the command that upgrades it, launchers that call another `hats`, sign-in state, accounts shared between profiles, conflicting shortcuts, duplicates and the `claude://` handler. An unreadable profile is reported as its own `[fail]` on the `profile:<name>` check. Non-zero exit only on `[fail]`. |
 | `hats launcher rebuild [<name>…]` | Regenerate launchers (all by default) and the copies hats recorded. Naming `default` is an error, because Claude.app launches itself. |
-| `hats launcher copy <name…> [--to DIR]` | Copy launchers to a folder (default `~/Desktop`) and record the copy, so rebuilds and `rm` keep it in step. Other folders are never scanned. |
+| `hats launcher copy <name…> [--to DIR]` | Copy launchers to a folder (default `~/Desktop`) and record the copy, so rebuilds and `rm` keep it in step. Other folders are never scanned. Naming `default` is an error. |
 | `hats launcher reveal` | Show the launchers folder in Finder. |
 | `hats dock pin [<name>…] [--dedupe-claude]` | Pin launchers to the Dock (all by default), next to Claude.app. Restarts the Dock. `--dedupe-claude` keeps one Claude.app tile. |
 | `hats dock unpin [<name>…]` | Remove launchers from the Dock. |

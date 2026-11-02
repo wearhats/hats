@@ -133,6 +133,7 @@ struct Refusal: Sendable, CustomTestStringConvertible {
             return ["launcher", "rebuild", "t1", "default"]
         },
         Refusal("launcher rebuild: unknown", exit: 1, stderr: "no profile named 'ghost'", argv: ["launcher", "rebuild", "ghost"]),
+        Refusal("launcher copy: default", exit: 64, stderr: "launched by Claude.app itself", argv: ["launcher", "copy", "default"]),
         Refusal("launcher copy: unknown", exit: 1, stderr: "no profile named 'ghost'", argv: ["launcher", "copy", "ghost"]),
         Refusal("launcher copy: no launcher", exit: 1, stderr: "no launcher for 't1'") { sandbox in
             try sandbox.addProfile("t1")

@@ -77,6 +77,15 @@ struct Context {
 
     /// Every profile that can be read. Each one that cannot is named on stderr
     /// once per run, however many times the run lists profiles.
+    /// The named profiles, or every profile but `default` when none is named. Naming
+    /// `default` is an error, checked before the caller changes anything.
+    func managedProfiles(named names: [String], refusingDefault refusal: String) throws -> [Profile] {
+        guard !names.isEmpty else { return try readableProfiles().filter { !$0.isDefault } }
+        let profiles = try names.map { try profile($0) }
+        guard !profiles.contains(where: \.isDefault) else { throw HatsError(.usage, refusal) }
+        return profiles
+    }
+
     func readableProfiles() throws -> [Profile] {
         let inventory = try store.inventory()
         for broken in inventory.unreadableProfiles where unreadableWarnings.claimReport(for: broken.name) {

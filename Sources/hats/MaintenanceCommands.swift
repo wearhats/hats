@@ -110,11 +110,7 @@ struct Dock: ParsableCommand {
 
         func run() throws {
             let context = try Context()
-            let targets =
-                names.isEmpty
-                ? try context.readableProfiles().filter { !$0.isDefault }
-                : try names.map { try context.profile($0) }
-            guard !targets.contains(where: \.isDefault) else { throw HatsError(.usage, "Claude.app itself is pinned the usual way") }
+            let targets = try context.managedProfiles(named: names, refusingDefault: "Claude.app itself is pinned the usual way")
             if targets.isEmpty { return print("No profiles yet. Create one with: hats add <name>") }
             try context.pinToDock(targets, dedupeClaude: dedupeClaude)
         }
