@@ -160,8 +160,9 @@ hats runs on macOS only and organizes accounts you hold. It won't:
 - orchestrate agents;
 - help stretch usage limits across accounts.
 
-The reasons are in the [design rules](docs/design.md). Planned work is tracked
-in [issues](https://github.com/wearhats/hats/issues).
+The reasons are in the [design rules](docs/design.md). Ideas and requests are
+welcome in [Discussions](https://github.com/wearhats/hats/discussions) and
+[issues](https://github.com/wearhats/hats/issues).
 
 ## Docs
 
@@ -169,7 +170,7 @@ in [issues](https://github.com/wearhats/hats/issues).
 [What hats reads and writes](docs/privacy.md) · [Architecture](docs/architecture.md) ·
 [Releasing](docs/releasing.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
-Tested with Claude Desktop 4.29.0, Claude Code 2.1.312 and macOS 27.0.1.
+Tested with Claude Desktop 4.4212.0, Claude Code 2.1.312 and macOS 27.0.1.
 
 ## Thanks
 
