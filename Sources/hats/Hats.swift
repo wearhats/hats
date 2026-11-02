@@ -65,7 +65,8 @@ struct Context {
 
     /// A folder named on the command line, which test mode must keep contained.
     func directoryArgument(_ path: String, flag: String) throws -> URL {
-        let directory = URL(filePath: (path as NSString).expandingTildeInPath, directoryHint: .isDirectory)
+        // An unset shell variable must not silently mean the current directory.
+        guard let directory = layout.directory(named: path) else { throw HatsError(.usage, "\(flag) needs a directory") }
         try testSandbox?.requireInside(directory.plainPath, what: flag)
         return directory
     }

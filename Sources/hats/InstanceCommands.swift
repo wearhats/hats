@@ -26,13 +26,13 @@ struct PS: ParsableCommand {
             headers: ["PROFILE", "KIND", "PID", "STATUS", "AGE", "NAME", "CWD"],
             rows: instances.map { instance in
                 [
-                    instance.profile?.rawValue ?? "(\(Output.abbreviateHome(instance.dataDir)))",
+                    instance.profile?.rawValue ?? "(\(context.layout.abbreviatingHome(instance.dataDir)))",
                     instance.kind.rawValue,
                     String(instance.pid),
                     instance.status ?? "-",
                     Output.age(from: instance.startedAt, to: now),
                     instance.name ?? "-",
-                    instance.cwd.map(Output.abbreviateHome) ?? "-",
+                    instance.cwd.map(context.layout.abbreviatingHome) ?? "-",
                 ]
             }
         )

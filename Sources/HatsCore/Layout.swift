@@ -10,19 +10,22 @@ public struct Layout: Sendable, Equatable {
     public let defaultCodeDir: URL
 
     public init(environment: [String: String]) {
-        let home = URL(filePath: environment["HOME"] ?? NSHomeDirectory(), directoryHint: .isDirectory)
+        // Tilde arguments and the default roots hang off this, and an empty path
+        // would mean the current directory.
+        let configuredHome = environment["HOME"].flatMap { $0.isEmpty ? nil : $0 }
+        let home = URL(filePath: configuredHome ?? NSHomeDirectory(), directoryHint: .isDirectory)
         self.home = home
         hatsHome =
-            Self.directory(environment["HATS_HOME"])
+            Self.directory(environment["HATS_HOME"], home: home)
             ?? home.appending(path: "Library/Application Support/hats", directoryHint: .isDirectory)
         launcherDir =
-            Self.directory(environment["HATS_LAUNCHER_DIR"])
+            Self.directory(environment["HATS_LAUNCHER_DIR"], home: home)
             ?? home.appending(path: "Applications/Hats", directoryHint: .isDirectory)
         defaultDesktopDir = home.appending(path: "Library/Application Support/Claude", directoryHint: .isDirectory)
         // An inherited CLAUDE_CONFIG_DIR usually means "this shell is inside a
         // profile", so it must not redefine what `default` is.
         defaultCodeDir =
-            Self.directory(environment["HATS_DEFAULT_CONFIG_DIR"])
+            Self.directory(environment["HATS_DEFAULT_CONFIG_DIR"], home: home)
             ?? home.appending(path: ".claude", directoryHint: .isDirectory)
     }
 
@@ -70,9 +73,27 @@ public struct Layout: Sendable, Equatable {
         return child.hasPrefix(parent + "/") && child.count > parent.count + 1
     }
 
-    private static func directory(_ path: String?) -> URL? {
+    /// A directory the user named, such as `--to '~/x'`, as an absolute URL.
+    /// `nil` for an empty path.
+    public func directory(named path: String) -> URL? {
+        Self.directory(path, home: home)
+    }
+
+    /// The path `home` stands for when shortened to `~` for display.
+    public func abbreviatingHome(_ path: String) -> String {
+        let home = home.plainPath
+        return path == home ? "~" : path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
+    }
+
+    /// `NSString.expandingTildeInPath` ignores `HOME` and goes to the account's
+    /// real home, which would take a sandboxed run out of its sandbox.
+    private static func directory(_ path: String?, home: URL) -> URL? {
         guard let path, !path.isEmpty else { return nil }
-        return URL(filePath: (path as NSString).expandingTildeInPath, directoryHint: .isDirectory)
+        let expanded =
+            path == "~"
+            ? home.plainPath
+            : path.hasPrefix("~/") ? home.plainPath + path.dropFirst(1) : (path as NSString).expandingTildeInPath
+        return URL(filePath: expanded, directoryHint: .isDirectory).absoluteURL
     }
 }
 

@@ -331,6 +331,13 @@ public struct ProfileStore: Sendable {
                 hint: "upgrade hats"
             )
         }
+        // Launcher bundles are named after the label, so a hand-edited one with a
+        // '/' would write outside the launcher dir.
+        do {
+            try Self.validate(label: metadata.label)
+        } catch {
+            throw HatsError(.io, "cannot read \(file.plainPath): \(error.message)", hint: error.hint)
+        }
         return metadata
     }
 

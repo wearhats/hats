@@ -230,3 +230,18 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
     }
 }
 #endif
+
+@Suite struct AbbreviatingHomeTests {
+    private let layout = Layout(environment: ["HOME": "/home/me"])
+
+    @Test func anEmptyHomeCountsAsUnset() {
+        #expect(Layout(environment: ["HOME": ""]).home.plainPath == URL(filePath: NSHomeDirectory()).plainPath)
+    }
+
+    @Test(arguments: [
+        ("/home/me", "~"), ("/home/me/a/b", "~/a/b"), ("/home/me2/a", "/home/me2/a"), ("/other", "/other"),
+    ])
+    func shortensOnlyPathsInsideHome(path: String, expected: String) {
+        #expect(layout.abbreviatingHome(path) == expected)
+    }
+}
