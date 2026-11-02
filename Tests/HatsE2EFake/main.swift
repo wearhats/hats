@@ -1,6 +1,6 @@
 import AppKit
 import CoreServices
-@preconcurrency import Darwin
+import Darwin
 import Foundation
 
 // A stand-in for a running Claude, for the end-to-end tests. hats tells processes
@@ -53,9 +53,16 @@ let pid = getpid()
     exit(0)
 }
 
-/// Swift doesn't import `servers/bootstrap.h`.
-@_silgen_name("bootstrap_look_up")
-func bootstrapLookUp(_ bootstrap: mach_port_t, _ service: UnsafePointer<CChar>, _ port: UnsafeMutablePointer<mach_port_t>) -> kern_return_t
+/// Through `dlsym` because Swift doesn't import `servers/bootstrap.h`.
+func lookUpMachService(_ name: String) -> kern_return_t {
+    typealias LookUp = @convention(c) (mach_port_t, UnsafePointer<CChar>, UnsafeMutablePointer<mach_port_t>) -> kern_return_t
+    let everyLoadedImage = UnsafeMutableRawPointer(bitPattern: -2)
+    guard let lookUp = dlsym(everyLoadedImage, "bootstrap_look_up"), let bootstrapPort = dlsym(everyLoadedImage, "bootstrap_port") else {
+        fatalError("hats-e2e-fake: no bootstrap_look_up")
+    }
+    var port = mach_port_t()
+    return unsafeBitCast(lookUp, to: LookUp.self)(bootstrapPort.load(as: mach_port_t.self), name, &port)
+}
 
 /// `ascr/gdte`, spelled as its four-char codes because Swift doesn't import them, asks
 /// for an app's scripting dictionary. It changes nothing and raised no Automation
@@ -70,7 +77,7 @@ func sendReadOnlyAppleEvent() -> OSStatus {
             AEEventClass(0x6173_6372), AEEventID(0x6764_7465), &target, AEReturnID(kAutoGenerateReturnID),
             AETransactionID(kAnyTransactionID), &event) == noErr
     else { fatalError("hats-e2e-fake: couldn't build the Apple event") }
-    return AESendMessage(&event, &reply, AESendMode(kAEWaitReply), 300)
+    return AESendMessage(&event, &reply, AESendMode(kAEWaitReply | kAENeverInteract), 300)
 }
 
 func runProbe(_ probe: String) -> Never {
@@ -78,8 +85,7 @@ func runProbe(_ probe: String) -> Never {
     if probe == "apple-event" {
         status = sendReadOnlyAppleEvent()
     } else if probe.hasPrefix("lookup:") {
-        var port = mach_port_t()
-        status = bootstrapLookUp(bootstrap_port, String(probe.dropFirst("lookup:".count)), &port)
+        status = lookUpMachService(String(probe.dropFirst("lookup:".count)))
     } else if probe.hasPrefix("register:") {
         status = LSRegisterURL(URL(filePath: String(probe.dropFirst("register:".count))) as CFURL, true)
     } else {
