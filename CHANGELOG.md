@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [SemVer](https://semver.org/).
 
+## [0.1.1](https://github.com/wearhats/hats/compare/v0.1.0...v0.1.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* tag releases v&lt;version&gt; and stop assuming the tag format ([#12](https://github.com/wearhats/hats/issues/12)) ([52580bb](https://github.com/wearhats/hats/commit/52580bbfd7986a3a77e87511738b05d1e42da9b0))
+
 ## 0.1.0 (2026-11-02)
 
 
