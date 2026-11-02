@@ -1,0 +1,49 @@
+import { chromium } from 'playwright';
+import lighthouse from 'lighthouse';
+import { startWrangler } from './support.mjs';
+
+const MIN_SCORE = 0.95;
+const MAX_LCP_MS = 1500;
+const MAX_CLS = 0.05;
+const PORT = 9333;
+
+const server = await startWrangler(8789);
+const browser = await chromium.launch({ args: [`--remote-debugging-port=${PORT}`] });
+let failed = false;
+
+try {
+  for (const [name, formFactor] of [['mobile', 'mobile'], ['desktop', 'desktop']]) {
+    for (const path of ['/', '/privacy']) {
+      const config = {
+        extends: 'lighthouse:default',
+        settings:
+          formFactor === 'desktop'
+            ? { preset: 'desktop', formFactor, screenEmulation: { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false } }
+            : { formFactor },
+      };
+      const { lhr } = await lighthouse(server.origin + path, { port: PORT, output: 'json', logLevel: 'error' }, config);
+      const scores = Object.fromEntries(Object.values(lhr.categories).map((category) => [category.id, category.score]));
+      const lcp = lhr.audits['largest-contentful-paint'].numericValue;
+      const cls = lhr.audits['cumulative-layout-shift'].numericValue;
+      console.log(name, path, JSON.stringify(scores), `LCP ${Math.round(lcp)}ms`, `CLS ${cls.toFixed(3)}`);
+      for (const [id, score] of Object.entries(scores)) {
+        if (score < MIN_SCORE) {
+          failed = true;
+          const lost = Object.values(lhr.categories[id].auditRefs)
+            .map((ref) => lhr.audits[ref.id])
+            .filter((audit) => audit.score !== null && audit.score < 1 && audit.scoreDisplayMode !== 'informative');
+          console.error(`  ${id} below ${MIN_SCORE}:`, lost.map((audit) => audit.id).join(', '));
+        }
+      }
+      if (lcp > MAX_LCP_MS || cls > MAX_CLS) {
+        failed = true;
+        console.error(`  over budget: LCP ${lcp}, CLS ${cls}`);
+      }
+    }
+  }
+} finally {
+  await browser.close();
+  server.stop();
+}
+
+process.exit(failed ? 1 : 0);
