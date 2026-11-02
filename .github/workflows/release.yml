@@ -250,7 +250,7 @@ jobs:
           bot_id=$(GH_TOKEN="$TAP_TOKEN" gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git clone "https://x-access-token:${TAP_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/homebrew-tap.git" "$RUNNER_TEMP/tap"
           mkdir -p "$RUNNER_TEMP/tap/Formula"
-          scripts/render-formula.sh "$GITHUB_REPOSITORY" "$VERSION" "$sha" > "$RUNNER_TEMP/tap/Formula/hats.rb"
+          scripts/render-formula.sh "$GITHUB_REPOSITORY" "$TAG" "$sha" > "$RUNNER_TEMP/tap/Formula/hats.rb"
           cd "$RUNNER_TEMP/tap"
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"

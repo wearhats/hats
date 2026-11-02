@@ -1,17 +1,17 @@
 #!/bin/sh
 # Prints the Homebrew formula for a release.
-# Usage: scripts/render-formula.sh <owner/repo> <version-without-v> <sha256>
+# Usage: scripts/render-formula.sh <owner/repo> <release-tag> <sha256>
 set -eu
 
 repo=$1
-version=$2
+tag=$2
 sha256=$3
 
 cat <<FORMULA
 class Hats < Formula
   desc "Run several Claude accounts side by side and see every running Claude"
   homepage "https://github.com/$repo"
-  url "https://github.com/$repo/releases/download/v$version/hats-macos-universal.tar.gz"
+  url "https://github.com/$repo/releases/download/$tag/hats-macos-universal.tar.gz"
   sha256 "$sha256"
   license "MIT"
   head "https://github.com/$repo.git", branch: "main"
