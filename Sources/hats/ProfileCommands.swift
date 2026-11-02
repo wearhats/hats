@@ -86,6 +86,9 @@ struct List: ParsableCommand {
     @Flag(help: "Also show disk usage per profile (slower; Cowork's VM alone is about 12 GB).")
     var size = false
 
+    @Flag(help: "Also show each profile's Desktop data dir and Claude Code config dir. --json always includes them.")
+    var paths = false
+
     struct Row: Encodable {
         let name: String
         let label: String
@@ -127,6 +130,7 @@ struct List: ParsableCommand {
         if json { return try Output.printJSON(rows) }
         var headers = ["PROFILE", "DESKTOP", "SESSIONS", "DESKTOP LOGIN", "CLI LOGIN", "ACCOUNT", "LAUNCHER"]
         if size { headers.insert("DISK", at: 6) }
+        if paths { headers += ["DESKTOP DIR", "CONFIG DIR"] }
         Output.printTable(
             headers: headers,
             rows: rows.map { row in
@@ -140,6 +144,7 @@ struct List: ParsableCommand {
                     row.name == "default" ? "Claude.app" : (row.launcher == nil ? "missing" : "ok"),
                 ]
                 if let bytes = row.diskBytes { cells.insert(Output.bytes(bytes), at: 6) }
+                if paths { cells += [row.desktopDir, row.codeDir].map(Output.abbreviateHome) }
                 return cells
             }
         )

@@ -100,7 +100,7 @@ hats open personal                 # or click the launcher; hats open --all open
 hats run personal                  # claude CLI on the personal account (then /login once)
 hats ps                            # every running Claude, across accounts
 hats focus acme-4b                 # jump to the terminal or window running a session
-hats ls                            # profiles, sign-in state, accounts (--size for disk use)
+hats ls                            # profiles, sign-in state, accounts (--size, --paths)
 hats reset personal --open         # it opened on the wrong account: start it fresh
 hats doctor                        # explain what's set up and what's wrong
 ```
