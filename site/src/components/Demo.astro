@@ -1,0 +1,39 @@
+---
+import { VERSION } from '../data/release';
+import { inline } from '../lib/inline';
+import { hasDemo, hasWebm, stills } from '../lib/demoMedia';
+---
+
+{
+  hasDemo && (
+    <section class="section" id="demo" aria-labelledby="demo-title">
+      <div class="wrap">
+        <h2 id="demo-title">See it run.</h2>
+        <figure class="demo">
+          <video controls preload="none" playsinline poster="/media/demo-poster.webp" width="1280" height="720">
+            {hasWebm && <source src="/media/demo.webm" type="video/webm" />}
+            <source src="/media/demo.mp4" type="video/mp4" />
+            <track kind="captions" src="/media/demo.vtt" srclang="en" label="English" default />
+          </video>
+          <figcaption>
+            Recorded with hats {VERSION}. Terminal output uses sample data. Window contents are blurred.{' '}
+            <a href="/media/demo-transcript.txt">Transcript</a>
+          </figcaption>
+        </figure>
+        {stills.length > 0 && (
+          <div class="stills">
+            {stills.map(({ file, caption, alt }) => (
+              <figure>
+                <picture>
+                  <source srcset={`/media/${file}.avif`} type="image/avif" />
+                  <img src={`/media/${file}.webp`} alt={alt} loading="lazy" width="800" height="500" />
+                </picture>
+                <figcaption set:html={inline(caption)} />
+              </figure>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}

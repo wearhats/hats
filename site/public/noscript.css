@@ -1,0 +1,15 @@
+.install .tablist {
+  display: none;
+}
+
+.install .tabpanel[hidden] {
+  display: block;
+}
+
+.install .tabpanel-label {
+  display: block;
+}
+
+details.hood:not([open]) > :not(summary) {
+  display: block;
+}

@@ -60,4 +60,7 @@ to Cloudflare Workers static assets from `main`.
   attributes. Nothing loads from another origin. The one exception is the Umami
   pageview, sent from the committed `site/public/stats.js` with `connect-src`.
 - `/install.sh` is a zone redirect, never part of the site build.
+- Status labels live only in `site/src/data/status.ts`.
+- `site/fixtures/` holds output shown on the page. Its README says which files are
+  samples; the Demo section renders only when its media files exist.
 - No competitor names in tracked files, and no sample output captioned as real.

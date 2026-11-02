@@ -20,3 +20,18 @@ export const INSTALL_OPTIONS = [
     command: 'curl -fsSLO https://wearhats.dev/install.sh && less install.sh && sh install.sh',
   },
 ] as const;
+
+export const SOURCE_INSTALL = {
+  id: 'source',
+  label: 'From source',
+  command: 'swift build -c release && install -m 0755 .build/release/hats ~/.local/bin/',
+} as const;
+
+export const NOTICE = 'Unofficial community tool. Not affiliated with or endorsed by Anthropic.';
+
+export const NAV = [
+  { label: 'How it works', href: '/#how-it-works' },
+  { label: 'Privacy', href: '/#privacy' },
+  { label: 'Docs', href: '/docs' },
+  { label: 'GitHub', href: REPO_URL },
+];

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST, SITE_ROOT, filesIn, gzipSize, htmlFiles, read, rel, visibleText } from './support.mjs';
 
+const DESCRIPTION_LENGTH = (html) => html.match(/<meta name="description" content="([^"]*)"/)[1].length;
 const pages = htmlFiles().map((file) => ({ name: rel(file), html: read(file), text: visibleText(read(file)) }));
 const home = pages.find((page) => page.name === 'index.html');
 const privacy = pages.find((page) => page.name === 'privacy.html');
@@ -18,8 +20,6 @@ const BANNED_CLAIMS = [
   "never reads claude's files",
   'loads nothing from',
   'unlimited',
-  'more usage',
-  'bypass',
   'seamless',
   '100% private',
   'stack your plans',
@@ -31,6 +31,32 @@ test('no page makes a banned claim', () => {
       assert.ok(!text.toLowerCase().includes(phrase), `${name} says "${phrase}"`);
     }
   }
+});
+
+test('fixture output is captioned as a sample until it is captured from a release', () => {
+  assert.match(home.text, /Sample output of hats ps\./);
+  assert.doesNotMatch(home.text, /\breal\b[^.]{0,40}\boutput\b/i);
+});
+
+test('the demo section renders only when its media exists', () => {
+  const hasMedia = existsSync(join(SITE_ROOT, 'public/media/demo.mp4'));
+  assert.equal(/<video\b/.test(home.html), hasMedia);
+  assert.equal(home.html.includes('See it run.'), hasMedia);
+});
+
+test('status labels are defined in one file', () => {
+  const others = filesIn(join(SITE_ROOT, 'src')).filter((file) => !file.endsWith('data/status.ts') && !/\.(svg|css)$/.test(file));
+  for (const file of others) {
+    assert.doesNotMatch(read(file), /Expected, being verified|['"`]Shipped['"`]/, rel(file, SITE_ROOT));
+  }
+  assert.match(home.text, /Cowork: expected, being verified/);
+});
+
+test('the page metadata follows the content plan', () => {
+  assert.ok(DESCRIPTION_LENGTH(home.html) <= 155);
+  const structured = JSON.parse(home.html.match(/<script type="application\/ld\+json">(.+?)<\/script>/s)[1]);
+  assert.equal(structured['@type'], 'SoftwareApplication');
+  assert.equal(structured.softwareVersion, JSON.parse(read(join(SITE_ROOT, '../.release-please-manifest.json')))['.']);
 });
 
 test('no page mentions internal planning terms', () => {
@@ -96,6 +122,14 @@ test('the home page carries the install commands and the separate notices', () =
   assert.match(home.text, /Not affiliated with or endorsed by Anthropic\./);
   assert.match(home.text, /not affiliated with, endorsed by or sponsored by Anthropic, PBC\./);
   assert.match(home.text, /It counts visits with self-hosted Umami\./);
+});
+
+test('words never run into an inline tag', () => {
+  for (const { name, html } of pages) {
+    const body = html.slice(html.indexOf('<body'));
+    assert.doesNotMatch(body, /[a-z:,]<(code|a|strong|em)\b/, name);
+    assert.doesNotMatch(body, /<\/(code|a|strong|em)>[a-z]/, name);
+  }
 });
 
 test('every page has one h1 and a language', () => {

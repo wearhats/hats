@@ -1,45 +1,317 @@
 ---
 import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import Logo from '../components/Logo.astro';
-import { INSTALL_OPTIONS, REPO_URL, SUBHEAD } from '../data/site';
+import InstallTabs from '../components/InstallTabs.astro';
+import HeroTerminal from '../components/HeroTerminal.astro';
+import DockStrip from '../components/DockStrip.astro';
+import WindowsIllustration from '../components/WindowsIllustration.astro';
+import HoodDiagram from '../components/HoodDiagram.astro';
+import StatusChip from '../components/StatusChip.astro';
+import Demo from '../components/Demo.astro';
+import { inline } from '../lib/inline';
+import { APPS } from '../data/apps';
+import { VERSION } from '../data/release';
+import { DESCRIPTION, INSTALL_OPTIONS, LICENSE_URL, MAINTAINER_URL, NOTICE, REPO_URL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
+import { COMPARISON, COMPARISON_HEADERS, FAQ, FEATURES, HATS_ROW, NOT_YET, PRIVACY, PROBLEMS } from '../data/copy';
+
+const eyebrow = `macOS · ${APPS.map(({ name }) => name).join(' + ')} · open source`;
+const structuredData = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'hats',
+  description: DESCRIPTION,
+  operatingSystem: 'macOS 14+',
+  applicationCategory: 'DeveloperApplication',
+  offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
+  license: LICENSE_URL,
+  downloadUrl: `${REPO_URL}/releases`,
+  softwareVersion: VERSION,
+  author: { '@type': 'Person', name: 'Max Novak' },
+});
 ---
 
 <Base path="/">
-  <header class="wrap holding-header">
-    <Logo />
-  </header>
-  <main id="main" class="wrap holding">
-    <h1>Wear every hat at once.</h1>
-    <p class="lede">{SUBHEAD}</p>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+  <Header />
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">{eyebrow}</p>
+        <h1 id="hero-title">Wear every hat at once.</h1>
+        <p class="lede">{SUBHEAD}</p>
+        <InstallTabs name="hero" options={INSTALL_OPTIONS} />
+        <p class="hero-facts">Then run <code>hats setup</code>. macOS 14+ · Free, MIT</p>
+        <p class="hero-facts">No telemetry. One update check, which you can turn off.</p>
+        <p class="hero-links">
+          <a class="button" href={REPO_URL}>View on GitHub →</a>
+          <a href="#how-it-works">How it works ↓</a>
+        </p>
+        <p class="notice">{NOTICE}</p>
+      </div>
+      <div class="desk">
+        <div class="desk-windows"><WindowsIllustration /></div>
+        <HeroTerminal />
+        <DockStrip />
+      </div>
+    </section>
 
-    <dl class="install-list">
-      {
-        INSTALL_OPTIONS.map(({ label, command }) => (
+    <section class="section" id="problem" aria-labelledby="problem-title">
+      <div class="wrap">
+        <h2 id="problem-title">Signing out is not a workflow.</h2>
+        <ul class="cubbies cubbies-3">
+          {
+            PROBLEMS.map(({ title, body }) => (
+              <li>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="footnote">
+          From hundreds of comments on the public feature request,{' '}
+          <a href="https://github.com/anthropics/claude-code/issues/18435">anthropics/claude-code#18435</a>.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="how-it-works" aria-labelledby="how-title">
+      <div class="wrap">
+        <h2 id="how-title">One Claude.app. A hat for each account.</h2>
+        <ol class="steps">
+          <li>
+            <h3><code>hats setup</code></h3>
+            <p>
+              Finds the <code>~/.claude-*</code> folders you already made and adopts them, logins intact. Adds a profile
+              for your other account, and asks before pinning it to the Dock. Each step prints the command it ran, so you
+              can script it next time.
+            </p>
+          </li>
+          <li>
+            <h3>Click "Claude (Personal)"</h3>
+            <p>
+              A launcher in <code>~/Applications/Hats</code> opens a separate Claude Desktop with its own sign-in, chats,
+              connectors and MCP servers. Click it again and the window comes forward instead of opening twice. In the
+              terminal: <code>hats run personal</code>.
+            </p>
+            <p class="aside">
+              Signing in? If the link opens in another Claude window, quit the others first, then bring them back with
+              <code>hats open --all</code>.
+            </p>
+          </li>
+          <li>
+            <h3><code>hats ps</code></h3>
+            <p>
+              Every Desktop window and Claude Code session, on every account, with what it's doing: busy, idle or waiting
+              for you. <code>hats focus &lt;name&gt;</code> jumps to it.
+            </p>
+          </li>
+        </ol>
+        <details class="hood" data-open-on-wide>
+          <summary>Under the hood</summary>
+          <p class="prose-width">
+            Each profile is a pair of plain folders. hats starts your installed Claude.app as a new instance with
+            <code>--user-data-dir</code> and <code>CLAUDE_CONFIG_DIR</code> pointing at them. Nothing is copied, renamed,
+            symlinked or re-signed. Your stock setup is the read-only <code>default</code> profile.
+          </p>
+          <figure>
+            <HoodDiagram />
+            <figcaption>Desktop's Code tab follows the profile. Cowork is expected to; we're still verifying that.</figcaption>
+          </figure>
+        </details>
+      </div>
+    </section>
+
+    <Demo />
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <h2 id="features-title">What you get today</h2>
+        <ul class="cubbies cubbies-2">
+          {
+            FEATURES.map(({ title, body, command, statuses }) => (
+              <li class="feature">
+                <h3>{title}</h3>
+                <p set:html={inline(body)} />
+                <p class="feature-command">
+                  <code>{command}</code>
+                </p>
+                <p class="chips">
+                  {statuses.map((status) => (
+                    <StatusChip status={status} />
+                  ))}
+                </p>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="other-ways" aria-labelledby="other-title">
+      <div class="wrap">
+        <h2 id="other-title">Other ways to run two accounts</h2>
+        <p class="prose-width">
+          People have found plenty of ways to do this, and the #18435 thread has many good ones. Here's how the approaches
+          compare as of November 2026. Spot a mistake? <a href={`${REPO_URL}/pulls`}>Open a pull request</a>.
+        </p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Comparison of approaches, scrolls sideways">
+          <table class="compare">
+            <thead>
+              <tr>{COMPARISON_HEADERS.map((header) => <th scope="col">{header}</th>)}</tr>
+            </thead>
+            <tbody>
+              {
+                COMPARISON.map(([approach, ...cells]) => (
+                  <tr>
+                    <th scope="row" set:html={inline(approach)} />
+                    {cells.map((cell) => (
+                      <td set:html={inline(cell)} />
+                    ))}
+                  </tr>
+                ))
+              }
+              <tr class="compare-hats">
+                <th scope="row">{HATS_ROW[0]}</th>
+                {HATS_ROW.slice(1).map((cell) => <td set:html={inline(cell)} />)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="not-yet" id="not-yet">
+          <h3>What hats doesn't do yet</h3>
+          <ul>{NOT_YET.map((item) => <li>{item}</li>)}</ul>
+          <p class="aside">Purpose-built tools in the #18435 thread do some of these. If one matters most to you, use that.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="privacy" aria-labelledby="privacy-title">
+      <div class="wrap">
+        <h2 id="privacy-title">What hats touches.</h2>
+        <p class="prose-width">
+          hats sits next to software that holds your accounts, so the complete list is public. This is the summary. The
+          full inventory is updated with any code change that adds to it.
+        </p>
+        <div class="cubbies cubbies-3 ledger">
+          {
+            PRIVACY.map(({ title, items }) => (
+              <div>
+                <h3>{title}</h3>
+                <ul>
+                  {items.map((item) => (
+                    <li set:html={inline(item)} />
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+        <p class="prose-width">
+          Check it yourself: <a href="/privacy">the full inventory</a> · <a href="/security">security policy</a>. Each
+          touchpoint sits behind an interface that tests replace with a fake.
+        </p>
+        <div class="wont" aria-labelledby="wont-title">
+          <h3 id="wont-title">What hats won't do</h3>
+          <p>
+            hats won't help you get around usage limits. It doesn't pool, rotate or switch accounts when one runs out, and
+            it never will. Use each account you hold for the work it's meant for, and follow your employer's policy on
+            personal accounts.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install" aria-labelledby="install-title">
+      <div class="wrap">
+        <h2 id="install-title">Install</h2>
+        <InstallTabs name="install" options={[...INSTALL_OPTIONS, SOURCE_INSTALL]} />
+        <dl class="install-facts">
           <div>
-            <dt>{label}</dt>
+            <dt>Requirements</dt>
+            <dd>macOS 14 or later, Claude Desktop, and Claude Code for <code>hats run</code>.</dd>
+          </div>
+          <div>
+            <dt>What the script does</dt>
             <dd>
-              <code tabindex="0">{command}</code>
+              Downloads the latest release, checks its SHA-256, checks GitHub build provenance when the <code>gh</code> CLI
+              is signed in, and installs to <code>~/.local/bin</code>. It records the install path in hats' own data folder,
+              so <code>hats doctor</code> can name the upgrade command. No sudo, and it doesn't edit your shell files. The
+              URL only redirects to the release asset, so this site never serves anything a release didn't build.
             </dd>
           </div>
-        ))
-      }
-    </dl>
+          <div>
+            <dt>Signing</dt>
+            <dd>
+              Releases aren't notarized yet. Homebrew and the script run without trouble. A binary downloaded with a browser
+              is quarantined; clear that with <code>xattr -d com.apple.quarantine hats</code>. Every release has a SHA-256 and
+              a build provenance attestation:
+              <code>gh attestation verify hats-macos-universal.tar.gz --repo wearhats/hats</code>.
+            </dd>
+          </div>
+          <div>
+            <dt>First run</dt>
+            <dd><code>hats setup</code></dd>
+          </div>
+          <div>
+            <dt>Upgrade</dt>
+            <dd><code>brew upgrade hats</code>, or run the script again. <code>hats doctor</code> shows the command for your install.</dd>
+          </div>
+          <div>
+            <dt>Uninstall</dt>
+            <dd>
+              <pre class="uninstall" tabindex="0" aria-label="Uninstall commands">hats dock unpin && hats rm --all --purge   # launchers, their copies, Dock tiles; data to the Trash
+brew uninstall hats                        # or: rm ~/.local/bin/hats
+rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats"</pre>
+              <p class="aside">
+                Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins stay in your Keychain as
+                <code>Claude Code-credentials-&lt;hash&gt;</code> items; delete them in Keychain Access if you no longer need
+                them (<code>hats rm --purge</code> prints the exact name). Your default Claude install was never modified, so
+                there's nothing to restore.
+              </p>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
 
-    <p>Then run <code>hats setup</code>. macOS 14+ · Free, MIT</p>
-    <p>No telemetry. One update check, which you can turn off.</p>
-    <p>Never writes to Claude.app or your default install. <a href="/privacy">See what hats touches →</a></p>
+    <section class="section" id="faq" aria-labelledby="faq-title">
+      <div class="wrap">
+        <h2 id="faq-title">Questions</h2>
+        <div class="faq">
+          {
+            FAQ.map(([question, answer]) => (
+              <details>
+                <summary>{question}</summary>
+                <p set:html={inline(answer)} />
+              </details>
+            ))
+          }
+        </div>
+      </div>
+    </section>
 
-    <nav aria-label="Project">
-      <ul class="footer-links">
-        <li><a href={REPO_URL}>GitHub</a></li>
-        <li><a href="/docs">Docs</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/security">Security</a></li>
-      </ul>
-    </nav>
+    <section class="section" id="maker" aria-labelledby="maker-title">
+      <div class="wrap">
+        <h2 id="maker-title">Who's behind it</h2>
+        <p class="prose-width">
+          hats is a personal open-source project by <a href={MAINTAINER_URL}><strong>Max Novak</strong></a>. I built it because
+          I run several Claude accounts on one Mac and wanted them all open at once, without touching my install. Issues and
+          pull requests are welcome.
+        </p>
+      </div>
+    </section>
 
-    <p class="notice">Unofficial community tool. Not affiliated with or endorsed by Anthropic. Built by Max Novak.</p>
+    <section class="section final-cta" aria-labelledby="cta-title">
+      <div class="wrap">
+        <h2 id="cta-title">One line to try it.</h2>
+        <InstallTabs name="cta" options={INSTALL_OPTIONS} compact />
+        <p class="hero-facts">Then run <code>hats setup</code>.</p>
+      </div>
+    </section>
   </main>
   <Footer />
 </Base>
+
+<script src="../scripts/site.ts"></script>

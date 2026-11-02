@@ -15,6 +15,8 @@ export default defineConfig({
   site: 'https://wearhats.dev',
   output: 'static',
   trailingSlash: 'never',
+  // It drops the space where a line of text breaks before an inline tag, gluing words together.
+  compressHTML: false,
   build: {
     format: 'file',
     // The CSP has no 'unsafe-inline', so styles and scripts must be files.

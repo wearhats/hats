@@ -1,0 +1,51 @@
+---
+interface Option {
+  id: string;
+  label: string;
+  command: string;
+}
+
+interface Props {
+  name: string;
+  options: readonly Option[];
+  compact?: boolean;
+}
+
+const { name, options, compact = false } = Astro.props;
+---
+
+<div class:list={['install', { 'install-compact': compact }]} data-tabs>
+  <div class="tablist" role="tablist" aria-label="Ways to install hats">
+    {
+      options.map(({ id, label }, index) => (
+        <button
+          type="button"
+          role="tab"
+          id={`${name}-tab-${id}`}
+          aria-selected={index === 0 ? 'true' : 'false'}
+          aria-controls={`${name}-panel-${id}`}
+          tabindex={index === 0 ? 0 : -1}
+        >
+          {label}
+        </button>
+      ))
+    }
+  </div>
+  {
+    options.map(({ id, label, command }, index) => (
+      <div class="tabpanel" role="tabpanel" id={`${name}-panel-${id}`} aria-labelledby={`${name}-tab-${id}`} hidden={index !== 0}>
+        <span class="tabpanel-label">{label}</span>
+        <div class="command">
+          <code class="command-text" tabindex="0" aria-label={`${label} install command`}>
+            <span class="prompt" aria-hidden="true">$ </span>
+            <span data-command>{command}</span>
+          </code>
+          <button type="button" class="copy" data-copy hidden>
+            Copy
+          </button>
+        </div>
+      </div>
+    ))
+  }
+  <span class="visually-hidden" aria-live="polite" data-copy-status></span>
+</div>

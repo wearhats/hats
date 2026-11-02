@@ -131,6 +131,70 @@ test('no page scrolls sideways at any width', async () => {
   }
 });
 
+test('install tabs follow the ARIA tabs pattern', async () => {
+  const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
+  const page = await context.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  const tabs = page.locator('#hero-tab-homebrew').locator('..').getByRole('tab');
+  assert.equal(await tabs.count(), 3);
+  await page.locator('#hero-tab-homebrew').focus();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#hero-tab-script').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('#hero-tab-homebrew').getAttribute('tabindex'), '-1');
+  assert.equal(await page.locator('#hero-panel-homebrew').isVisible(), false);
+  assert.equal(await page.locator('#hero-panel-script').isVisible(), true);
+  await page.keyboard.press('End');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-read');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-homebrew');
+
+  await page.locator('#hero-panel-homebrew').getByRole('button', { name: 'Copy' }).click();
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'brew install wearhats/tap/hats');
+  assert.equal(await page.locator('#hero-panel-homebrew').locator('..').locator('[data-copy-status]').textContent(), 'Copied to clipboard');
+  await context.close();
+});
+
+test('dock tiles filter the sample output, by keyboard too', async () => {
+  const page = await browser.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  const visibleView = () => page.locator('[data-view]:visible').getAttribute('data-view');
+  assert.equal(await visibleView(), 'all');
+  await page.getByRole('button', { name: 'Show profile work' }).focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await visibleView(), 'work');
+  assert.equal(await page.locator('[data-terminal-command]').textContent(), 'hats ps --profile work');
+  const workRows = await page.locator('[data-view="work"]').textContent();
+  assert.match(workRows, /api-4b/);
+  assert.doesNotMatch(workRows, /blog-1c/);
+  await page.getByRole('button', { name: 'Show profile acme' }).click();
+  assert.match(await page.locator('[data-view="acme"]').textContent(), /No running Claude instances\./);
+  await page.getByRole('button', { name: 'Show profile acme' }).click();
+  assert.equal(await visibleView(), 'all');
+  await page.close();
+});
+
+test('the page works without JavaScript', async () => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  for (const id of ['homebrew', 'script', 'read']) {
+    assert.equal(await page.locator(`#hero-panel-${id}`).isVisible(), true, id);
+  }
+  assert.equal(await page.locator('#hero-tab-homebrew').isVisible(), false);
+  assert.match(await page.locator('[data-view="all"]').textContent(), /personal/);
+  assert.equal(await page.locator('[data-copy]:visible').count(), 0);
+  await context.close();
+});
+
+test('reduced motion shows the final frame at once', async () => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(server.origin);
+  const animations = await page.evaluate(() => document.getAnimations().length);
+  assert.equal(animations, 0);
+  await context.close();
+});
+
 const CONTENT_TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png' };
 
 /** Serves a build as https://wearhats.dev so data-domains matches. No request leaves this process. */

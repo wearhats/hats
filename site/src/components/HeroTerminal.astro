@@ -1,0 +1,39 @@
+---
+import source from '../../fixtures/hats-ps.txt?raw';
+import { NO_INSTANCES, columnWidths, layoutCells, onlyProfile, parsePs, type PsTable } from '../lib/psOutput';
+
+const FIXTURE_CAPTION = 'Sample output of';
+const VIEWS = ['default', 'work', 'personal', 'acme'];
+const COLUMN_CLASSES = ['col-profile', 'col-kind', 'col-pid', 'col-status', 'col-age', 'col-name', 'col-cwd'];
+
+const table = parsePs(source);
+const views: { id: string; command: string; table: PsTable }[] = [
+  { id: 'all', command: 'hats ps', table },
+  ...VIEWS.map((profile) => ({ id: profile, command: `hats ps --profile ${profile}`, table: onlyProfile(table, profile) })),
+];
+const lay = (view: PsTable) => {
+  const widths = columnWidths(view);
+  return (cells: string[]) => layoutCells(cells, widths);
+};
+---
+
+<div class="terminal" data-terminal>
+  {
+    views.map(({ id, command, table: view }) => {
+      const cells = lay(view);
+      return (
+        <pre
+          class:list={['terminal-view', { 'terminal-animated': id === 'all' }]}
+          data-view={id}
+          hidden={id !== 'all'}
+          tabindex="0"
+          aria-label={`Sample output of ${command}`}><span class="terminal-line"><span class="prompt" aria-hidden="true">$ </span><span class="typed">{command}</span></span>{view.rows.length === 0
+            ? <span class="terminal-line terminal-rows">{NO_INSTANCES}</span>
+            : [view.headers, ...view.rows].map((row, index) => (
+                <span class:list={['terminal-line', 'terminal-rows', { 'terminal-head': index === 0 }]}>{cells(row).map((cell, column) => <span class={COLUMN_CLASSES[column]}>{cell}</span>)}</span>
+              ))}</pre>
+      );
+    })
+  }
+  <p class="terminal-caption">{FIXTURE_CAPTION} <code data-terminal-command>hats ps</code>.</p>
+</div>

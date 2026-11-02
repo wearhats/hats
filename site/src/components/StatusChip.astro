@@ -1,0 +1,13 @@
+---
+import { EXPECTED, type Status } from '../data/status';
+
+interface Props {
+  status: Status;
+}
+
+const { status } = Astro.props;
+const isExpected = status.label === EXPECTED;
+const text = status.scope ? `${status.scope}: ${status.label.toLowerCase()}` : status.label;
+---
+
+<span class:list={['chip', { 'chip-expected': isExpected }]}>{text}</span>
