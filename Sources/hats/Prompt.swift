@@ -21,10 +21,10 @@ enum Prompt {
         }
     }
 
-    static func ask(_ question: String, default defaultAnswer: String) -> String {
-        print("\(question) [\(defaultAnswer)] ", terminator: "")
+    static func ask(_ question: String, default defaultAnswer: String?) -> String {
+        print("\(question)\(defaultAnswer.map { " [\($0)]" } ?? "") ", terminator: "")
         let answer = readLine()?.trimmingCharacters(in: .whitespaces) ?? ""
-        return answer.isEmpty ? defaultAnswer : answer
+        return answer.isEmpty ? defaultAnswer ?? "" : answer
     }
 }
 

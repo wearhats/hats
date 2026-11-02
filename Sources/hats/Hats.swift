@@ -58,7 +58,7 @@ struct Context {
     }
 
     func profile(_ raw: String) throws -> Profile {
-        try store.profile(named: try ProfileName(raw))
+        try store.profile(matching: raw)
     }
 
     /// Every profile that can be read. Each one that cannot is named on stderr

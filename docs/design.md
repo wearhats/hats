@@ -13,6 +13,9 @@ that changes a rule edits this file and says why.
   `~/.claude`), shown as a read-only profile.
 - **Adopted config dir**: an existing `CLAUDE_CONFIG_DIR` registered with
   `hats add --code-dir`. It stays where it is, with its login and history.
+- **Profile shortcut**: an optional short name for a profile (`w` for `work`),
+  set with `hats add --shortcut`. It stands in for the name, but the directories,
+  launcher and `HATS_PROFILE` always use the full name.
 - **Unmanaged config dir**: a `CLAUDE_CONFIG_DIR` that a running process uses
   but no profile owns or adopts. `hats ps` shows it in parentheses.
 - **Instance**: a running Desktop main process or Claude Code session. Kinds:
@@ -101,6 +104,10 @@ only for a command or flag that names it: launcher copies (`add --desktop`,
   Nothing is written, and the Dock isn't restarted, when nothing changes.
 - Claude processes are only ever asked to quit, as Cmd-Q does. hats never kills
   them.
+- Commands that remove or quit things (`rm`, `reset`, `dedupe`) have no
+  one-letter shortcut, so running one always means typing its name.
+- `rm` and `reset` take a profile's full name, never its shortcut, so removing a
+  profile always means typing its name.
 - Profile names match `[a-z0-9][a-z0-9-]{0,31}`, and every recursive delete
   checks that its target is strictly inside the profile's own directory.
 

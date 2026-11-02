@@ -96,6 +96,7 @@ script; `hats doctor` shows the command for your install. More in
 ```sh
 hats setup                         # guided: adopt existing dirs, add your other account
 hats add personal --pin            # profile + launcher in ~/Applications/Hats, pinned to the Dock
+hats add work --shortcut w         # then hats run w works like hats run work
 hats open personal                 # or click the launcher; hats open --all opens every profile
 hats run personal                  # claude CLI on the personal account (then /login once)
 hats ps                            # every running Claude, across accounts
@@ -104,6 +105,9 @@ hats ls                            # profiles, sign-in state, accounts (--size f
 hats reset personal --open         # it opened on the wrong account: start it fresh
 hats doctor                        # explain what's set up and what's wrong
 ```
+
+The everyday commands have one-letter shortcuts: `hats r` (`run`), `hats o`
+(`open`), `hats x` (`exec`) and `hats f` (`focus`).
 
 Per-directory accounts with direnv: `echo 'eval "$(hats env personal)"' > ~/oss/.envrc`.
 

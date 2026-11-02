@@ -84,7 +84,9 @@ final class E2ESandbox {
     /// Written by hand from the documented schema rather than by `hats add`,
     /// which would register the launcher with the real Launch Services.
     @discardableResult
-    func addProfile(_ name: String, label: String? = nil, adopting adoptedDir: String? = nil, schemaVersion: Int = 1) throws -> String {
+    func addProfile(
+        _ name: String, label: String? = nil, adopting adoptedDir: String? = nil, shortcut: String? = nil, schemaVersion: Int = 1
+    ) throws -> String {
         let dir = "\(hatsHome)/profiles/\(name)"
         try write(#"{"oauth:tokenCache":"\#(sentinel)"}"#, to: "\(dir)/desktop/config.json")
         try write(#"{"accessToken":"\#(sentinel)"}"#, to: "\(adoptedDir ?? "\(dir)/code")/.claude.json")
@@ -96,6 +98,7 @@ final class E2ESandbox {
             "createdAt": "2026-01-01T00:00:00Z",
         ]
         if let adoptedDir { metadata["externalCodeDir"] = adoptedDir }
+        if let shortcut { metadata["shortcut"] = shortcut }
         let json = try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys])
         try write(String(decoding: json, as: UTF8.self), to: "\(dir)/profile.json")
         return adoptedDir ?? "\(dir)/code"

@@ -16,7 +16,7 @@ struct PS: ParsableCommand {
 
     func run() throws {
         let context = Context()
-        let filter = try profile.map { try ProfileName($0) }
+        let filter = try profile.map { try context.store.instanceFilter(matching: $0) }
         let instances = InstanceScanner(profiles: try context.readableProfiles(), processes: context.processes).scan().instances
             .filter { filter == nil || $0.profile == filter }
         if json { return try Output.printJSON(instances) }
@@ -41,7 +41,8 @@ struct PS: ParsableCommand {
 
 struct Focus: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Bring a running instance forward: its Desktop window, or the terminal or IDE hosting a session."
+        abstract: "Bring a running instance forward: its Desktop window, or the terminal or IDE hosting a session.",
+        aliases: ["f"]
     )
 
     @Argument(help: "PID or session name (see 'hats ps').")
