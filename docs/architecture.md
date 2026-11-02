@@ -40,7 +40,7 @@ executable there.
 |---|---|---|
 | `Layout` | Every path hats uses, derived from `HATS_HOME`, `HOME` and the launcher dir. Single source of truth. | `Layout` |
 | `ProfileName` | Validation (`^[a-z0-9][a-z0-9-]{0,31}$`), reserved names, label derivation. | `ProfileName` |
-| `ProfileStore` | CRUD on profile dirs and `profile.json`. Lists `default` + managed profiles. | `Profile`, `ProfileMetadata`, `ProfileStore` |
+| `ProfileStore` | CRUD on profile dirs and `profile.json`. Lists `default` + managed profiles. Resolves what a person typed, a name or a shortcut, to a profile. | `Profile`, `ProfileMetadata`, `ProfileStore` |
 | `ClaudeApp` | Resolve Claude.app (bundle ID → known paths → override). Read its version. | `ClaudeApp` |
 | `ProcessTable` | Enumerate processes and their start times (`KERN_PROC_ALL`). Read argv and `CLAUDE_CONFIG_DIR` through `sysctl(KERN_PROCARGS2)`; every other environment variable is skipped without being decoded. | `ProcessSummary`, `ProcessDetails`, `DarwinProcessTable` |
 | `SessionRegistry` | Decode `<config>/sessions/<pid>.json` tolerantly. | `RegisteredSession` |
@@ -62,7 +62,7 @@ executable there.
 $HATS_HOME = ~/Library/Application Support/hats
   profiles/
     <name>/
-      profile.json                # {schemaVersion, label, color, icon?, createdAt, externalCodeDir?}
+      profile.json                # {schemaVersion, label, color, icon?, shortcut?, createdAt, externalCodeDir?}
       desktop/                    # Electron --user-data-dir (Claude-owned)
       code/                       # CLAUDE_CONFIG_DIR       (Claude-owned; absent when adopted)
 ~/Applications/Hats/
@@ -91,10 +91,17 @@ delete or a Keychain cleanup hint happens, so the adopted dir is never removed.
 knows. `ProfileStore.inventory()` reports such a profile on its own, and
 `list()` skips it, so one unreadable file does not hide the others. While a
 profile is unreadable, creating a profile (`add`, with or without `--code-dir`,
-and `setup`) refuses, because it cannot finish the label and adopted-dir checks
-without that profile's data. `rm --purge` refuses only when the profile being
-purged is itself unreadable. A schema bump needs a migration function plus a
-test.
+and `setup`) refuses, because it cannot finish the label, adopted-dir and shortcut
+checks without that profile's data. Looking up a name that exists still works,
+but `profile(matching:)` refuses anything else, shortcuts included, because the
+unreadable profile may own it. That covers every command that looks up a profile,
+including `ps --profile`, `rm` and `reset`. `rm --purge` of a full name refuses
+only when the profile being purged is itself unreadable. A schema bump needs a
+migration function plus a test.
+
+`add` refuses ambiguous shortcuts, but a hand edit or a profile put back from
+the Trash can still create them. At lookup a name wins over a shortcut, and a
+shortcut two profiles claim is refused. Doctor warns about both.
 
 ## 4. Key flows
 

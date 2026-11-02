@@ -19,6 +19,16 @@ public struct ProfileName: Hashable, Comparable, Sendable, CustomStringConvertib
         self.rawValue = rawValue
     }
 
+    /// A shortcut shares a name's alphabet because both are typed in the same
+    /// place and looked up together.
+    public init(shortcut raw: String) throws(HatsError) {
+        do {
+            try self.init(raw)
+        } catch {
+            throw HatsError(.usage, "invalid shortcut '\(raw)'", hint: error.hint)
+        }
+    }
+
     private init(unchecked rawValue: String) {
         self.rawValue = rawValue
     }
@@ -51,6 +61,12 @@ public struct ProfileName: Hashable, Comparable, Sendable, CustomStringConvertib
         let base = dir.lastPathComponent.lowercased().trimmingPrefix(".claude").drop { $0 == "-" || $0 == "." || $0 == "_" }
         guard let name = try? ProfileName(String(base)), !name.isDefault else { return nil }
         return name
+    }
+
+    /// This name, unless a profile uses it as a shortcut. `add` refuses those for
+    /// a new profile, so offering one would only set up a failure.
+    public func unlessShortcut(in profiles: [Profile]) -> ProfileName? {
+        profiles.contains { $0.shortcut == self } ? nil : self
     }
 
     public static func < (lhs: ProfileName, rhs: ProfileName) -> Bool { lhs.rawValue < rhs.rawValue }

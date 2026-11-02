@@ -29,6 +29,12 @@ struct Add: AsyncParsableCommand {
     @Option(help: "Launcher icon: letter, briefcase or person (default: picked from the name).")
     var icon: LauncherIcon?
 
+    @Option(help: "A short name for the profile, e.g. w for work. add, rm and reset still take the full name.")
+    var shortcut: String?
+
+    @Flag(help: "Remove the profile's shortcut.")
+    var noShortcut = false
+
     @Flag(help: "Also put a copy of the launcher on the Desktop.")
     var desktop = false
 
@@ -38,16 +44,23 @@ struct Add: AsyncParsableCommand {
     @Flag(help: "Open the profile right away, to sign in.")
     var open = false
 
+    func validate() throws {
+        guard shortcut == nil || !noShortcut else { throw ValidationError("give --shortcut or --no-shortcut, not both") }
+    }
+
     func run() async throws {
         let context = Context()
         let profileName = try ProfileName(name)
         let adopted = codeDir.map { URL(filePath: ($0 as NSString).expandingTildeInPath, directoryHint: .isDirectory) }
+        let shortcutChange =
+            noShortcut ? ShortcutChange.clear : try shortcut.map { ShortcutChange.set(try ProfileName(shortcut: $0)) }
         let (profile, created) = try context.store.create(
             profileName,
             label: label,
             color: try color.map { try ProfileColor(parsing: $0) },
             adoptingCodeDir: adopted,
-            icon: icon
+            icon: icon,
+            shortcut: shortcutChange
         )
         let launchers = LauncherBuilder(layout: context.layout)
         let bundle = try launchers.build(for: profile, hatsPath: context.hatsExecutablePath())
@@ -56,6 +69,7 @@ struct Add: AsyncParsableCommand {
         print("  launcher  \(bundle.plainPath)")
         print("  desktop   \(profile.desktopDir.plainPath)")
         print("  code      \(profile.codeDir.plainPath)\(profile.codeDirIsExternal ? " (adopted)" : "")")
+        if let shortcut = profile.shortcut { print("  shortcut  \(shortcut)") }
         if desktop { print("  copy      \(try launchers.copy(for: profile.name, to: context.layout.desktopFolder).plainPath)") }
         if pin { try context.pinToDock([profile], dedupeClaude: false) }
         if open {
@@ -88,6 +102,7 @@ struct List: ParsableCommand {
 
     struct Row: Encodable {
         let name: String
+        let shortcut: String?
         let label: String
         let color: String
         let icon: LauncherIcon
@@ -111,6 +126,7 @@ struct List: ParsableCommand {
         let rows = profiles.map { profile in
             Row(
                 name: profile.name.rawValue,
+                shortcut: profile.shortcut?.rawValue,
                 label: profile.label,
                 color: profile.color.description,
                 icon: profile.icon,
@@ -131,7 +147,7 @@ struct List: ParsableCommand {
             headers: headers,
             rows: rows.map { row in
                 var cells = [
-                    row.name,
+                    row.shortcut.map { "\(row.name) (\($0))" } ?? row.name,
                     row.runningDesktop > 0 ? "running" : "-",
                     String(row.runningSessions),
                     Self.describe(row.account.desktop),
@@ -215,7 +231,10 @@ struct Remove: ParsableCommand {
 
     func run() throws {
         let context = Context()
-        let targets = all ? try context.readableProfiles().filter { !$0.isDefault } : try names.map { try context.profile($0) }
+        let targets =
+            all
+            ? try context.readableProfiles().filter { !$0.isDefault }
+            : try names.map { try context.store.profile(fullName: $0) }
         if targets.contains(where: \.isDefault) {
             throw HatsError(.usage, "the default profile is the stock Claude install; hats never removes it")
         }

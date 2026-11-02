@@ -24,7 +24,7 @@ struct Reset: AsyncParsableCommand {
 
     func run() async throws {
         let context = Context()
-        let target = try context.profile(profile.name)
+        let target = try context.store.profile(fullName: profile.name)
         guard !target.isDefault else {
             throw HatsError(.usage, "the default profile is the stock Claude install; sign out inside Claude instead")
         }
