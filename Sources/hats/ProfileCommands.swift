@@ -347,6 +347,8 @@ struct Launcher: ParsableCommand {
         subcommands: [Rebuild.self, Copy.self, Reveal.self]
     )
 
+    fileprivate static let defaultHasNoLauncher = "the default profile is launched by Claude.app itself"
+
     struct Copy: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Put copies of launchers somewhere else, such as the Desktop.")
 
@@ -360,8 +362,8 @@ struct Launcher: ParsableCommand {
             let context = try Context()
             let destination = try to.map { try context.directoryArgument($0, flag: "--to") } ?? context.layout.desktopFolder
             let builder = context.launchers
-            for name in names {
-                print("Copied to \(try builder.copy(for: try context.profile(name).name, to: destination).plainPath)")
+            for profile in try context.managedProfiles(named: names, refusingDefault: Launcher.defaultHasNoLauncher) {
+                print("Copied to \(try builder.copy(for: profile.name, to: destination).plainPath)")
             }
         }
     }
@@ -383,13 +385,10 @@ struct Launcher: ParsableCommand {
 
         func run() throws {
             let context = try Context()
-            let targets =
-                names.isEmpty
-                ? try context.readableProfiles().filter { !$0.isDefault }
-                : try names.map { try context.profile($0) }
+            let targets = try context.managedProfiles(named: names, refusingDefault: Launcher.defaultHasNoLauncher)
             let builder = context.launchers
             let hatsPath = context.hatsExecutablePath()
-            for profile in targets where !profile.isDefault {
+            for profile in targets {
                 print("Rebuilt \(try builder.build(for: profile, hatsPath: hatsPath).plainPath)")
             }
         }

@@ -127,7 +127,13 @@ struct Refusal: Sendable, CustomTestStringConvertible {
         Refusal("rm: default", exit: 64, stderr: "hats never removes it", argv: ["rm", "default"]),
         Refusal("rm: unknown", exit: 1, stderr: "no profile named 'ghost'", argv: ["rm", "ghost"]),
 
+        Refusal("launcher rebuild: default", exit: 64, stderr: "launched by Claude.app itself", argv: ["launcher", "rebuild", "default"]),
+        Refusal("launcher rebuild: default among others", exit: 64, stderr: "launched by Claude.app itself") { sandbox in
+            try sandbox.addProfile("t1")
+            return ["launcher", "rebuild", "t1", "default"]
+        },
         Refusal("launcher rebuild: unknown", exit: 1, stderr: "no profile named 'ghost'", argv: ["launcher", "rebuild", "ghost"]),
+        Refusal("launcher copy: default", exit: 64, stderr: "launched by Claude.app itself", argv: ["launcher", "copy", "default"]),
         Refusal("launcher copy: unknown", exit: 1, stderr: "no profile named 'ghost'", argv: ["launcher", "copy", "ghost"]),
         Refusal("launcher copy: no launcher", exit: 1, stderr: "no launcher for 't1'") { sandbox in
             try sandbox.addProfile("t1")
