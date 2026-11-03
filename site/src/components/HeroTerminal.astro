@@ -26,6 +26,7 @@ const lay = (view: PsTable) => {
           class:list={['terminal-view', { 'terminal-animated': id === 'all' }]}
           data-view={id}
           hidden={id !== 'all'}
+          role="group"
           tabindex="0"
           aria-label={`Sample output of ${command}`}><span class="terminal-line"><span class="prompt" aria-hidden="true">$ </span><span class="typed">{command}</span></span>{view.rows.length === 0
             ? <span class="terminal-line terminal-rows">{NO_INSTANCES}</span>
@@ -35,5 +36,5 @@ const lay = (view: PsTable) => {
       );
     })
   }
-  <p class="terminal-caption">{FIXTURE_CAPTION} <code data-terminal-command>hats ps</code>.</p>
+  <p class="terminal-caption" aria-live="polite">{FIXTURE_CAPTION} <code data-terminal-command>hats ps</code>.</p>
 </div>

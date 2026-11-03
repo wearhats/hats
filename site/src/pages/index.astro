@@ -96,15 +96,16 @@ const structuredData = JSON.stringify({
               terminal: <code>hats run personal</code>.
             </p>
             <p class="aside">
-              Signing in? If the link opens in another Claude window, quit the others first, then bring them back with
-              <code>hats open --all</code>.
+              Signing in? If the link opens in another Claude window, quit the others first. Then
+              <code>hats open --all</code> brings your profiles back; it skips <code>default</code>, so reopen Claude.app
+              yourself.
             </p>
           </li>
           <li>
             <h3><code>hats ps</code></h3>
             <p>
-              Every Desktop window and Claude Code session, on every account, with what it's doing: busy, idle or waiting
-              for you. <code>hats focus &lt;name&gt;</code> jumps to it.
+              Every Desktop instance and Claude Code session, on every account. Sessions show what they're doing: busy,
+              idle or waiting for you. <code>hats focus &lt;name&gt;</code> brings a session's terminal or IDE forward.
             </p>
           </li>
         </ol>
@@ -191,7 +192,7 @@ const structuredData = JSON.stringify({
       <div class="wrap">
         <h2 id="privacy-title">What hats touches.</h2>
         <p class="prose-width">
-          hats sits next to software that holds your accounts, so the complete list is public. This is the summary. The
+          This tool sits next to software that holds your accounts, so the complete list is public. This is the summary. The
           full inventory is updated with any code change that adds to it.
         </p>
         <div class="cubbies cubbies-3 ledger">
@@ -212,10 +213,10 @@ const structuredData = JSON.stringify({
           Check it yourself: <a href="/privacy">the full inventory</a> · <a href="/security">security policy</a>. Each
           touchpoint sits behind an interface that tests replace with a fake.
         </p>
-        <div class="wont" aria-labelledby="wont-title">
-          <h3 id="wont-title">What hats won't do</h3>
+        <div class="wont">
+          <h3>What hats won't do</h3>
           <p>
-            hats won't help you get around usage limits. It doesn't pool, rotate or switch accounts when one runs out, and
+            It won't help you get around usage limits. It doesn't pool, rotate or switch accounts when one runs out, and
             it never will. Use each account you hold for the work it's meant for, and follow your employer's policy on
             personal accounts.
           </p>
@@ -238,7 +239,7 @@ const structuredData = JSON.stringify({
               Downloads the latest release, checks its SHA-256, checks GitHub build provenance when the <code>gh</code> CLI
               is signed in, and installs to <code>~/.local/bin</code>. It records the install path in hats' own data folder,
               so <code>hats doctor</code> can name the upgrade command. No sudo, and it doesn't edit your shell files. The
-              URL only redirects to the release asset, so this site never serves anything a release didn't build.
+              script and binary never come from this site: the URL only redirects to the release asset.
             </dd>
           </div>
           <div>
@@ -261,14 +262,15 @@ const structuredData = JSON.stringify({
           <div>
             <dt>Uninstall</dt>
             <dd>
-              <pre class="uninstall" tabindex="0" aria-label="Uninstall commands">hats dock unpin && hats rm --all --purge   # launchers, their copies, Dock tiles; data to the Trash
-brew uninstall hats                        # or: rm ~/.local/bin/hats
-rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats"</pre>
+              <pre class="uninstall" role="group" tabindex="0" aria-label="Uninstall commands">hats dock unpin && hats rm --all --purge &&   # launchers, their copies, Dock tiles; data to the Trash
+  rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats" &&
+  brew uninstall hats                         # or: rm ~/.local/bin/hats</pre>
               <p class="aside">
+                The commands are chained, so a refused or mistyped purge stops there and nothing gets deleted outright.
                 Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins stay in your Keychain as
                 <code>Claude Code-credentials-&lt;hash&gt;</code> items; delete them in Keychain Access if you no longer need
                 them (<code>hats rm --purge</code> prints the exact name). Your default Claude install was never modified, so
-                there's nothing to restore.
+                there's nothing to restore. <code>brew untap wearhats/tap</code> removes the tap too.
               </p>
             </dd>
           </div>
@@ -296,7 +298,7 @@ rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats"</pre>
       <div class="wrap">
         <h2 id="maker-title">Who's behind it</h2>
         <p class="prose-width">
-          hats is a personal open-source project by <a href={MAINTAINER_URL}><strong>Max Novak</strong></a>. I built it because
+          This is a personal open-source project by <a href={MAINTAINER_URL}><strong>Max Novak</strong></a>. I built it because
           I run several Claude accounts on one Mac and wanted them all open at once, without touching my install. Issues and
           pull requests are welcome.
         </p>

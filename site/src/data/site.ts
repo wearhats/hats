@@ -24,7 +24,8 @@ export const INSTALL_OPTIONS = [
 export const SOURCE_INSTALL = {
   id: 'source',
   label: 'From source',
-  command: 'swift build -c release && install -m 0755 .build/release/hats ~/.local/bin/',
+  command:
+    'git clone https://github.com/wearhats/hats && cd hats && swift build -c release --product hats && mkdir -p ~/.local/bin && install -m 0755 .build/release/hats ~/.local/bin/',
 } as const;
 
 export const NOTICE = 'Unofficial community tool. Not affiliated with or endorsed by Anthropic.';

@@ -9,7 +9,3 @@
 .install .tabpanel-label {
   display: block;
 }
-
-details.hood:not([open]) > :not(summary) {
-  display: block;
-}

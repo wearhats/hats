@@ -73,6 +73,14 @@ function setUpDisclosure() {
   for (const details of document.querySelectorAll<HTMLDetailsElement>('[data-open-on-wide]')) details.open = true;
 }
 
+function closeMenuOnNavigation() {
+  const menu = document.querySelector<HTMLDetailsElement>('.nav-narrow');
+  menu?.querySelector('nav')?.addEventListener('click', () => {
+    menu.open = false;
+  });
+}
+
 document.querySelectorAll('[data-tabs]').forEach(setUpTabs);
 setUpDockFilter();
 setUpDisclosure();
+closeMenuOnNavigation();

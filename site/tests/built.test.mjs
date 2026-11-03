@@ -113,6 +113,12 @@ test('/install.sh is never part of the site', () => {
   assert.ok(!filesIn(DIST).some((file) => file.endsWith('install.sh')));
 });
 
+test('the uninstall steps stop if the purge is refused', () => {
+  for (const source of [read(join(SITE_ROOT, '../README.md')), home.html.replace(/&amp;/g, '&')]) {
+    assert.match(source, /hats rm --all --purge &&[^\n]*\n\s*rm -rf [^\n]*&&\n\s*brew uninstall hats/);
+  }
+});
+
 test('the home page carries the install commands and the separate notices', () => {
   assert.match(home.text, /Wear every hat at once\./);
   assert.ok(home.text.includes('brew install wearhats/tap/hats'));

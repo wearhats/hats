@@ -4,7 +4,7 @@ import { expected, shipped, type Status } from './status';
 export const PROBLEMS = [
   {
     title: 'Sign out. Sign in. Wait for the code.',
-    body: 'Claude Desktop holds one account at a time. Changing it means signing out, waiting for an email code, and stopping whatever the other account was running.',
+    body: 'Claude Desktop holds one account at a time. Changing it means signing out, signing back in, often waiting for an email code, and stopping whatever the other account was running.',
   },
   {
     title: 'Right work, wrong account.',
@@ -33,13 +33,13 @@ export const FEATURES: Feature[] = [
   },
   {
     title: 'Every Claude in one list',
-    body: 'Desktop instances and Claude Code sessions from terminals, IDEs and Desktop, on every account, with status, name, folder and age.',
+    body: 'Desktop instances and Claude Code sessions from terminals, IDEs and Desktop, on every account. Sessions show status, name and folder.',
     command: 'hats ps',
     statuses: [shipped()],
   },
   {
     title: 'Know which account is which',
-    body: 'Sign-in state, email and organization per profile. Doctor warns when two profiles share an account.',
+    body: 'Sign-in state per profile, plus the email and organization of its CLI login. Doctor warns when two profiles share an account.',
     command: 'hats ls',
     statuses: [shipped()],
   },
@@ -63,13 +63,13 @@ export const FEATURES: Feature[] = [
   },
   {
     title: 'Start fresh',
-    body: "A sign-in landed in the wrong window? Move that profile's data to the Trash and sign in again.",
+    body: "A sign-in landed in the wrong window? Move that profile's Desktop data to the Trash and sign in again. `--code` adds its Claude Code folder.",
     command: 'hats reset personal --open',
     statuses: [shipped()],
   },
   {
     title: 'After a Claude update',
-    body: 'Updates are reported to reopen profile windows on your default account. Doctor spots the duplicate and two commands put things back.',
+    body: 'Updates are reported to reopen profile windows on your default account. If stock Claude is also open, doctor flags the duplicate, and two commands should put things back.',
     command: 'hats dedupe && hats open --all',
     statuses: [shipped('Doctor check'), expected('Update behaviour')],
   },
@@ -98,7 +98,7 @@ export const HATS_ROW = ['hats', 'Yes', 'Yes', 'Yes', 'Yes', '[See below](#not-y
 export const NOT_YET = [
   "Running windows share Claude's Dock icon. Only launchers are coloured. Different themes per profile help.",
   'No guided sign-in. If a sign-in lands in the wrong window, you quit the others yourself.',
-  'No automatic recovery after a Claude update: doctor spots it, and two commands fix it.',
+  'No automatic recovery after a Claude update. Doctor can flag a duplicate, and two commands should fix it.',
   "No menu-bar app. It's a command-line tool.",
   'Chrome extension pairing only works in the default profile.',
   'macOS only.',
@@ -152,18 +152,18 @@ export const PRIVACY = [
 ];
 
 export const FAQ = [
-  ['Is this an official Anthropic product?', 'No. hats is an independent open-source project, not affiliated with, endorsed by or sponsored by Anthropic.'],
+  ['Is this an official Anthropic product?', 'No. It is an independent open-source project, not affiliated with, endorsed by or sponsored by Anthropic.'],
   ['Does it modify Claude.app or my existing setup?', 'No. It starts your installed Claude.app as an extra instance with its own data folders. Your stock install becomes the read-only `default` profile.'],
   ['Does it read my tokens or passwords?', "It doesn't keep or send them. Keychain queries ask for attributes, never the secret. Account files are parsed whole in memory, because JSON can't be read selectively, and only the account ID, email, organization and sign-in state are kept. Sign-in always happens inside Claude."],
   ['Does it phone home?', "Only to check for updates. At most once a day, when you run a command at a terminal, hats asks GitHub for the latest version. It sends its version and nothing about your profiles or accounts; GitHub sees your IP address, as with any request. `HATS_NO_UPDATE_CHECK=1` turns it off. There's no telemetry, and it never downloads or installs anything by itself."],
   ['Can I use it to get more usage across accounts?', "No, and it won't add features for that. hats keeps accounts you legitimately hold apart; it doesn't pool or rotate them."],
-  ['Can I use my personal account on my work Mac?', "That's your employer's call. hats never bypasses device management or Claude's managed settings. If your company restricts personal accounts, follow that."],
+  ['Can I use my personal account on my work Mac?', "That's your employer's call. hats never edits or overrides employer-managed Claude settings or MDM-delivered preferences. If your company restricts personal accounts, follow that."],
   ["Does Desktop's Code tab use the right account?", `Yes: it runs Claude Code with the window's \`CLAUDE_CONFIG_DIR\`, checked on Claude Desktop ${TESTED_WITH.desktop}, and doctor flags a window that runs without it. Cowork is expected to do the same; we're still verifying that.`],
-  ['What happens when Claude updates?', "Other tools report that the updater reopens profile windows on your default account. We're still verifying this. `hats doctor` spots the duplicate, and `hats dedupe && hats open --all` fixes it."],
-  ['A sign-in landed in the wrong window. Now what?', 'Quit the other Claude windows (Cmd-Q), sign in to the new profile, then `hats open --all`. If a profile still ended up on the wrong account, `hats reset <name> --open` starts it fresh.'],
+  ['What happens when Claude updates?', "Other tools report that the updater reopens profile windows on your default account. We're still verifying this. If stock Claude is also open, `hats doctor` flags the duplicate, and `hats dedupe && hats open --all` should fix it."],
+  ['A sign-in landed in the wrong window. Now what?', 'Quit the other Claude windows (Cmd-Q), sign in to the new profile, then `hats open --all`, which skips `default`, so reopen Claude.app yourself. If a profile still ended up on the wrong account, `hats reset <name> --open` starts it fresh.'],
   ['Why not separate macOS users?', "Notifications, background jobs and permissions don't cross users. hats profiles run in your one login session."],
-  ['Why not the browser for the second account?', 'Local files, local MCP servers, Cowork and the Code tab exist only in the desktop app.'],
-  ['What if Claude ships multi-account support?', "Then use it. hats only adds things, so removing it takes three lines and there's nothing to restore. `hats ps` may still be useful for listing sessions."],
+  ['Why not the browser for the second account?', "A browser can't reach local files or local MCP servers, and it has no Cowork or Desktop Code tab."],
+  ['What if Claude ships multi-account support?', "Then use it. It only adds things, so removing it takes three lines and there's nothing to restore. `hats ps` may still be useful for listing sessions."],
   ['How much disk does a profile use?', 'Little, unless it uses Cowork: its VM is about 12 GB per profile. `hats ls --size` shows it.'],
   ['Known limitations?', 'See [What hats doesn\'t do yet](#not-yet). Also, the VS Code extension ignores `CLAUDE_CONFIG_DIR` ([an upstream issue](https://github.com/anthropics/claude-code/issues/30538)), though `hats ps` still lists its sessions.'],
   ['How do I check what I\'m installing?', 'The script verifies the SHA-256, and build provenance when `gh` is signed in. You can read it first, verify a download with `gh attestation verify`, or build from source. The code has one dependency and is MIT licensed.'],

@@ -36,13 +36,8 @@ const { name, options, compact = false } = Astro.props;
       <div class="tabpanel" role="tabpanel" id={`${name}-panel-${id}`} aria-labelledby={`${name}-tab-${id}`} hidden={index !== 0}>
         <span class="tabpanel-label">{label}</span>
         <div class="command">
-          <code class="command-text" tabindex="0" aria-label={`${label} install command`}>
-            <span class="prompt" aria-hidden="true">$ </span>
-            <span data-command>{command}</span>
-          </code>
-          <button type="button" class="copy" data-copy hidden>
-            Copy
-          </button>
+          <code class="command-text" role="group" tabindex="0" aria-label={`${label} install command`}><span class="prompt" aria-hidden="true">$ </span><span data-command>{command}</span></code>
+          <button type="button" class="copy" data-copy aria-label={`Copy the ${label} command`} hidden>Copy</button>
         </div>
       </div>
     ))

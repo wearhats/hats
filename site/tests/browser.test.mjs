@@ -137,6 +137,8 @@ test('install tabs follow the ARIA tabs pattern', async () => {
   await page.goto(server.origin, { waitUntil: 'networkidle' });
   const tabs = page.locator('#hero-tab-homebrew').locator('..').getByRole('tab');
   assert.equal(await tabs.count(), 3);
+  const shownCommand = await page.locator('#hero-panel-homebrew .command-text').evaluate((node) => node.innerText);
+  assert.equal(shownCommand, '$ brew install wearhats/tap/hats');
   await page.locator('#hero-tab-homebrew').focus();
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#hero-tab-script').getAttribute('aria-selected'), 'true');
@@ -148,7 +150,7 @@ test('install tabs follow the ARIA tabs pattern', async () => {
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-homebrew');
 
-  await page.locator('#hero-panel-homebrew').getByRole('button', { name: 'Copy' }).click();
+  await page.locator('#hero-panel-homebrew').getByRole('button', { name: 'Copy the Homebrew command' }).click();
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'brew install wearhats/tap/hats');
   assert.equal(await page.locator('#hero-panel-homebrew').locator('..').locator('[data-copy-status]').textContent(), 'Copied to clipboard');
   await context.close();
