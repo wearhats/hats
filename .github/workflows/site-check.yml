@@ -30,6 +30,8 @@ jobs:
       - name: Check the live site
         run: node site/scripts/live-check.mjs | tee "$RUNNER_TEMP/site-check.txt"
         shell: bash -o pipefail -e {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Open an issue
         if: failure()
         env:

@@ -38,7 +38,12 @@ await check('the install script parses and matches the release asset', async () 
   const path = join(mkdtempSync(join(tmpdir(), 'hats-live-')), 'install.sh');
   writeFileSync(path, body);
   execFileSync('sh', ['-n', path]);
-  const release = await (await fetch(RELEASE_API, { headers: { 'User-Agent': 'hats-site-check' } })).json();
+  // Runners share an IP, so an anonymous request can hit the rate limit and read as a false alarm.
+  const token = process.env.GITHUB_TOKEN;
+  const headers = { 'User-Agent': 'hats-site-check', ...(token && { Authorization: `Bearer ${token}` }) };
+  const reply = await fetch(RELEASE_API, { headers });
+  expect(reply.ok, `the release API answered ${reply.status}`);
+  const release = await reply.json();
   const asset = release.assets?.find(({ name }) => name === 'install.sh');
   const digest = `sha256:${createHash('sha256').update(body).digest('hex')}`;
   expect(asset?.digest === digest, `${digest} against ${asset?.digest}`);
@@ -50,6 +55,16 @@ await check('the apex serves the site', async () => {
   expect(/Wear every hat at once\./.test(await response.text()), 'headline missing');
 });
 
+await check('pages keep their promises: no cookies, the real CSP, nosniff', async () => {
+  for (const path of ['/', '/privacy']) {
+    const { headers } = await fetch(APEX + path);
+    expect(headers.getSetCookie().length === 0, `${path} sets ${headers.getSetCookie().join('; ')}`);
+    expect(/script-src 'self';/.test(headers.get('content-security-policy') ?? ''), `${path} has no CSP`);
+    expect(!/unsafe-inline/.test(headers.get('content-security-policy') ?? ''), `${path} allows inline code`);
+    expect(headers.get('x-content-type-options') === 'nosniff', `${path} has no nosniff`);
+  }
+});
+
 await check('www redirects to the apex', async () => {
   const response = await fetch('https://www.wearhats.dev/', { redirect: 'manual' });
   expect(response.status === 301, `status ${response.status}`);
@@ -59,13 +74,13 @@ await check('www redirects to the apex', async () => {
 await check('live HTML references no other origin, so the edge injected nothing', async () => {
   for (const path of ['/', '/privacy']) {
     const html = await (await fetch(APEX + path)).text();
-    const resources = [...html.matchAll(/<(?:script|img|iframe|source|video|audio|embed)\b[^>]*?\ssrc="(https?:)?\/\/([^"]+)"/g)].map((match) => match[2]);
+    const resources = [...html.matchAll(/<(?:script|img|iframe|source|video|audio|embed)\b[^>]*?\ssrc=["'](https?:)?\/\/([^"']+)["']/g)].map((match) => match[2]);
     const links = [...html.matchAll(/<link\b[^>]*>/g)]
       .map(([tag]) => tag)
       .filter((tag) => !/rel="canonical"/.test(tag) && /href="(https?:)?\/\//.test(tag));
     const hosts = [...html.matchAll(/data-host-url="([^"]+)"/g)].map((match) => match[1]).filter((origin) => origin !== ALLOWED_ORIGIN);
     expect(resources.length + links.length + hosts.length === 0, `${path}: ${[...resources, ...links, ...hosts].join(', ')}`);
-    expect(!/email-decode|cdn-cgi\/(challenge|scripts)|beacon\.min\.js/.test(html), `${path}: Cloudflare injected a script`);
+    expect(!/email-decode|cdn-cgi\/|beacon\.min\.js/.test(html), `${path}: Cloudflare injected a script`);
   }
 });
 
