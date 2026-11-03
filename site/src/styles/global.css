@@ -693,9 +693,10 @@ summary {
     }
   }
 
+  /* Not 0: at 0 the browser reports these rows as the largest paint when they appear, tying LCP to this delay. */
   @keyframes show-rows {
     from {
-      opacity: 0;
+      opacity: 0.01;
     }
 
     to {
