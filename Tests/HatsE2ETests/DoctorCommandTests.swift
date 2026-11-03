@@ -1,31 +1,13 @@
 import Foundation
 import Testing
 
-/// Every case runs through `checked`, which also proves doctor changes nothing.
+/// Every case runs through `sandbox.doctor`, which also proves doctor changes nothing.
 @Suite("hats doctor", .tags(.e2e))
 struct DoctorCommandTests {
-    private func checked(
-        _ sandbox: E2ESandbox, environment: [String: String] = [:], sourceLocation: SourceLocation = #_sourceLocation
-    ) throws -> (result: CommandResult, findings: [[String: Any]]) {
-        let before = try sandbox.snapshot()
-        let result = try sandbox.hats(["doctor", "--json"], environment: environment, sourceLocation: sourceLocation)
-        #expect(try sandbox.snapshot() == before, "doctor must not write. \(result)", sourceLocation: sourceLocation)
-        return (result, try sandbox.json(result))
-    }
-
-    private func finding(
-        _ findings: [[String: Any]], level: String, check: String? = nil, containing text: String
-    ) -> Bool {
-        findings.contains {
-            $0["level"] as? String == level && (check == nil || $0["check"] as? String == check)
-                && ($0["message"] as? String)?.contains(text) == true
-        }
-    }
-
     @Test func warningsAloneExitZero() throws {
         let sandbox = try E2ESandbox()
 
-        let (result, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
         #expect(result.exit == 0, "\(result)")
         #expect(findings.contains { $0["level"] as? String == "warn" }, "\(result)")
@@ -35,10 +17,10 @@ struct DoctorCommandTests {
     @Test func aMissingClaudeAppFails() throws {
         let sandbox = try E2ESandbox()
 
-        let (result, findings) = try checked(sandbox)
+        let (result, findings) = try sandbox.doctor()
 
         #expect(result.exit == 1, "\(result)")
-        #expect(finding(findings, level: "fail", check: "claude-app", containing: "not installed"), "\(result)")
+        #expect(hasFinding(findings, level: "fail", check: "claude-app", containing: "not installed"), "\(result)")
     }
 
     @Test func aLauncherWhoseHatsIsGoneFails() throws {
@@ -47,10 +29,10 @@ struct DoctorCommandTests {
         #expect(try sandbox.hats(["add", "work"], environment: onPath.environment).exit == 0)
         try FileManager.default.removeItem(atPath: onPath.path)
 
-        let (result, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
         #expect(result.exit == 1, "\(result)")
-        #expect(finding(findings, level: "fail", check: "profile:work", containing: "missing hats binary"), "\(result)")
+        #expect(hasFinding(findings, level: "fail", check: "profile:work", containing: "missing hats binary"), "\(result)")
     }
 
     @Test func aMissingProfileDirFails() throws {
@@ -58,19 +40,19 @@ struct DoctorCommandTests {
         #expect(try sandbox.hats(["add", "work"]).exit == 0)
         try FileManager.default.removeItem(atPath: "\(sandbox.profileDir("work"))/desktop")
 
-        let (result, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
         #expect(result.exit == 1, "\(result)")
-        #expect(finding(findings, level: "fail", check: "profile:work", containing: "missing"), "\(result)")
+        #expect(hasFinding(findings, level: "fail", check: "profile:work", containing: "missing"), "\(result)")
     }
 
     @Test func noClaudeCLIOnlyWarns() throws {
         let sandbox = try E2ESandbox()
 
-        let (result, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
         #expect(result.exit == 0, "\(result)")
-        #expect(finding(findings, level: "warn", check: "claude-cli", containing: "not found"), "\(result)")
+        #expect(hasFinding(findings, level: "warn", check: "claude-cli", containing: "not found"), "\(result)")
     }
 
     @Test func aSymlinkedDefaultConfigDirWarns() throws {
@@ -78,18 +60,18 @@ struct DoctorCommandTests {
         try sandbox.makeDirectory("\(sandbox.root)/elsewhere")
         try FileManager.default.createSymbolicLink(atPath: sandbox.defaultConfigDir, withDestinationPath: "\(sandbox.root)/elsewhere")
 
-        let (result, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
         #expect(result.exit == 0, "\(result)")
-        #expect(finding(findings, level: "warn", check: "default-profile", containing: "is a symlink"), "\(result)")
+        #expect(hasFinding(findings, level: "warn", check: "default-profile", containing: "is a symlink"), "\(result)")
     }
 
     @Test func noURLHandlerWarns() throws {
         let sandbox = try E2ESandbox()
 
-        let (_, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (_, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
-        #expect(finding(findings, level: "warn", check: "sign-in", containing: "no app handles"))
+        #expect(hasFinding(findings, level: "warn", check: "sign-in", containing: "no app handles"))
     }
 
     @Test func anotherAppAsTheHandlerWarns() throws {
@@ -97,9 +79,9 @@ struct DoctorCommandTests {
         let other = try sandbox.makeApp(named: "Other", bundleID: "dev.wearhats.e2e.other")
         try sandbox.seedURLHandler(other)
 
-        let (_, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (_, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
-        #expect(finding(findings, level: "warn", check: "sign-in", containing: "dev.wearhats.e2e.other"))
+        #expect(hasFinding(findings, level: "warn", check: "sign-in", containing: "dev.wearhats.e2e.other"))
     }
 
     @Test func twoProfilesOnOneAccountWarn() throws {
@@ -109,9 +91,9 @@ struct DoctorCommandTests {
             try sandbox.write(#"{"oauthAccount":{"accountUuid":"same"}}"#, to: "\(code)/.claude.json")
         }
 
-        let (_, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (_, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
-        #expect(finding(findings, level: "warn", check: "accounts", containing: "same Claude account"))
+        #expect(hasFinding(findings, level: "warn", check: "accounts", containing: "same Claude account"))
     }
 
     @Test func aSplitAccountWarns() throws {
@@ -122,9 +104,9 @@ struct DoctorCommandTests {
             #"{"oauth:tokenCache":"\#(sandbox.sentinel)","lastKnownAccountUuid":"desktop-side"}"#,
             to: "\(sandbox.profileDir("work"))/desktop/config.json")
 
-        let (_, findings) = try checked(sandbox, environment: try sandbox.withClaudeApp)
+        let (_, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
 
-        #expect(finding(findings, level: "warn", check: "profile:work", containing: "different accounts"))
+        #expect(hasFinding(findings, level: "warn", check: "profile:work", containing: "different accounts"))
     }
 
     @Test func theTextReportHasBadgesAndHints() throws {

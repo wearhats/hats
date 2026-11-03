@@ -16,6 +16,9 @@ final class E2ESandbox {
     let defaultConfigDir: String
     /// Planted where a token would be. No output may ever contain it.
     let sentinel = "hats-e2e-sentinel-\(UUID().uuidString)"
+    /// Held here so a fake lives as long as the sandbox it was started in, however
+    /// early the optimizer would release a test's own reference.
+    var fakes: [FakeProcess] = []
 
     init(hatsHomeName: String = "hats-home") throws {
         let parent = canonicalPath(FileManager.default.temporaryDirectory.path(percentEncoded: false))
@@ -32,6 +35,7 @@ final class E2ESandbox {
     }
 
     deinit {
+        fakes.forEach { $0.stop() }
         try? FileManager.default.removeItem(atPath: root)
     }
 

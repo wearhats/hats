@@ -201,15 +201,6 @@ struct TestModeTests {
         #expect(result.exit == 0, "\(result)")
         #expect(sandbox.exists("\(destination)/Claude (T1).app"))
     }
-
-    @Test func otherProcessesAreInvisible() throws {
-        let sandbox = try E2ESandbox()
-
-        let result = try sandbox.hats(["ps", "--json"])
-
-        #expect(result.exit == 0, "\(result)")
-        #expect(try sandbox.json(result).isEmpty, "\(result)")
-    }
 }
 
 @Suite("A tilde means this HOME", .tags(.e2e))

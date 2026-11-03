@@ -25,6 +25,16 @@ extension E2ESandbox {
         try #require(try JSONSerialization.jsonObject(with: Data(result.stdout.utf8)) as? [[String: Any]], "\(result)")
     }
 
+    /// Runs `doctor --json` and also proves it changed nothing.
+    func doctor(
+        environment: [String: String] = [:], sourceLocation: SourceLocation = #_sourceLocation
+    ) throws -> (result: CommandResult, findings: [[String: Any]]) {
+        let before = try snapshot()
+        let result = try hats(["doctor", "--json"], environment: environment, sourceLocation: sourceLocation)
+        #expect(try snapshot() == before, "doctor must not write. \(result)", sourceLocation: sourceLocation)
+        return (result, try json(result))
+    }
+
     func exists(_ path: String) -> Bool {
         FileManager.default.fileExists(atPath: path)
     }
@@ -116,5 +126,12 @@ extension E2ESandbox {
         try makeDirectory(testDir)
         try PropertyListSerialization.data(fromPropertyList: ["persistent-apps": tiles], format: .xml, options: 0)
             .write(to: URL(filePath: dockPlist))
+    }
+}
+
+func hasFinding(_ findings: [[String: Any]], level: String, check: String? = nil, containing text: String) -> Bool {
+    findings.contains {
+        $0["level"] as? String == level && (check == nil || $0["check"] as? String == check)
+            && ($0["message"] as? String)?.contains(text) == true
     }
 }

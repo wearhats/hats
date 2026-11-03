@@ -80,8 +80,8 @@ jobs:
 
       - name: Build universal binary
         run: |
-          swift build -c release --arch arm64 --arch x86_64
-          BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/hats"
+          swift build -c release --product hats --arch arm64 --arch x86_64
+          BIN="$(swift build -c release --product hats --arch arm64 --arch x86_64 --show-bin-path)/hats"
           lipo -info "$BIN"
           test "$("$BIN" --version)" = "$VERSION"
           mkdir -p "$RUNNER_TEMP/unsigned"
