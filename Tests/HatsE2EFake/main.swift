@@ -1,4 +1,5 @@
 import AppKit
+import CoreServices
 import Darwin
 import Foundation
 
@@ -13,6 +14,9 @@ import Foundation
 //   HATS_FAKE_TIMESTAMPS  procStart, startedAt, both (default) or none
 //   HATS_FAKE_STALE       seconds to shift those timestamps into the past
 //   HATS_FAKE_SPAWN       a program to start as a child, sharing stdin and stdout
+//   HATS_FAKE_PROBE       lookup:<mach service>, apple-event or register:<app path>.
+//                         Prints the call's status and exits, instead of all of the
+//                         below, so the guard's tests can see what its rules deny.
 //
 // Prints `ready <pid>` once set up, then blocks on stdin and exits at EOF, so a
 // crashed test process takes its fakes down with it. A host outlives its child, so
@@ -49,6 +53,49 @@ let pid = getpid()
     exit(0)
 }
 
+/// Through `dlsym` because Swift doesn't import `servers/bootstrap.h`.
+func lookUpMachService(_ name: String) -> kern_return_t {
+    typealias LookUp = @convention(c) (mach_port_t, UnsafePointer<CChar>, UnsafeMutablePointer<mach_port_t>) -> kern_return_t
+    let everyLoadedImage = UnsafeMutableRawPointer(bitPattern: -2)
+    guard let lookUp = dlsym(everyLoadedImage, "bootstrap_look_up"), let bootstrapPort = dlsym(everyLoadedImage, "bootstrap_port") else {
+        fatalError("hats-e2e-fake: no bootstrap_look_up")
+    }
+    var port = mach_port_t()
+    return unsafeBitCast(lookUp, to: LookUp.self)(bootstrapPort.load(as: mach_port_t.self), name, &port)
+}
+
+/// `ascr/gdte`, spelled as its four-char codes because Swift doesn't import them, asks
+/// for an app's scripting dictionary. It changes nothing and raised no Automation
+/// prompt when measured, unlike an event that drives the app.
+func sendReadOnlyAppleEvent() -> OSStatus {
+    var target = AEAddressDesc()
+    var event = AppleEvent()
+    var reply = AppleEvent()
+    let bundleID = Array("com.apple.finder".utf8)
+    guard AECreateDesc(DescType(typeApplicationBundleID), bundleID, bundleID.count, &target) == noErr,
+        AECreateAppleEvent(
+            AEEventClass(0x6173_6372), AEEventID(0x6764_7465), &target, AEReturnID(kAutoGenerateReturnID),
+            AETransactionID(kAnyTransactionID), &event) == noErr
+    else { fatalError("hats-e2e-fake: couldn't build the Apple event") }
+    return AESendMessage(&event, &reply, AESendMode(kAEWaitReply | kAENeverInteract), 300)
+}
+
+func runProbe(_ probe: String) -> Never {
+    let status: Int32
+    if probe == "apple-event" {
+        status = sendReadOnlyAppleEvent()
+    } else if probe.hasPrefix("lookup:") {
+        status = lookUpMachService(String(probe.dropFirst("lookup:".count)))
+    } else if probe.hasPrefix("register:") {
+        status = LSRegisterURL(URL(filePath: String(probe.dropFirst("register:".count))) as CFURL, true)
+    } else {
+        fatalError("hats-e2e-fake: unknown probe \(probe)")
+    }
+    print(status)
+    exit(0)
+}
+
+if let probe = environment["HATS_FAKE_PROBE"] { runProbe(probe) }
 if Bundle.main.bundleIdentifier == "dev.wearhats.e2e.fake-claude" { runAsApp() }
 
 func kernelStartTime() -> Date {

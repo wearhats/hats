@@ -81,7 +81,23 @@ final class FakeProcess {
     }
 }
 
+struct ProbeFailed: Error, CustomStringConvertible {
+    let result: CommandResult
+    var description: String { "the probe didn't finish:\n\(result)" }
+}
+
 enum FakeBinary {
+    /// The status a `HATS_FAKE_PROBE` call returned, under the guard when given a sandbox.
+    static func probe(_ probe: String, guardedBy sandbox: E2ESandbox? = nil) throws -> String {
+        let fake = try path()
+        let environment = ["HATS_FAKE_PROBE": probe]
+        let result =
+            try sandbox?.guarded(fake, [], environment: environment)
+            ?? CommandRunner.run(executable: fake, arguments: [], environment: environment)
+        guard result.exit == 0, !result.wasKilledBySignal else { throw ProbeFailed(result: result) }
+        return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Always the one next to the test bundle, whichever hats binary is under test.
     static func path() throws -> String {
         let path = BuiltProduct.path(named: "hats-e2e-fake")

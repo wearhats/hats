@@ -18,6 +18,10 @@ enum DisposableHost {
 
 @Suite("The real Dock, Trash and Launch Services", .tags(.e2e, .disposableHost), .serialized, .enabled(if: DisposableHost.isRequested))
 struct DisposableHostTests {
+    init() throws {
+        try DisposableHost.requireThrowawayMachine()
+    }
+
     private let home = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false).trimmingCharacters(
         in: CharacterSet(charactersIn: "/"))
 
@@ -47,7 +51,6 @@ struct DisposableHostTests {
     }
 
     @Test func pinAndUnpinChangeTheRealDockAndRestartIt() throws {
-        try DisposableHost.requireThrowawayMachine()
         #expect(try hats(["add", "t2b-dock", "--label", "T2bDock"]).exit == 0)
         defer { _ = try? hats(["rm", "t2b-dock", "--purge", "--yes"]) }
         let restartedFrom = try dockPID()
@@ -75,7 +78,6 @@ struct DisposableHostTests {
     }
 
     @Test func resetAndPurgeUseTheRealTrash() throws {
-        try DisposableHost.requireThrowawayMachine()
         #expect(try hats(["add", "t2b-trash"]).exit == 0)
         let dataDir = "\(realHome)/Library/Application Support/hats/profiles/t2b-trash"
         let desktopsBefore = try trashEntries(named: "desktop").count
@@ -97,7 +99,6 @@ struct DisposableHostTests {
     /// has to find Claude.app the way it would on a user's Mac: `~/Applications` is one
     /// of the places hats looks. The stub there keeps its own bundle ID.
     @Test func openingALauncherReachesClaude() throws {
-        try DisposableHost.requireThrowawayMachine()
         let applications = "\(realHome)/Applications"
         try FileManager.default.createDirectory(atPath: applications, withIntermediateDirectories: true)
         let stub = try StubApp(at: "\(applications)/Claude.app")
@@ -118,5 +119,32 @@ struct DisposableHostTests {
         let profile = "\(realHome)/Library/Application Support/hats/profiles/t2b-click"
         #expect(report.arguments == ["--user-data-dir=\(profile)/desktop"])
         #expect(report.configDir == "\(profile)/code")
+    }
+
+    /// The other guard rules can be proved anywhere, but a failure of this one would
+    /// write to Launch Services, so it's only proved on a machine that gets thrown away.
+    @Test func theGuardStopsARealRegistration() throws {
+        try #require(SeatbeltGuard.isAvailable, "without the guard this would really register the decoy")
+        let sandbox = try E2ESandbox()
+        let decoy = try StubApp(at: "\(sandbox.root)/GuardedDecoy.app", in: sandbox)
+        let control = try StubApp(at: "\(sandbox.root)/UnguardedControl.app", in: sandbox)
+        defer {
+            #expect(throws: Never.self) { try control.stopEverything() }
+            // Fails when the guard worked, because then there's nothing to unregister.
+            _ = try? CommandRunner.run(executable: StubApp.lsregister, arguments: ["-u", decoy.path], environment: [:])
+        }
+        func isRegistered(_ app: StubApp) throws -> Bool {
+            let dump = try CommandRunner.run(
+                executable: StubApp.lsregister, arguments: ["-dump"], environment: [:], timeoutSeconds: 60)
+            try #require(dump.exit == 0, "a failed read must not count as not registered")
+            return dump.stdout.contains(app.path)
+        }
+
+        let guardedStatus = try FakeBinary.probe("register:\(decoy.path)", guardedBy: sandbox)
+        #expect(try FakeBinary.probe("register:\(control.path)") == "0")
+
+        // Registrations show up late. The later one showing up gives the decoy time to as well.
+        _ = try waitUntil("the control to show up", timeoutSeconds: 180) { try isRegistered(control) ? true : nil }
+        #expect(try !isRegistered(decoy), "the guarded registration returned \(guardedStatus)")
     }
 }

@@ -2,7 +2,9 @@ import Foundation
 import Testing
 
 /// A guard that silently stopped working would make every other safety claim
-/// empty, so each rule is exercised here, against decoys only.
+/// empty, so each rule is exercised here. Nothing here changes anything real: file
+/// rules use decoys, and the Launch Services and Apple event rules only ask. Whether
+/// a real registration is stopped is proved in `DisposableHostTests`.
 @Suite("Seatbelt guard", .tags(.e2e), .enabled(if: SeatbeltGuard.isAvailable || SeatbeltGuard.isRequired))
 struct GuardTests {
     @Test func guardBlocksWritesOutsideTheSandbox() throws {
@@ -131,6 +133,38 @@ struct GuardTests {
 
         #expect(unguarded.exit == 28, "\(unguarded)")
         #expect(guarded.exit == 7, "\(guarded)")
+    }
+
+    /// These services and Finder belong to the login session, so outside one, as over
+    /// SSH, there's nothing to compare with. CI requires the guard, so it can't skip.
+    private func succeedsWithoutTheGuard(_ probe: String) throws -> Bool {
+        let unguarded = try FakeBinary.probe(probe)
+        if !SeatbeltGuard.isRequired, unguarded != "0" { return false }
+        #expect(unguarded == "0")
+        return true
+    }
+
+    /// `1100` is `BOOTSTRAP_NOT_PRIVILEGED`.
+    @Test func guardBlocksTheServiceThatWritesLaunchServices() throws {
+        let service = "lookup:com.apple.lsd.modifydb"
+        guard try succeedsWithoutTheGuard(service) else { return }
+
+        #expect(try FakeBinary.probe(service, guardedBy: try E2ESandbox()) == "1100")
+    }
+
+    @Test func guardLeavesTheServiceThatReadsLaunchServices() throws {
+        let service = "lookup:com.apple.lsd.mapdb"
+        guard try succeedsWithoutTheGuard(service) else { return }
+
+        #expect(try FakeBinary.probe(service, guardedBy: try E2ESandbox()) == "0")
+    }
+
+    /// `-600` is `procNotFound`, which would also mean Finder isn't running, so the
+    /// same event has to reach it without the guard.
+    @Test func guardBlocksAppleEvents() throws {
+        guard try succeedsWithoutTheGuard("apple-event") else { return }
+
+        #expect(try FakeBinary.probe("apple-event", guardedBy: try E2ESandbox()) == "-600")
     }
 
     @Test func guardLetsAProcessSignalItself() throws {
