@@ -6,6 +6,7 @@ const MIN_SCORE = 0.95;
 const MAX_LCP_MS = 1500;
 const MAX_CLS = 0.05;
 const PORT = 9333;
+const RUNS = 3;
 
 const server = await startWrangler(8789);
 const browser = await chromium.launch({ args: [`--remote-debugging-port=${PORT}`] });
@@ -21,7 +22,12 @@ try {
             ? { preset: 'desktop', formFactor, screenEmulation: { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false } }
             : { formFactor },
       };
-      const { lhr } = await lighthouse(server.origin + path, { port: PORT, output: 'json', logLevel: 'error' }, config);
+      // One run swings widely on a busy machine, so judge the median, as Lighthouse's own docs advise.
+      const runs = [];
+      for (let run = 0; run < RUNS; run += 1) {
+        runs.push((await lighthouse(server.origin + path, { port: PORT, output: 'json', logLevel: 'error' }, config)).lhr);
+      }
+      const lhr = runs.sort((a, b) => a.categories.performance.score - b.categories.performance.score)[Math.floor(RUNS / 2)];
       const scores = Object.fromEntries(Object.values(lhr.categories).map((category) => [category.id, category.score]));
       const lcp = lhr.audits['largest-contentful-paint'].numericValue;
       const cls = lhr.audits['cumulative-layout-shift'].numericValue;
