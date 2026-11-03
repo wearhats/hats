@@ -64,6 +64,10 @@ extension E2ESandbox {
         try write(String(decoding: try JSONSerialization.data(withJSONObject: metadata), as: UTF8.self), to: file)
     }
 
+    func metadata(ofProfile name: String) throws -> [String: Any] {
+        try #require(try JSONSerialization.jsonObject(with: Data(read("\(profileDir(name))/profile.json").utf8)) as? [String: Any])
+    }
+
     func marker(in bundle: String) throws -> [String: Any] {
         let data = try Data(contentsOf: URL(filePath: "\(bundle)/Contents/Resources/hats-launcher.json"))
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])

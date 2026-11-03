@@ -107,6 +107,32 @@ struct GuardTests {
         #expect(target.isRunning)
     }
 
+    /// curl words a blocked connection like a refused one, so this listens for real:
+    /// the same request reaches the listener without the guard and fails with it.
+    /// Connected but never answered, an unguarded curl hits its time limit (28).
+    @Test func guardBlocksNetworkConnections() throws {
+        let sandbox = try E2ESandbox()
+        let listener = socket(AF_INET, SOCK_STREAM, 0)
+        defer { close(listener) }
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let bound = withUnsafeMutablePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { generic in
+                bind(listener, generic, length) == 0 && listen(listener, 1) == 0 && getsockname(listener, generic, &length) == 0
+            }
+        }
+        try #require(bound)
+        let arguments = ["-sS", "--max-time", "1", "http://127.0.0.1:\(in_port_t(bigEndian: address.sin_port))/"]
+
+        let unguarded = try CommandRunner.run(executable: "/usr/bin/curl", arguments: arguments, environment: [:])
+        let guarded = try sandbox.guarded("/usr/bin/curl", arguments)
+
+        #expect(unguarded.exit == 28, "\(unguarded)")
+        #expect(guarded.exit == 7, "\(guarded)")
+    }
+
     @Test func guardLetsAProcessSignalItself() throws {
         let sandbox = try E2ESandbox()
 
