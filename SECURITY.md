@@ -8,7 +8,7 @@ within 3 business days.
 
 ## Model
 
-- hats never reads, stores or relays Claude credentials or session tokens, and
+- hats never keeps, stores or relays Claude credentials or session tokens, and
   never touches the `claude://` handler ([design rules](docs/design.md)).
   Keychain queries request attributes only, never the secret.
 - To tell which profile a running process belongs to, hats reads its argument
@@ -19,8 +19,8 @@ within 3 business days.
   Desktop's token cache) and Claude Code's `.claude.json` in memory, and keeps
   only key presence, account ID, email and organization name.
 - hats collects no telemetry. Its only network request is a daily check of
-  GitHub's latest-release API for an update notice; it sends nothing but the
-  User-Agent, never downloads or installs anything, and `HATS_NO_UPDATE_CHECK=1`
+  GitHub's latest-release API for an update notice; it sends only the HTTP
+  client's standard headers and its User-Agent, never downloads or installs anything, and `HATS_NO_UPDATE_CHECK=1`
   turns it off.
 - hats writes only inside its data root (`HATS_HOME`), its launcher directory
   and launcher copies the user asked for. Opt-in exceptions: the Dock
