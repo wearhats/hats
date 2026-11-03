@@ -169,7 +169,7 @@ in [issues](https://github.com/wearhats/hats/issues).
 [What hats reads and writes](docs/privacy.md) · [Architecture](docs/architecture.md) ·
 [Releasing](docs/releasing.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
-Tested with Claude Desktop 4.4212.0, Claude Code 2.1.312 and macOS 27.0.1.
+Tested with Claude Desktop 4.29.0, Claude Code 2.1.312 and macOS 27.0.1.
 
 ## Thanks
 

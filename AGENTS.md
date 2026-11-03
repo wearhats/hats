@@ -43,5 +43,6 @@ conventions on top of it:
 `docs/design.md` (terms and rules), `docs/privacy.md` (every read, write and
 process action), `docs/architecture.md` (modules, flows and platform notes),
 `docs/releasing.md` (channels and the release flow). release-please writes
-`CHANGELOG.md` from conventional commit messages, so describe a change in its
-commit message instead of editing the changelog.
+`CHANGELOG.md` from Conventional Commits, so describe a change in the PR title
+(the squash commit subject) and commit messages instead of editing the
+changelog.
