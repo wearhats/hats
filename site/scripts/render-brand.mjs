@@ -15,7 +15,7 @@ const rows = read('fixtures/hats-ps.txt')
   .trim()
   .split('\n')
   .map((line) => line.split(/\s{2,}/).slice(0, CARD_COLUMNS));
-const shown = [rows[0], rows[2], rows[3], rows[4]].map(([profile, kind, , status, age]) => [profile, kind, status, age]);
+const shown = [rows[0], ...rows.slice(2)].map(([profile, kind, , status, age]) => [profile, kind, status, age]);
 const widths = shown[0].map((_, column) => Math.max(...shown.map((row) => row[column].length)));
 const terminal = shown.map((row) => row.map((cell, column) => cell.padEnd(widths[column])).join('  ')).join('\n');
 

@@ -1,5 +1,5 @@
 PROFILE   KIND     PID    STATUS   AGE  NAME     CWD
 default   desktop  16717  -        14h  -        -
-work      cli      22045  waiting  3h   api-4b   ~/demo/api
 personal  desktop  81792  -        2m   -        -
 personal  cli      83110  busy     1m   blog-1c  ~/demo/blog
+work      cli      22045  waiting  3h   api-4b   ~/demo/api
