@@ -1,7 +1,6 @@
 ---
-import { VERSION } from '../data/release';
 import { inline } from '../lib/inline';
-import { hasDemo, hasWebm, stills } from '../lib/demoMedia';
+import { hasDemo, hasWebm, recordedVersion, stills } from '../lib/demoMedia';
 ---
 
 {
@@ -16,7 +15,7 @@ import { hasDemo, hasWebm, stills } from '../lib/demoMedia';
             <track kind="captions" src="/media/demo.vtt" srclang="en" label="English" default />
           </video>
           <figcaption>
-            Recorded with hats {VERSION}. Terminal output uses sample data. Window contents are blurred.{' '}
+            Recorded with hats {recordedVersion}. Terminal output uses sample data. Window contents are blurred.{' '}
             <a href="/media/demo-transcript.txt">Transcript</a>
           </figcaption>
         </figure>
