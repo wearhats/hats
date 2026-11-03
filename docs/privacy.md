@@ -85,7 +85,7 @@ every launcher and every recorded launcher copy all resolve inside it. `hats exe
 | Normally | In test mode |
 |---|---|
 | Moving data to the Trash | Moved into `<dir>/.test/trash/` |
-| Launch Services registration, Claude launch, activate, quit, Finder reveal, Dock restart | Only recorded, in `<dir>/.test/events.jsonl`. Activate and quit are refused unless the executable is an `.app` inside `<dir>` |
+| Launch Services registration, Claude launch, activate, quit, Finder reveal, Dock restart | Only recorded, in `<dir>/.test/events.jsonl`. Activate and quit are refused unless the executable is an `.app` inside `<dir>`. With `HATS_TEST_APP_CONTROL=guarded`, launch, activate and quit are real, for apps inside `<dir>` only, and nothing else changes |
 | Dock preferences | `<dir>/.test/dock.plist` |
 | Keychain attribute query | A list of service names in `<dir>/.test/keychain.json`; the Keychain isn't queried |
 | `claude://` handler and Claude.app lookups | `<dir>/.test/claude-url-handler` for the handler; only `HATS_CLAUDE_APP` for the app |

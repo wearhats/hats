@@ -275,3 +275,27 @@ private final class ExitingAppControl: AppControl, @unchecked Sendable {
         #expect(layout.abbreviatingHome(path) == expected)
     }
 }
+
+#if os(macOS)
+/// Nothing real is called: the test process's own executable and the app below are
+/// outside the root, and the check comes first.
+@Suite struct GuardedAppControlTests {
+    @Test @MainActor func refusesWhatIsOutsideTheSandbox() async throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        FileManager.default.createFile(atPath: sandbox.root.appending(path: TestSandbox.markerFile).plainPath, contents: nil)
+        var environment = sandbox.environment
+        environment[TestSandbox.variable] = sandbox.root.plainPath
+        environment[TestSandbox.appControlVariable] = "guarded"
+        let testSandbox = try #require(try TestSandbox(environment: environment, layout: sandbox.layout))
+        let control = testSandbox.touchpoints.control
+
+        #expect(!control.isRegularApp(pid: getpid()))
+        #expect(!control.activate(pid: getpid()))
+        #expect(!control.terminate(pid: getpid()))
+        await #expect(throws: HatsError.self) {
+            _ = try await control.launch(
+                appURL: URL(filePath: "/System/Applications/Calculator.app"), newInstance: true, arguments: [], environment: [:])
+        }
+    }
+}
+#endif

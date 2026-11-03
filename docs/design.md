@@ -115,7 +115,9 @@ only for a command or flag that names it: launcher copies (`add --desktop`,
 
 Process, Keychain, Dock, Trash, Launch Services, network and filesystem access goes
 through a protocol or an injected value, with a fake in tests, so no test
-touches the real targets. [privacy.md](privacy.md) lists every read, write and
+touches the real targets on a machine anyone cares about: the only tests that do
+refuse to run anywhere but a throwaway CI runner, because a fake can't show that
+the Dock really rereads a tile. [privacy.md](privacy.md) lists every read, write and
 process action. A change that adds one updates that file in the same pull
 request, and review treats it as a design change.
 

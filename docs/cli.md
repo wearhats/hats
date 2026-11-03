@@ -74,6 +74,7 @@ refuses the same way, and otherwise lists nothing for a name no profile has.
 | `HATS_DEFAULT_CONFIG_DIR` | The `default` profile's Claude Code dir (default `~/.claude`). An inherited `CLAUDE_CONFIG_DIR` never changes it. |
 | `HATS_PROFILE` | Set by hats, not read: `run` and `exec` export the profile name to the child, for prompts and scripts. |
 | `HATS_TEST_SANDBOX` | For hats' own end-to-end tests only: keeps every OS touchpoint inside a directory ([privacy.md](privacy.md#test-mode)). hats refuses to start if anything it would touch is outside it. |
+| `HATS_TEST_APP_CONTROL` | With `HATS_TEST_SANDBOX`, `guarded` makes launch, activate and quit real for apps inside that directory only. |
 | `HATS_NO_UPDATE_CHECK` | Set to `1` to turn off the daily update check. It also stays off when `CI` is set, output isn't a terminal, or hats is a dev build. |
 | `NO_COLOR` | Disable colour output. |
 

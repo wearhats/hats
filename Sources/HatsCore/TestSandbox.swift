@@ -13,14 +13,22 @@ public struct TestSandbox: Sendable {
     /// data in it, where real Claude processes would be invisible and the refusals
     /// for a running profile wouldn't fire.
     public static let markerFile = ".hats-test-sandbox"
+    /// Set to `guarded`, real launches, activation and quits happen, but only for
+    /// apps and PIDs inside `<dir>`, so a test can't reach a real Claude window.
+    public static let appControlVariable = "HATS_TEST_APP_CONTROL"
     /// `launch` starts nothing in test mode, so no real PID exists to report.
     static let launchedPID: Int32 = 99_999
 
     let root: String
+    private let usesRealAppControl: Bool
 
     /// `nil` when test mode is off. Throws when it is on but can't be contained.
     public init?(environment: [String: String], layout: Layout) throws(HatsError) {
-        guard let raw = environment[Self.variable] else { return nil }
+        guard let raw = environment[Self.variable] else {
+            // Asking for the guarded mode must never quietly mean the real one.
+            if environment[Self.appControlVariable] != nil { throw Self.refusal("\(Self.appControlVariable) needs \(Self.variable)") }
+            return nil
+        }
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: raw, isDirectory: &isDirectory), isDirectory.boolValue,
             let root = Self.canonical(raw)
@@ -37,6 +45,11 @@ public struct TestSandbox: Sendable {
             throw Self.refusal("\(Self.variable) has no \(Self.markerFile) file: '\(root)'")
         }
         self.root = root
+        switch environment[Self.appControlVariable] {
+        case nil: usesRealAppControl = false
+        case "guarded": usesRealAppControl = true
+        case let other?: throw Self.refusal("\(Self.appControlVariable) must be 'guarded', not '\(other)'")
+        }
 
         for variable in ["HOME", "HATS_HOME", "HATS_LAUNCHER_DIR"] where (environment[variable] ?? "").isEmpty {
             throw Self.refusal("\(Self.variable) needs \(variable) set inside it")
@@ -84,7 +97,7 @@ public struct TestSandbox: Sendable {
     public var touchpoints: Touchpoints {
         Touchpoints(
             processes: SandboxedProcessTable(sandbox: self),
-            control: RecordingAppControl(sandbox: self, log: log),
+            control: usesRealAppControl ? GuardedAppControl(sandbox: self) : RecordingAppControl(sandbox: self, log: log),
             credentials: SeededCredentialProbe(file: file("keychain.json")),
             dock: FileDockPreferences(file: file("dock.plist"), log: log),
             discarder: discarder,
@@ -228,6 +241,31 @@ struct RecordingAppControl: AppControl {
         guard sandbox.isRegularApp(pid: pid) else { return false }
         log.record("terminate", ["pid": pid])
         return true
+    }
+}
+
+/// The real thing, for the tests that need a real window server, with every app and
+/// PID checked first. Launch Services starts an app with launchd as its parent, so
+/// the check goes by executable path rather than by descent from the test.
+struct GuardedAppControl: AppControl {
+    let sandbox: TestSandbox
+    private let real = WorkspaceAppControl()
+
+    func launch(appURL: URL, newInstance: Bool, arguments: [String], environment: [String: String]) async throws -> Int32 {
+        try sandbox.requireInside(appURL.plainPath, what: "the app to launch")
+        return try await real.launch(appURL: appURL, newInstance: newInstance, arguments: arguments, environment: environment)
+    }
+
+    @MainActor func activate(pid: Int32) -> Bool {
+        sandbox.ownsExecutable(of: pid) && real.activate(pid: pid)
+    }
+
+    @MainActor func isRegularApp(pid: Int32) -> Bool {
+        sandbox.ownsExecutable(of: pid) && real.isRegularApp(pid: pid)
+    }
+
+    @MainActor func terminate(pid: Int32) -> Bool {
+        sandbox.ownsExecutable(of: pid) && real.terminate(pid: pid)
     }
 }
 

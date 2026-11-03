@@ -1,3 +1,4 @@
+import AppKit
 import Darwin
 import Foundation
 
@@ -16,9 +17,39 @@ import Foundation
 // Prints `ready <pid>` once set up, then blocks on stdin and exits at EOF, so a
 // crashed test process takes its fakes down with it. A host outlives its child, so
 // when the host is gone both are.
+//
+// Inside a bundle whose ID is `dev.wearhats.e2e.fake-claude` it is a real regular app
+// instead, because Launch Services starts it with no test on the other end. It writes
+// `report-<pid>.json` next to the bundle, then runs until asked to quit, for at most
+// two minutes.
 
 let environment = ProcessInfo.processInfo.environment
 let pid = getpid()
+
+/// Reports from inside the run loop, so whoever reads the report can already find
+/// this process as a regular app, and activate it or ask it to quit.
+@MainActor func runAsApp() -> Never {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+    DispatchQueue.main.async {
+        let report: [String: Any] = [
+            "pid": pid, "arguments": Array(CommandLine.arguments.dropFirst()),
+            "configDir": environment["CLAUDE_CONFIG_DIR"] ?? NSNull(),
+        ]
+        let directory = Bundle.main.bundleURL.deletingLastPathComponent()
+        do {
+            // Atomic, so a test polling for the file never reads half of it.
+            try JSONSerialization.data(withJSONObject: report).write(to: directory.appending(path: "report-\(pid).json"), options: .atomic)
+        } catch {
+            fatalError("hats-e2e-fake: \(error)")
+        }
+    }
+    Timer.scheduledTimer(withTimeInterval: 120, repeats: false) { _ in exit(0) }
+    app.run()
+    exit(0)
+}
+
+if Bundle.main.bundleIdentifier == "dev.wearhats.e2e.fake-claude" { runAsApp() }
 
 func kernelStartTime() -> Date {
     var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
