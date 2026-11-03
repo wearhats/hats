@@ -42,7 +42,6 @@ conventions on top of it:
 `docs/cli.md` (commands), `README.md` (features, examples and scope),
 `docs/design.md` (terms and rules), `docs/privacy.md` (every read, write and
 process action), `docs/architecture.md` (modules, flows and platform notes),
-`docs/releasing.md` (channels and the release flow), `CHANGELOG.md` (the
-Unreleased section until the first release; from then on release-please owns
-`CHANGELOG.md`, and changes are described in conventional commit messages
-instead).
+`docs/releasing.md` (channels and the release flow). release-please writes
+`CHANGELOG.md` from conventional commit messages, so describe a change in its
+commit message instead of editing the changelog.
