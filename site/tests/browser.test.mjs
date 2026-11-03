@@ -173,6 +173,8 @@ test('with a website ID, the tag sends one pageview through the CSP, and the scr
   assert.match(tag, /data-host-url="https:\/\/umami\.maxondev\.com"/);
   assert.match(tag, /data-domains="wearhats\.dev"/);
   assert.match(tag, /data-do-not-track="true"/);
+  assert.match(tag, /data-exclude-search="true"/);
+  assert.match(tag, /data-exclude-hash="true"/);
   const { pageviews, elsewhere, problems } = await openAsProduction(ANALYTICS_DIST);
   assert.deepEqual(pageviews, ['POST https://umami.maxondev.com/api/send']);
   assert.deepEqual(elsewhere, []);

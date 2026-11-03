@@ -30,8 +30,10 @@ if (!title) throw new Error('docs/privacy.md has no title');
     <h2 id="this-website">This website</h2>
     <p>
       This website sets no cookies. It counts visits with <a href="https://umami.is">Umami</a>, self-hosted by the
-      maintainer at <code>umami.maxondev.com</code>: the page, the referring site, and browser, device and country. It
-      uses no cookies and no cross-site tracking, and it respects Do Not Track. The site is hosted on Cloudflare, which
+      maintainer at <code>umami.maxondev.com</code>. Each page view sends the page's address and title, the referring
+      site, and your screen size and language, without query strings or fragments. That server also receives your IP
+      address and browser details with the request, as any server does, and Umami uses them to work out browser, device
+      and country. It uses no cookies and no cross-site tracking, and it respects Do Not Track. The site is hosted on Cloudflare, which
       processes visitors' IP addresses and request details to serve and protect it. Downloads come from GitHub, under
       GitHub's terms. None of this applies to the hats tool itself, which has no telemetry. Questions:{' '}
       <a href={DISCUSSIONS_URL}>GitHub Discussions</a>.
