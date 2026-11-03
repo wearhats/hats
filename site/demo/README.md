@@ -41,7 +41,7 @@ vhs tapes/v2-readme.tape    # one tape at a time; output lands in out/
 | `v2-readme.tape` | V2, README GIF | 25s | 800px wide, 3 MB at most |
 | `v1-setup.tape` | V1, 0:04 to 0:25 | 21s | Interactive: answers are typed in the tape |
 | `v1-ps.tape` | V1, 0:47 to 0:55 | 8s | Needs running sessions, see below |
-| `v1-ls-doctor.tape` | V1, 1:02 to 1:09 | 7s | Doctor should be all `[ok]` |
+| `v1-ls-doctor.tape` | V1, 1:02 to 1:09 | 7s | Doctor should be all `[ok]`; adjust `sandbox.sh` if a stand-in is missing |
 | `v4c-adopt.tape` | V4c | 15s | |
 | `v4d-same-account.tape` | V4d | 12s | Two profiles planted on one account |
 | `v4e-start-fresh.tape` | V4e | 15s | |
@@ -50,10 +50,10 @@ vhs tapes/v2-readme.tape    # one tape at a time; output lands in out/
 | `v4h-uninstall.tape` | V4h | 15s | Dry-run where possible |
 
 **`hats ps` rows need a fake Claude.** Test mode only sees processes whose executable is inside the sandbox, so
-`v1-ps.tape` and `v2-readme.tape` show no sessions until the running-instances test support is merged
-([#25](https://github.com/wearhats/hats/pull/25)). `HATS_E2E_FAKE` in `sandbox.sh` is where to plug it in. Check the
-output looks believable before planning around it. If it doesn't, record those frames on the Mac with real neutral
-sessions under the rules above.
+`v1-ps.tape` and `v2-readme.tape` show no sessions until you start some. `swift build --product hats-e2e-fake` builds the
+stand-in, and `Tests/HatsE2ETests/Support/FakeProcess.swift` shows how the tests name and start it, since hats tells
+processes apart by kernel name and argv. `sandbox.sh` doesn't do this yet. Check the output looks believable before
+planning around it. If it doesn't, record those frames on the Mac with real neutral sessions under the rules above.
 
 ## 3. Capture the fixtures for the site
 
@@ -70,7 +70,7 @@ Then follow `../fixtures/README.md`: re-render the cards and change the captions
 ## 4. Record the window parts on the Mac
 
 Use a macOS screen recording, because VHS has no GUI, Dock or tabs. Create fresh neutral profiles and remove them afterwards
-with `hats rm`.
+with `hats rm --purge`.
 
 | V1 time | Shot | Treatment |
 |---|---|---|
@@ -103,13 +103,14 @@ site/public/media/demo.mp4              required
 site/public/media/demo-poster.webp      required
 site/public/media/demo.vtt              required, from v1.vtt: fix the timings, delete the NOTE
 site/public/media/demo-transcript.txt   required, from v1-transcript.txt: delete the draft line
+site/public/media/demo-version.txt      required, the hats version it was recorded with, such as 0.2.0
 site/public/media/demo.webm             optional
 site/public/media/still-dock.avif/.webp     optional stills, shown only with both formats
 site/public/media/still-ls.avif/.webp
 site/public/media/still-doctor.avif/.webp
 ```
 
-Run `just site-check`. The section appears once the four required files exist.
+Run `just site-check`. The section appears once the five required files exist.
 
 ## 7. README
 

@@ -5,7 +5,7 @@ Output out/v2-readme.gif
 Set Width 800
 
 Hide
-Type "[ -n \"$HATS_TEST_SANDBOX\" ] || exit 1; export PS1='$ '; clear"
+Type `[ -n "$HATS_TEST_SANDBOX" ] || exit 1; export PS1='$ '; clear`
 Enter
 Show
 

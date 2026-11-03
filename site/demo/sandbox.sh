@@ -19,8 +19,22 @@ printf '{"oauthAccount":{"accountUuid":"00000000-0000-4000-8000-000000000001","e
 printf '{"oauthAccount":{"accountUuid":"00000000-0000-4000-8000-000000000002","emailAddress":"you@acme.example","organizationName":"Acme Inc."}}\n' \
   >"$home/.claude-work/.claude.json"
 
-# Hook for the fake Claude from the running-instances test support, once it's merged.
-: "${HATS_E2E_FAKE:=}"
+# Test mode has no real Claude.app, Keychain or claude:// handler, so it reads these stand-ins.
+app="$root/Applications/Claude.app"
+mkdir -p "$app/Contents"
+cat >"$app/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.anthropic.claudefordesktop</string>
+<key>CFBundleShortVersionString</key><string>0.0.0-demo</string>
+</dict></plist>
+PLIST
+printf '%s\n' "$app" >"$root/.test/claude-url-handler"
+
+# Service names follow KeychainCredentialProbe: the first 8 hex of the config dir's SHA-256.
+service() { printf 'Claude Code-credentials-%s' "$(printf '%s' "$1" | shasum -a 256 | cut -c1-8)"; }
+printf '["Claude Code-credentials","%s","%s"]\n' \
+  "$(service "$home/.claude-work")" "$(service "$root/hats/profiles/personal/code")" >"$root/.test/keychain.json"
 
 cat <<EXPORTS
 export HATS_TEST_SANDBOX='$root'
@@ -28,7 +42,7 @@ export HOME='$home'
 export HATS_HOME='$root/hats'
 export HATS_LAUNCHER_DIR='$root/launchers'
 export HATS_DEFAULT_CONFIG_DIR='$home/.claude'
+export HATS_CLAUDE_APP='$app'
 export TMPDIR='$root/tmp'
 export NO_COLOR=1
-cd '$home'
 EXPORTS

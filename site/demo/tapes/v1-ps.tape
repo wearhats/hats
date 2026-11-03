@@ -4,7 +4,7 @@ Source tapes/settings.tape
 Output out/v1-ps.mp4
 
 Hide
-Type "[ -n \"$HATS_TEST_SANDBOX\" ] || exit 1; export PS1='$ '; clear"
+Type `[ -n "$HATS_TEST_SANDBOX" ] || exit 1; export PS1='$ '; clear`
 Enter
 Show
 

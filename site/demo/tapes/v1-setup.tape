@@ -4,10 +4,15 @@ Source tapes/settings.tape
 Output out/v1-setup.mp4
 
 Hide
-Type "[ -n \"$HATS_TEST_SANDBOX\" ] || exit 1; export PS1='$ '; clear"
+Type `[ -n "$HATS_TEST_SANDBOX" ] || exit 1; export PS1='$ '; clear`
 Enter
 Show
 
+# Show the install line typed but not run: hats is already installed for the recording.
+Type "# brew install wearhats/tap/hats"
+Sleep 300ms
+Enter
+Sleep 2s
 Type "hats setup"
 Sleep 400ms
 Enter

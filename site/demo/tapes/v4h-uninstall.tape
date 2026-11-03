@@ -4,7 +4,7 @@ Source tapes/settings.tape
 Output out/v4h-uninstall.mp4
 
 Hide
-Type "[ -n \"$HATS_TEST_SANDBOX\" ] || exit 1; export PS1='$ '; clear"
+Type `[ -n "$HATS_TEST_SANDBOX" ] || exit 1; export PS1='$ '; clear`
 Enter
 Show
 
@@ -12,14 +12,10 @@ Hide
 Type "hats add work >/dev/null; hats add personal >/dev/null; clear"
 Enter
 Show
-Type "hats dock unpin && hats rm --all --purge --yes"
+Type `hats dock unpin && hats rm --all --purge --yes && rm -rf "$HATS_LAUNCHER_DIR" "$HATS_HOME"`
 Sleep 500ms
 Enter
-Sleep 4s
-Type "rm -rf \"$HATS_LAUNCHER_DIR\" \"$HATS_HOME\""
-Sleep 400ms
-Enter
-Sleep 1s
+Sleep 5s
 Type "ls -A ~/.claude ~/.claude.json"
 Sleep 400ms
 Enter
