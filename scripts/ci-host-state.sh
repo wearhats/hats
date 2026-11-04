@@ -20,6 +20,10 @@ for path in "$HOME/Library/Application Support/hats" "$HOME/Applications/Hats"; 
     find "$path" -print
   fi
 done
+# A link's own state, not its target's: test (-e) follows a link and misses a dangling one.
+if [ -L /Applications/Hats ] || [ -e /Applications/Hats ]; then
+  echo "exists: /Applications/Hats -> $(readlink /Applications/Hats || true)"
+fi
 echo "trash:"
 ls -A "$HOME/.Trash"
 dock="$(defaults read com.apple.dock persistent-apps)"

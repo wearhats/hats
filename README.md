@@ -93,6 +93,7 @@ script; `hats doctor` shows the command for your install. More in
 ```sh
 hats setup                         # guided: adopt existing dirs, add your other account
 hats add personal --pin            # profile + launcher in ~/Applications/Hats, pinned to the Dock
+hats launcher link                 # also show the launchers in Finder's Applications folder
 hats add work --shortcut w         # then hats run w works like hats run work
 hats open personal                 # or click the launcher; hats open --all opens every profile
 hats run personal                  # claude CLI on the personal account (then /login once)
@@ -102,6 +103,12 @@ hats ls                            # profiles, sign-in state, accounts (--size f
 hats reset personal --open         # it opened on the wrong account: start it fresh
 hats doctor                        # explain what's set up and what's wrong
 ```
+
+Launchers live in the Applications folder inside your home folder
+(`~/Applications/Hats`), and Spotlight finds them as "Claude (Personal)".
+`hats setup` can also show them in Finder's Applications folder, through a link
+at `/Applications/Hats` (an admin account is needed for that). Other accounts on
+the Mac will see that folder too.
 
 The everyday commands have one-letter shortcuts: `hats r` (`run`), `hats o`
 (`open`), `hats x` (`exec`) and `hats f` (`focus`).
@@ -143,10 +150,10 @@ hats dock unpin && hats rm --all --purge &&
 
 If you installed with the script, replace `brew uninstall hats` with
 `rm ~/.local/bin/hats`. `hats rm --all --purge` removes the launchers, the
-launcher copies hats placed (for example on the Desktop) and their Dock tiles,
-and moves profile data to the Trash. The commands are chained so that a refused
-or mistyped `rm --purge` stops there, and `rm -rf` never deletes data that
-didn't reach the Trash. The block has no inline comments, because zsh, the
+launcher copies hats placed (for example on the Desktop), their Dock tiles and
+the `/Applications/Hats` link, and moves profile data to the Trash. The
+commands are chained so that a refused or mistyped `rm --purge` stops there,
+and `rm -rf` never deletes data that didn't reach the Trash. The block has no inline comments, because zsh, the
 default macOS shell, doesn't treat `#` as a comment when you paste into it.
 Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins for
 profile config dirs stay in your Keychain as `Claude Code-credentials-<hash>`

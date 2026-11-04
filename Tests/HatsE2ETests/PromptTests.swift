@@ -100,12 +100,15 @@ struct PromptTests {
 
 @Suite("hats setup", .tags(.e2e))
 struct SetupCommandTests {
+    static let linkQuestion = "Also show the launchers in Finder's Applications folder?"
+
     @Test func adoptsWhatItFindsAddsAProfileAndPinsAndOpens() throws {
         let sandbox = try E2ESandbox()
         let adopted = "\(sandbox.home)/.claude-work"
         try sandbox.write(#"{"accessToken":"\#(sandbox.sentinel)"}"#, to: "\(adopted)/.claude.json")
         let adoptedBefore = try sandbox.read("\(adopted)/.claude.json")
         let app = try sandbox.makeApp()
+        try sandbox.makeApplicationsDir()
 
         let result = try sandbox.hatsOnTerminal(
             ["setup"],
@@ -115,6 +118,9 @@ struct SetupCommandTests {
                 PTYStep("Add a profile for another account? [y/N]", send: "y"),
                 PTYStep("Name for your other account", send: "personal"),
                 PTYStep("Pin the new launcher(s) to the Dock? This restarts the Dock. [Y/n]"),
+                PTYStep(
+                    "\(Self.linkQuestion) This adds a link at \(sandbox.applicationsLink), and other accounts on this Mac "
+                        + "will see the folder too. [y/N]", send: "y"),
                 PTYStep("Also put a copy on the Desktop? [y/N]"),
                 PTYStep("Open work, personal now to sign in? [Y/n]"),
             ],
@@ -123,8 +129,8 @@ struct SetupCommandTests {
         #expect(result.exit == 0, "\(result)")
         #expect(result.transcript.contains("Found a Claude Code config dir you made yourself: \(adopted)"), "\(result)")
         for line in [
-            "$ hats add work --code-dir '\(adopted)'", "$ hats add personal", "$ hats dock pin work personal", "$ hats open work",
-            "$ hats open personal",
+            "$ hats add work --code-dir '\(adopted)'", "$ hats add personal", "$ hats dock pin work personal", "$ hats launcher link",
+            "$ hats open work", "$ hats open personal",
         ] {
             #expect(result.transcript.contains(line), "\(line)\n\(result)")
         }
@@ -139,6 +145,7 @@ struct SetupCommandTests {
         #expect(tiles.contains { $0.hasSuffix("Claude%20(Work).app/") }, "\(tiles)")
         #expect(tiles.contains { $0.hasSuffix("Claude%20(Personal).app/") }, "\(tiles)")
         #expect(try sandbox.events("dock-restart").count == 1)
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
 
         let launches = try sandbox.events("launch")
         #expect(launches.allSatisfy { $0["app"] as? String == app })
@@ -166,12 +173,14 @@ struct SetupCommandTests {
 
     @Test func withNothingToAdoptItAsksForTheFirstProfile() throws {
         let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
 
         let result = try sandbox.hatsOnTerminal(
             ["setup"],
             steps: [
                 PTYStep("Name for your other account (for example personal, work, acme) [personal]"),
                 PTYStep("Pin the new launcher(s) to the Dock? This restarts the Dock. [Y/n]", send: "n"),
+                PTYStep(Self.linkQuestion),
                 PTYStep("Also put a copy on the Desktop? [y/N]", send: "y"),
                 PTYStep("Open personal now to sign in? [Y/n]", send: "n"),
             ])
@@ -181,10 +190,99 @@ struct SetupCommandTests {
         #expect(sandbox.exists("\(sandbox.home)/Desktop/Claude (Personal).app"))
         #expect(try sandbox.dockTiles().isEmpty)
         #expect(try sandbox.events("launch").isEmpty)
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil, "the link question defaults to No")
+    }
+
+    /// Someone who couldn't find their launchers re-runs setup without adding a profile.
+    @Test func theApplicationsQuestionIsAskedWithoutANewProfile() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Add a profile for another account? [y/N]"),
+                PTYStep(Self.linkQuestion, send: "y"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.transcript.contains("$ hats launcher link"), "\(result)")
+        #expect(result.transcript.contains("Everyday commands:"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+    }
+
+    @Test func theApplicationsQuestionIsSkippedWhenTheLinkIsAlreadyThere() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Name for your other account", send: "personal"),
+                PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also put a copy on the Desktop?"),
+                PTYStep("Open personal now to sign in?", send: "n"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(!result.transcript.contains("Finder's Applications folder"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+    }
+
+    /// A Yes could only fail, so setup doesn't ask.
+    @Test func theApplicationsQuestionIsSkippedForAnotherAccountsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let theirs = "\(sandbox.root)/other-user/Applications/Hats"
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+        try sandbox.actAsAnotherAccount()
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Name for your other account", send: "personal"),
+                PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also put a copy on the Desktop?"),
+                PTYStep("Open personal now to sign in?", send: "n"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(!result.transcript.contains(Self.linkQuestion), "\(result)")
+        #expect(result.transcript.contains("Everyday commands:"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == theirs)
+    }
+
+    /// A standard account can't write to `/Applications`, so setup says what an
+    /// admin can run instead of asking.
+    @Test(.enabled(if: getuid() != 0))
+    func aStandardAccountIsToldWhatAnAdminCanRun() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: sandbox.applicationsDir)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: sandbox.applicationsDir) }
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Name for your other account", send: "personal"),
+                PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also put a copy on the Desktop?"),
+                PTYStep("Open personal now to sign in?", send: "n"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(!result.transcript.contains(Self.linkQuestion), "\(result)")
+        #expect(
+            result.transcript.contains("an admin account can run: sudo ln -s '\(sandbox.launcherDir)' '\(sandbox.applicationsLink)'"),
+            "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
     }
 
     @Test func aDeclinedCandidateIsLeftAlone() throws {
         let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
         let adopted = "\(sandbox.home)/.claude-work"
         try sandbox.write("{}", to: "\(adopted)/.claude.json")
         let candidateBefore = try sandbox.snapshot().filter { $0.key.hasPrefix("home/.claude-work") }
@@ -195,6 +293,7 @@ struct SetupCommandTests {
                 PTYStep("Turn it into a profile?", send: "n"),
                 PTYStep("Name for your other account", send: "personal"),
                 PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep(Self.linkQuestion, send: "n"),
                 PTYStep("Also put a copy on the Desktop?"),
                 PTYStep("Open personal now to sign in?", send: "n"),
             ])

@@ -71,6 +71,11 @@ struct TestModeTests {
             try FileManager.default.createSymbolicLink(atPath: sandbox.testDir, withDestinationPath: "/tmp")
             return [:]
         },
+        .init(testDescription: "the Applications stand-in is a symlink out", stderr: "stand-in Applications dir is outside") { sandbox in
+            try sandbox.makeDirectory(sandbox.testDir)
+            try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsDir, withDestinationPath: "/tmp")
+            return [:]
+        },
         .init(testDescription: "a stored adopted dir is outside", stderr: "the code dir of 'adopter' is outside") { sandbox in
             try sandbox.addProfile("adopter", adopting: "\(sandbox.root)/adopted")
             try sandbox.recordAdoptedDir("/tmp/hats-e2e-outside", inProfile: "adopter")

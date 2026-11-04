@@ -39,6 +39,7 @@ public struct Doctor: Sendable {
     let environment: [String: String]
     let urlSchemeHandler: @Sendable (String) -> URL?
     let appSearch: ClaudeAppSearch
+    let applicationsLink: ApplicationsLink
     let install: HatsInstall?
 
     public init(
@@ -48,6 +49,7 @@ public struct Doctor: Sendable {
         environment: [String: String],
         urlSchemeHandler: @escaping @Sendable (String) -> URL?,
         appSearch: ClaudeAppSearch,
+        applicationsLink: ApplicationsLink,
         install: HatsInstall? = nil
     ) {
         self.layout = layout
@@ -57,6 +59,7 @@ public struct Doctor: Sendable {
         self.environment = environment
         self.urlSchemeHandler = urlSchemeHandler
         self.appSearch = appSearch
+        self.applicationsLink = applicationsLink
         self.install = install
     }
 
@@ -113,6 +116,7 @@ public struct Doctor: Sendable {
                 ))
         }
         findings.append(signInHandlerFinding())
+        if let link = applicationsLinkFinding() { findings.append(link) }
         if let inherited = environment["CLAUDE_CONFIG_DIR"], !inherited.isEmpty {
             findings.append(Finding(.ok, "shell", "this shell has CLAUDE_CONFIG_DIR=\(inherited)"))
         }
@@ -140,6 +144,27 @@ public struct Doctor: Sendable {
                 hint: "sign-ins from the browser may land in the wrong app")
         }
         return Finding(.ok, "sign-in", "claude:// links open \(handler.plainPath)")
+    }
+
+    /// Silent without a link, or with another account's: both are fine.
+    private func applicationsLinkFinding() -> Finding? {
+        let check = "applications-link"
+        let path = applicationsLink.url.plainPath
+        let launcherDir = applicationsLink.launcherDir.plainPath
+        switch applicationsLink.state() {
+        case .ours(dangling: false):
+            return Finding(.ok, check, "Finder's Applications folder shows the launchers through \(path)")
+        case .ours(dangling: true):
+            return Finding(
+                .warn, check, "\(path) links to \(launcherDir), which is missing",
+                hint: "re-create it with: hats launcher link && hats launcher rebuild, or remove the link with: hats launcher unlink")
+        case .stale(let destination):
+            return Finding(
+                .warn, check, "\(path) links to \(destination), not to the launcher dir \(launcherDir)",
+                hint: "remove it with: hats launcher unlink")
+        case .notNeeded, .absent, .foreign:
+            return nil
+        }
     }
 
     private func profileFindings(_ profile: Profile, account: AccountInfo) -> [Finding] {

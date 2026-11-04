@@ -22,9 +22,10 @@ conventions on top of it:
 
 - Every OS touchpoint goes through a protocol or injected value (`ProcessTable`,
   `AppControl`, `CredentialProbe`, `DockPreferences`, `Discarder`, `AppRegistrar`,
-  `FolderOpener`, Doctor's `urlSchemeHandler`, `ClaudeAppSearch`, `ReleaseFeed`) with a fake in
-  `Tests/HatsCoreTests/Support.swift`. All of them live in `Touchpoints`, and a new
-  one also gets a stand-in in `TestSandbox`. Add any new touchpoint to
+  `FolderOpener`, Doctor's `urlSchemeHandler`, `ClaudeAppSearch`, `ReleaseFeed`,
+  `applicationsDir`, `accountID`) with a fake in
+  `Tests/HatsCoreTests/Support.swift`. All of them live in `Touchpoints`, and a
+  new one also gets a stand-in in `TestSandbox`. Add any new touchpoint to
   `docs/privacy.md` in the same change.
 - Quitting a Claude process only goes through `AppControl.terminate`.
 - Paths handed to other programs use `URL.plainPath`. Path comparisons use

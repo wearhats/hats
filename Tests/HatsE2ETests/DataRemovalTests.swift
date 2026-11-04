@@ -174,6 +174,74 @@ struct RemoveCommandTests {
         #expect(rows.map { $0["name"] as? String } == ["default"])
     }
 
+    @Test func allRemovesTheApplicationsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+
+        let dryRun = try sandbox.hats(["rm", "--all", "--dry-run"])
+
+        #expect(dryRun.stdout.contains("Would remove the link \(sandbox.applicationsLink)."), "\(dryRun)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("Removed the link \(sandbox.applicationsLink)."), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
+    }
+
+    @Test func allLeavesAnotherUsersApplicationsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let theirs = "\(sandbox.root)/other-user/Applications/Hats"
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+        try sandbox.actAsAnotherAccount()
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == theirs)
+    }
+
+    @Test func allRemovesThisAccountsOldApplicationsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let old = "\(sandbox.root)/old-launchers"
+        try sandbox.makeDirectory(old)
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: old)
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("Removed the link \(sandbox.applicationsLink)."), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
+        #expect(sandbox.exists(old))
+    }
+
+    /// The link an admin made for a standard account: the uninstall itself worked,
+    /// so a link that only an admin can remove is a warning, not a failure.
+    @Test(.enabled(if: getuid() != 0))
+    func allOnlyWarnsWhenTheLinkNeedsAnAdminToRemove() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: sandbox.applicationsDir)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: sandbox.applicationsDir) }
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("Removed launcher for 'work'."), "\(result)")
+        #expect(result.stderr.contains("hats: warning: only an admin account can remove \(sandbox.applicationsLink)"), "\(result)")
+        #expect(!result.stdout.contains("Removed the link"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+    }
+
     @Test func removingTwiceIsFineUntilTheDataIsGone() throws {
         let sandbox = try E2ESandbox()
         #expect(try sandbox.hats(["add", "work"]).exit == 0)

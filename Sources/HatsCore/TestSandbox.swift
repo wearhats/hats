@@ -75,6 +75,7 @@ public struct TestSandbox: Sendable {
             ("the Desktop folder", layout.desktopFolder), ("the profiles dir", layout.profilesDir),
             ("the default Desktop dir", layout.defaultDesktopDir),
             ("the stand-ins' dir", URL(filePath: root, directoryHint: .isDirectory).appending(path: ".test")),
+            ("the stand-in Applications dir", applicationsDir),
         ]
         // A listing that can't be read leads nowhere, and each command must still
         // report that failure its own way.
@@ -109,8 +110,22 @@ public struct TestSandbox: Sendable {
                 }
             },
             appSearch: .nowhere,
+            applicationsDir: applicationsDir,
+            accountID: accountID,
             releaseFeed: nil
         )
+    }
+
+    /// `<dir>/.test/account-id` when present, so a test can look at a link it made
+    /// as another account would.
+    private var accountID: uid_t {
+        (try? String(contentsOf: file("account-id"), encoding: .utf8))
+            .flatMap { uid_t($0.trimmingCharacters(in: .whitespacesAndNewlines)) } ?? geteuid()
+    }
+
+    /// Not created here: like `/Applications`, a test makes it before hats links into it.
+    var applicationsDir: URL {
+        URL(filePath: root, directoryHint: .isDirectory).appending(path: ".test/Applications", directoryHint: .isDirectory)
     }
 
     private var log: TestEventLog { TestEventLog(file: file("events.jsonl")) }

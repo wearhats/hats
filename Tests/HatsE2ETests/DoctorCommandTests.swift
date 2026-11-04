@@ -23,6 +23,18 @@ struct DoctorCommandTests {
         #expect(hasFinding(findings, level: "fail", check: "claude-app", containing: "not installed"), "\(result)")
     }
 
+    @Test func anApplicationsLinkThatDanglesWarns() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+        try FileManager.default.removeItem(atPath: sandbox.launcherDir)
+
+        let (result, findings) = try sandbox.doctor(environment: try sandbox.withClaudeApp)
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(hasFinding(findings, level: "warn", check: "applications-link", containing: sandbox.applicationsLink), "\(result)")
+    }
+
     @Test func aLauncherWhoseHatsIsGoneFails() throws {
         let sandbox = try E2ESandbox()
         let onPath = try sandbox.hatsOnPath()

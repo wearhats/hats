@@ -9,6 +9,24 @@ extension E2ESandbox {
     var testDir: String { "\(root)/.test" }
     var eventLog: String { "\(testDir)/events.jsonl" }
     var dockPlist: String { "\(testDir)/dock.plist" }
+    /// Stands in for `/Applications`. Like the real one, it has to exist before hats links into it.
+    var applicationsDir: String { "\(testDir)/Applications" }
+    var applicationsLink: String { "\(applicationsDir)/Hats" }
+
+    func makeApplicationsDir() throws {
+        try makeDirectory(applicationsDir)
+    }
+
+    /// From now on hats runs as if it were another account, so links this test
+    /// makes look like someone else's.
+    func actAsAnotherAccount() throws {
+        try write("\(getuid() &+ 1)", to: "\(testDir)/account-id")
+    }
+
+    /// `nil` when nothing is there or it isn't a symlink.
+    func linkDestination(_ path: String) -> String? {
+        try? FileManager.default.destinationOfSymbolicLink(atPath: path)
+    }
 
     var eventLogText: String {
         (try? String(contentsOfFile: eventLog, encoding: .utf8)) ?? ""

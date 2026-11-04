@@ -51,7 +51,7 @@ enum Output {
     }
 
     /// Warnings go to stderr, so a command's stdout (and its `--json`) is unchanged.
-    static func printWarning(_ message: String, hint: String) {
+    static func printWarning(_ message: String, hint: String?) {
         writeDiagnostic(label: "hats: warning:", colorCode: "33", message: message, hint: hint)
     }
 

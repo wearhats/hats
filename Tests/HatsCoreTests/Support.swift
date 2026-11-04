@@ -1,11 +1,13 @@
 import Foundation
 @testable import HatsCore
 
-/// A throwaway HOME, HATS_HOME and launcher dir per test.
+/// A throwaway HOME, HATS_HOME, launcher dir and Applications dir per test.
 struct Sandbox {
     let root: URL
     let layout: Layout
     let environment: [String: String]
+    /// Stands in for `/Applications`.
+    let applicationsDir: URL
 
     init() throws {
         root = FileManager.default.temporaryDirectory
@@ -20,6 +22,8 @@ struct Sandbox {
             "PATH": "/usr/bin:/bin",
         ]
         layout = Layout(environment: environment)
+        applicationsDir = root.appending(path: "Applications", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: applicationsDir, withIntermediateDirectories: true)
     }
 
     var store: ProfileStore { ProfileStore(layout: layout) }
@@ -29,12 +33,27 @@ struct Sandbox {
         processes: any ProcessTable = FakeProcessTable(),
         credentials: any CredentialProbe = FakeCredentialProbe(),
         claudeURLHandler: URL? = nil,
-        install: HatsInstall? = nil
+        install: HatsInstall? = nil,
+        accountID: uid_t = geteuid(),
+        layout: Layout? = nil
     ) -> Doctor {
-        Doctor(
+        let layout = layout ?? self.layout
+        return Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
-            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere, install: install)
+            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere,
+            applicationsLink: applicationsLink(accountID: accountID, layout: layout), install: install)
     }
+
+    /// Never links into the real `/Applications`.
+    var applicationsLink: ApplicationsLink { applicationsLink(accountID: geteuid()) }
+
+    func applicationsLink(accountID: uid_t, layout: Layout? = nil) -> ApplicationsLink {
+        ApplicationsLink(layout: layout ?? self.layout, applicationsDir: applicationsDir, accountID: accountID)
+    }
+
+    /// Not the account running the tests, so a link a test made looks like
+    /// another account's.
+    static let otherAccount: uid_t = geteuid() &+ 1
 
     /// Never registers bundles with the real Launch Services database.
     var launchers: LauncherBuilder { LauncherBuilder(layout: layout, registrar: AppRegistrar { _ in }) }

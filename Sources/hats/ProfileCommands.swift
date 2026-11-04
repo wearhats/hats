@@ -67,6 +67,7 @@ struct Add: AsyncParsableCommand {
 
         print(created ? "Created profile '\(profile.name)'." : "Profile '\(profile.name)' already exists; launcher rebuilt.")
         print("  launcher  \(bundle.plainPath)")
+        print("  open      Spotlight \"Claude (\(profile.label))\" or hats launcher reveal")
         print("  desktop   \(profile.desktopDir.plainPath)")
         print("  code      \(profile.codeDir.plainPath)\(profile.codeDirIsExternal ? " (adopted)" : "")")
         if let shortcut = profile.shortcut { print("  shortcut  \(shortcut)") }
@@ -77,11 +78,13 @@ struct Add: AsyncParsableCommand {
             print("\n" + Context.signInGuidance)
         }
         guard created, !open else { return }
+        let otherWayToOpen =
+            pin ? "or click it in the Dock" : "or double-click the launcher; hats dock pin \(profile.name) adds it to the Dock"
         print(
             """
 
             Next:
-              1. hats open \(profile.name)        (or double-click the launcher; hats dock pin \(profile.name) adds it to the Dock)
+              1. hats open \(profile.name)        (\(otherWayToOpen))
               2. Sign in. If the browser hands the login to another Claude window, quit the other
                  Claude windows (Cmd-Q), sign in, then reopen them with: hats open --all
               3. hats run \(profile.name)         then /login, to sign the claude CLI in to the same account
@@ -298,6 +301,30 @@ struct Remove: ParsableCommand {
             throw HatsError(.usage, "the default profile is the stock Claude install; hats never removes it")
         }
         for target in targets { try remove(target, context: context) }
+        if all { removeApplicationsLink(context: context) }
+    }
+
+    /// Only this account's link; another account's stays. The launchers are
+    /// already gone by now, so a link that only an admin can remove is a warning,
+    /// not a failure.
+    private func removeApplicationsLink(context: Context) {
+        let link = context.applicationsLink
+        if dryRun {
+            switch link.state() {
+            case .ours, .stale: print("Would remove the link \(link.url.plainPath).")
+            case .notNeeded, .absent, .foreign: break
+            }
+            return
+        }
+        do {
+            switch try link.unlink() {
+            case .removed: print("Removed the link \(link.url.plainPath).")
+            case .notLinked: break
+            }
+        } catch {
+            guard error.kind != .conflict else { return }
+            Output.printWarning(error.message, hint: error.hint)
+        }
     }
 
     private func remove(_ target: Profile, context: Context) throws {
@@ -344,7 +371,7 @@ struct Remove: ParsableCommand {
 struct Launcher: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Manage launcher apps.",
-        subcommands: [Rebuild.self, Copy.self, Reveal.self]
+        subcommands: [Rebuild.self, Copy.self, Reveal.self, Link.self, Unlink.self]
     )
 
     fileprivate static let defaultHasNoLauncher = "the default profile is launched by Claude.app itself"
@@ -374,6 +401,33 @@ struct Launcher: ParsableCommand {
         func run() throws {
             let context = try Context()
             try revealLaunchers(layout: context.layout, opener: context.touchpoints.folderOpener)
+        }
+    }
+
+    struct Link: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Show the launchers in Finder's Applications folder, through a link at /Applications/Hats.",
+            discussion: """
+                Needs an admin account. Every account on this Mac sees the folder. Leaves another account's link, \
+                or a real folder, at /Applications/Hats alone.
+                """
+        )
+
+        func run() throws {
+            try Context().linkApplications()
+        }
+    }
+
+    struct Unlink: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Remove the link at /Applications/Hats, if this account made it or it points at this account's launchers.")
+
+        func run() throws {
+            let link = try Context().applicationsLink
+            switch try link.unlink() {
+            case .removed: print("Removed the link \(link.url.plainPath).")
+            case .notLinked: print("No link at \(link.url.plainPath).")
+            }
         }
     }
 

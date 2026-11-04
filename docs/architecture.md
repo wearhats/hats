@@ -24,8 +24,8 @@
 `HatsCore` holds all logic. The CLI and the launchers are thin front ends.
 Every OS touchpoint sits behind a protocol or injected value (`ProcessTable`,
 `AppControl`, `CredentialProbe`, `DockPreferences`, `Discarder`, `AppRegistrar`,
-`FolderOpener`, Doctor's URL-scheme lookup, `ClaudeAppSearch`, `ReleaseFeed`, and filesystem roots via
-`Layout`), gathered in `Touchpoints`, so tests inject fakes. The rules every change keeps, and the terms used here, are in
+`FolderOpener`, Doctor's URL-scheme lookup, `ClaudeAppSearch`, `ReleaseFeed`, `applicationsDir`,
+`accountID`, and filesystem roots via `Layout`), gathered in `Touchpoints`, so tests inject fakes. The rules every change keeps, and the terms used here, are in
 [design.md](design.md). Everything hats reads and writes is in
 [privacy.md](privacy.md).
 
@@ -51,6 +51,7 @@ executable there.
 | `CredentialProbe` | Does a Keychain item exist for a config dir? Never reads the secret. | `CredentialProbe` |
 | `AccountProbe` | Desktop sign-in state and account IDs from `config.json` and `.claude.json`. | `AccountInfo`, `AccountProbe` |
 | `Housekeeping` | Duplicate Desktop instances, `reset` (to the Trash), adoption candidates, disk usage. `rm --purge` uses the same `Discarder`. | `DuplicateInstances`, `Discarder`, `AdoptionCandidates`, `DiskUsage` |
+| `ApplicationsLink` | The optional `/Applications/Hats` link to the launcher dir: whose link it is, by its target and its owner; create it, remove it. | `ApplicationsLink`, `ApplicationsLink.State` |
 | `Dock` | Opt-in pinning of launchers. | `DockPreferences` (protocol), `SystemDockPreferences`, `DockEditor` |
 | `Installation` | Tell how the running binary was installed (Homebrew `Cellar`, an `install.sh` receipt, or unknown) and which command upgrades it. hats never upgrades itself. | `InstallChannel`, `HatsInstall` |
 | `UpdateCheck` | The daily release check: ask GitHub at most once a day, keep the latest version, build the notice. Warns only; never downloads. | `UpdateCheck`, `ReleaseFeed` (protocol), `GitHubReleaseFeed`, `SemanticVersion` |
@@ -71,7 +72,19 @@ $HATS_HOME = ~/Library/Application Support/hats
   Claude (<Label>).app/           # launcher, regenerable at any time
     Contents/Resources/hats-launcher.json   # marker: {name, launcherVersion, hatsPath, copies?}
 ~/Desktop/Claude (<Label>).app/   # optional copy (add --desktop, launcher copy)
+/Applications/Hats -> ~/Applications/Hats   # optional link (launcher link, setup)
 ```
+
+The launchers live in the home folder's Applications because a standard
+account can't write to `/Applications`, and every account on the Mac shares
+it, so two users' `Claude (Work).app` would collide. Finder's sidebar shows
+`/Applications`, though, so `launcher link` and `setup` offer a link there.
+`ApplicationsLink` treats a link as its own when it points at this user's
+launcher dir or this account owns it, such as one left from before
+`HATS_LAUNCHER_DIR` changed, and leaves another account's link or a real folder
+in place. `launcher link` refuses to run as an account that doesn't own HOME,
+such as under `sudo`: `sudo` keeps HOME, so hats as root would leave root-owned
+dirs in this user's home.
 
 A launcher's marker records the paths of the copies hats placed. Rebuilds and
 `rm` revisit only those paths; hats never lists `~/Desktop` (or any other
@@ -176,6 +189,7 @@ whose `launcherVersion` is older than the current one.
 | Profile data on reset or purge | Accidental loss | `reset` and `rm --purge` move data to the Trash, never delete; both refuse running profiles (`--force` never overrides that for `--purge`), and neither touches an adopted code dir. |
 | Launchers of other profiles | A label collision repoints another profile's launcher or Dock tile | Labels are unique ignoring case; a build refuses a bundle whose marker names another profile. |
 | Account identifiers | Leakage of tokens while reading `config.json` | The file is parsed whole in memory (it holds Desktop's token cache), and only key presence and `lastKnownAccountUuid` are kept before the parsed object is dropped; token values are never kept or printed. |
+| Other accounts on the Mac | `/Applications` is shared: the link shows this account's launcher labels (such as client names) to every account, and their launchers run with this account's `HATS_HOME` | Only on request (`launcher link`, or `setup` after a question that defaults to No and says other accounts will see the folder). hats removes only its own link and never replaces another account's. Another account's launch can't reach this account's data while `~/Library` keeps its default owner-only permissions. |
 | Supply chain | A malicious release | One dependency, pinned by `Package.resolved`. Releases are Developer ID signed and notarized once the project has a Developer ID (ad-hoc signed until then), with SHA256SUMS and GitHub build provenance attestations. `install.sh` refuses a checksum mismatch, and a provenance mismatch when a signed-in `gh` can check it; the tap job's token can write only the tap ([releasing.md](releasing.md)). |
 
 ## 8. Platform notes

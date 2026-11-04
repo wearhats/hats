@@ -125,6 +125,13 @@ public struct LauncherBuilder: Sendable {
         guard let launcher = status(for: name) else {
             throw HatsError(.notFound, "no launcher for '\(name)'", hint: "create it with: hats launcher rebuild \(name)")
         }
+        // Reached through `/Applications/Hats` the launcher dir looks like any other
+        // folder, and replacing the "copy" there would delete the launcher itself.
+        guard directory.canonicalPath != layout.launcherDir.canonicalPath else {
+            throw HatsError(
+                .usage, "\(directory.plainPath) is the launcher dir, which already holds the launcher",
+                hint: "copy it to another folder, such as: hats launcher copy \(name) --to ~/Desktop")
+        }
         let destination = directory.appending(path: launcher.bundle.lastPathComponent, directoryHint: .isDirectory)
         do {
             for stale in installed(in: directory) where stale.marker.name == name {
