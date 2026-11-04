@@ -111,8 +111,16 @@ public struct TestSandbox: Sendable {
             },
             appSearch: .nowhere,
             applicationsDir: applicationsDir,
+            accountID: accountID,
             releaseFeed: nil
         )
+    }
+
+    /// `<dir>/.test/account-id` when present, so a test can look at a link it made
+    /// as another account would.
+    private var accountID: uid_t {
+        (try? String(contentsOf: file("account-id"), encoding: .utf8))
+            .flatMap { uid_t($0.trimmingCharacters(in: .whitespacesAndNewlines)) } ?? geteuid()
     }
 
     /// Not created here: like `/Applications`, a test makes it before hats links into it.

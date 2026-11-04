@@ -33,15 +33,25 @@ struct Sandbox {
         processes: any ProcessTable = FakeProcessTable(),
         credentials: any CredentialProbe = FakeCredentialProbe(),
         claudeURLHandler: URL? = nil,
-        install: HatsInstall? = nil
+        install: HatsInstall? = nil,
+        accountID: uid_t = geteuid()
     ) -> Doctor {
         Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
-            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere, applicationsDir: applicationsDir, install: install)
+            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere,
+            applicationsLink: applicationsLink(accountID: accountID), install: install)
     }
 
     /// Never links into the real `/Applications`.
-    var applicationsLink: ApplicationsLink { ApplicationsLink(layout: layout, applicationsDir: applicationsDir) }
+    var applicationsLink: ApplicationsLink { applicationsLink(accountID: geteuid()) }
+
+    func applicationsLink(accountID: uid_t, layout: Layout? = nil) -> ApplicationsLink {
+        ApplicationsLink(layout: layout ?? self.layout, applicationsDir: applicationsDir, accountID: accountID)
+    }
+
+    /// Not the account running the tests, so a link a test made looks like
+    /// another account's.
+    static let otherAccount: uid_t = geteuid() &+ 1
 
     /// Never registers bundles with the real Launch Services database.
     var launchers: LauncherBuilder { LauncherBuilder(layout: layout, registrar: AppRegistrar { _ in }) }

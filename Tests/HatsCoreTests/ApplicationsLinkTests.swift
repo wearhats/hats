@@ -88,7 +88,7 @@ import Testing
         let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
         var environment = sandbox.environment
         environment["HATS_LAUNCHER_DIR"] = sandbox.applicationsDir.appending(path: "Hats").plainPath
-        let link = ApplicationsLink(layout: Layout(environment: environment), applicationsDir: sandbox.applicationsDir)
+        let link = sandbox.applicationsLink(accountID: geteuid(), layout: Layout(environment: environment))
 
         #expect(link.state() == .notNeeded)
         #expect(try link.link() == .notNeeded)
@@ -103,7 +103,7 @@ import Testing
         try FileManager.default.createSymbolicLink(atPath: alias, withDestinationPath: sandbox.applicationsDir.plainPath)
         var environment = sandbox.environment
         environment["HATS_LAUNCHER_DIR"] = alias + "/Hats"
-        let link = ApplicationsLink(layout: Layout(environment: environment), applicationsDir: sandbox.applicationsDir)
+        let link = sandbox.applicationsLink(accountID: geteuid(), layout: Layout(environment: environment))
 
         #expect(try link.link() == .notNeeded)
         #expect(try FileManager.default.contentsOfDirectory(atPath: sandbox.applicationsDir.plainPath).isEmpty)

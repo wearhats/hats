@@ -81,7 +81,7 @@ struct Doctor: ParsableCommand {
             environment: context.environment,
             urlSchemeHandler: context.touchpoints.urlSchemeHandler,
             appSearch: context.touchpoints.appSearch,
-            applicationsDir: context.touchpoints.applicationsDir,
+            applicationsLink: context.applicationsLink,
             install: HatsInstall(
                 version: Hats.version, executable: context.runningExecutable(), launcherTarget: context.hatsExecutablePath())
         ).run()

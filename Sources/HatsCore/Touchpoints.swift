@@ -16,6 +16,9 @@ public struct Touchpoints: Sendable {
     /// `/Applications`, which Finder's sidebar calls Applications. `launcher link`
     /// puts the link to the launcher dir here.
     public let applicationsDir: URL
+    /// The account hats runs as (`geteuid`). A link in `applicationsDir` that this
+    /// account owns is hats' own to remove.
+    public let accountID: uid_t
     /// `nil` turns the update check off.
     public let releaseFeed: (any ReleaseFeed)?
 
@@ -30,6 +33,7 @@ public struct Touchpoints: Sendable {
         urlSchemeHandler: @escaping @Sendable (String) -> URL?,
         appSearch: ClaudeAppSearch,
         applicationsDir: URL,
+        accountID: uid_t,
         releaseFeed: (any ReleaseFeed)?
     ) {
         self.processes = processes
@@ -42,6 +46,7 @@ public struct Touchpoints: Sendable {
         self.urlSchemeHandler = urlSchemeHandler
         self.appSearch = appSearch
         self.applicationsDir = applicationsDir
+        self.accountID = accountID
         self.releaseFeed = releaseFeed
     }
 }
@@ -60,6 +65,7 @@ extension Touchpoints {
             urlSchemeHandler: Doctor.systemURLSchemeHandler,
             appSearch: .system,
             applicationsDir: URL(filePath: "/Applications", directoryHint: .isDirectory),
+            accountID: geteuid(),
             releaseFeed: GitHubReleaseFeed(currentVersion: hatsVersion)
         )
     }

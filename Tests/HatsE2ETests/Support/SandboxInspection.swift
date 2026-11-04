@@ -17,6 +17,12 @@ extension E2ESandbox {
         try makeDirectory(applicationsDir)
     }
 
+    /// From now on hats runs as if it were another account, so links this test
+    /// makes look like someone else's.
+    func actAsAnotherAccount() throws {
+        try write("\(getuid() &+ 1)", to: "\(testDir)/account-id")
+    }
+
     /// `nil` when nothing is there or it isn't a symlink.
     func linkDestination(_ path: String) -> String? {
         try? FileManager.default.destinationOfSymbolicLink(atPath: path)

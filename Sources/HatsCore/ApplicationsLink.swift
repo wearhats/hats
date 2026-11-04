@@ -32,12 +32,14 @@ public struct ApplicationsLink: Sendable {
     public let launcherDir: URL
     public let applicationsDir: URL
     let home: URL
+    let accountID: uid_t
 
-    public init(layout: Layout, applicationsDir: URL) {
+    public init(layout: Layout, applicationsDir: URL, accountID: uid_t) {
         self.applicationsDir = applicationsDir
         url = applicationsDir.appending(path: Self.name, directoryHint: .notDirectory)
         launcherDir = layout.launcherDir
         home = layout.home
+        self.accountID = accountID
     }
 
     public func state() -> State {

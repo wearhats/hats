@@ -49,7 +49,7 @@ public struct Doctor: Sendable {
         environment: [String: String],
         urlSchemeHandler: @escaping @Sendable (String) -> URL?,
         appSearch: ClaudeAppSearch,
-        applicationsDir: URL,
+        applicationsLink: ApplicationsLink,
         install: HatsInstall? = nil
     ) {
         self.layout = layout
@@ -59,7 +59,7 @@ public struct Doctor: Sendable {
         self.environment = environment
         self.urlSchemeHandler = urlSchemeHandler
         self.appSearch = appSearch
-        applicationsLink = ApplicationsLink(layout: layout, applicationsDir: applicationsDir)
+        self.applicationsLink = applicationsLink
         self.install = install
     }
 
