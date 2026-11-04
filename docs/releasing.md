@@ -148,8 +148,9 @@ homebrew-tap are all skipped.
 A broken published release can't be repaired in place: release a new patch
 version.
 
-CI runs the build, packaging and install script on every PR (installing from a
-local `file://` release), and checks the rendered formula's Ruby syntax.
+CI runs the build, packaging and install script on every PR that changes more
+than the website (installing from a local `file://` release), and checks the
+rendered formula's Ruby syntax.
 
 ### Toolchain
 

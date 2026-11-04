@@ -17,7 +17,34 @@ env:
   XCODE_APP: /Applications/Xcode_27.1.app
 
 jobs:
+  # The Swift jobs skip a pull request that changes only the site. A job skipped
+  # by its `if` reports success, so they stay required checks; a paths filter on
+  # the workflow would leave them pending forever instead.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      swift: ${{ steps.diff.outputs.swift }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # On a pull request HEAD is GitHub's test merge, whose first parent is the base.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Find what the pull request changes
+        id: diff
+        # Only paths known to leave Swift alone may skip, so a new path runs everything.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo swift=true
+          else
+            changed="$(git diff --name-only HEAD^1 HEAD)"
+            if grep -qv '^site/' <<<"$changed"; then echo swift=true; else echo swift=false; fi
+          fi >> "$GITHUB_OUTPUT"
+
   test:
+    needs: changes
+    # Runs when `changes` fails, rather than skipping and passing as a required check.
+    if: ${{ !cancelled() && needs.changes.outputs.swift != 'false' }}
     runs-on: xcode-27
     permissions:
       contents: read
@@ -59,6 +86,8 @@ jobs:
         run: scripts/ci-host-state.sh | diff "$RUNNER_TEMP/host-state-before" -
 
   lint:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.swift != 'false' }}
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,6 +102,8 @@ jobs:
 
   # hats supports macOS only. This keeps HatsCore free of macOS-only code.
   linux:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.swift != 'false' }}
     runs-on: ubuntu-latest
     # Keep the Swift version in step with XCODE_APP's toolchain and the justfile's
     # linux_image. The steps match `just linux`, which runs them locally in Docker.

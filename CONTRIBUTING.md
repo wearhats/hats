@@ -62,7 +62,7 @@ with `_headers` and `_redirects` applied, and deploys nothing.
 | Manual, before each minor release | hats driving the real Claude Desktop (`open`, `ps`, focus, `doctor`, `dedupe --dry-run`), the Claude Desktop behaviour hats relies on; `dock pin` and `dock unpin` on a real Dock | `scripts/compat-check.sh` and the checklist in [`docs/releasing.md`](docs/releasing.md) |
 
 CI runs every layer except the manual, GUI and disposable host ones on each pull
-request. hats supports
+request that changes more than the website (`site/`). hats supports
 macOS only, but CI also builds and tests `HatsCore` on Linux so the core can't
 quietly grow macOS-only dependencies: put macOS implementations behind
 `#if canImport(...)` or `#if os(macOS)`.
