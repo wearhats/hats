@@ -39,6 +39,8 @@ Nothing else is written: never Claude.app, `~/Library/Application Support/Claude
 | Claude.app's `Info.plist`, and the `claude://` handler's bundle ID (Launch Services lookup) | locate Claude, doctor |
 | Whether `~/.claude` is a symlink | doctor (another tool may manage it) |
 | Whether `/Applications/Hats` exists, where it links and which account owns it; which account owns HOME; the account hats runs as (`geteuid`); whether `/Applications` is writable | `launcher link`, `launcher unlink`, `setup`, `rm --all`, doctor: to tell this account's link from another account's, so hats changes only its own; to refuse `launcher link` under `sudo`, which keeps HOME; and so `setup` asks only when the link can be made |
+| The Dock's `persistent-apps` preference | `dock pin`, `dock unpin`, to edit only hats' tiles |
+| The `claude` binary's location on `PATH` | `run`, doctor |
 | Process table (`KERN_PROC_ALL`: PID, parent, start time, kernel name) | instance discovery |
 | Argv and environment block of candidate processes (`KERN_PROCARGS2`); only argv and `CLAUDE_CONFIG_DIR` are kept, other variables are skipped as raw bytes | profile attribution |
 | Keychain attribute query for `Claude Code-credentials[-<hash>]` (`kSecReturnAttributes`, never data) | CLI login present or not |
@@ -61,6 +63,7 @@ anywhere.
 | SIGTERM to the Dock process | the Dock restart above, only after the Dock preference changed |
 | `execve` the `claude` CLI or a user command | `run`, `exec` |
 | Open the launcher folder in Finder (`NSWorkspace.open`) | `launcher reveal` |
+| Show an alert with `/usr/bin/osascript` (run by the launcher's own script, not by `hats`) | Clicking a launcher whose `hats` binary is gone |
 
 No other signal is ever sent, and never SIGKILL.
 
@@ -68,7 +71,7 @@ No other signal is ever sent, and never SIGKILL.
 
 | Request | When | Sent | Kept |
 |---|---|---|---|
-| `GET https://api.github.com/repos/wearhats/hats/releases/latest` | At most once a day, alongside a command run in an interactive terminal by a release build. Never for `run` and `exec`, launchers, scripts, piped output, or when `CI` is set. | Your IP address (as with any request) and `User-Agent: hats/<version>`. No profile, account, path or machine data, and no cookies. | The `tag_name` of the reply, in `update-check.json` |
+| `GET https://api.github.com/repos/wearhats/hats/releases/latest` | At most once a day, alongside a command run by a release build whose stderr is a terminal. Never for `run` and `exec`, launchers, or when `CI` is set. A pipeline or script started from a terminal still counts, because its stderr is usually that terminal. | Your IP address (as with any request), `User-Agent: hats/<version>` and the HTTP client's standard headers. No profile, account or path data, and no cookies. | The `tag_name` of the reply, in `update-check.json` |
 
 If the reply names a newer version, hats prints a notice on stderr with the
 upgrade command for your install. It never downloads or installs anything.

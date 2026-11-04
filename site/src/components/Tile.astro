@@ -1,0 +1,12 @@
+---
+import { TILES, type TileName } from '../assets/brand/tiles';
+
+interface Props {
+  name: TileName;
+  class?: string;
+}
+
+const { name, class: className } = Astro.props;
+---
+
+<span class:list={['tile', className]} aria-hidden="true" set:html={TILES[name]} />

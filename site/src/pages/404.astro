@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { INSTALL_OPTIONS, REPO_URL } from '../data/site';
+---
+
+<Base path="/404" title="Page not found: hats" description="This page doesn't exist." noindex>
+  <Header />
+  <main id="main" class="wrap holding">
+    <h1>This hat doesn't exist.</h1>
+    <p class="lede">The page you're looking for isn't here.</p>
+    <p><code tabindex="0">{INSTALL_OPTIONS[0].command}</code></p>
+    <p><a href="/">Home</a> · <a href={REPO_URL}>GitHub</a></p>
+  </main>
+  <Footer />
+</Base>

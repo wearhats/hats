@@ -1,0 +1,23 @@
+---
+import Logo from './Logo.astro';
+import { NAV } from '../data/site';
+---
+
+<header class="site-header">
+  <div class="wrap site-header-inner">
+    <Logo href="/" />
+    <nav class="nav-wide" aria-label="Main">
+      <ul>
+        {NAV.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+      </ul>
+    </nav>
+    <details class="nav-narrow">
+      <summary>Menu</summary>
+      <nav aria-label="Main, narrow screens">
+        <ul>
+          {NAV.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+        </ul>
+      </nav>
+    </details>
+  </div>
+</header>

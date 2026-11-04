@@ -182,7 +182,7 @@ whose `launcherVersion` is older than the current one.
 | Asset | Threat | Control |
 |---|---|---|
 | Stock install | hats corrupts or signs it out | Never write to default paths. Tests assert no writes outside the temp `HATS_HOME`. |
-| Credentials | Leakage | Attribute-only Keychain queries. Of other processes' environments only `CLAUDE_CONFIG_DIR` is kept; the rest is skipped as raw bytes. hats never reads, stores or relays tokens ([design rule 2](design.md#2-no-tokens-no-sign-in-routing-no-limit-stretching)). |
+| Credentials | Leakage | Attribute-only Keychain queries. Of other processes' environments only `CLAUDE_CONFIG_DIR` is kept; the rest is skipped as raw bytes. hats never keeps, stores or relays tokens ([design rule 2](design.md#2-no-tokens-no-sign-in-routing-no-limit-stretching)). |
 | Path injection | A crafted profile name escapes the root | Strict name regex, `URL.standardized` with a prefix check before any delete, no shell interpolation (launch script values are single-quoted and validated). |
 | Wrong-process actions | Focus or quit hits the wrong PID | Exact argv match plus a start-time check. The only quit is `dedupe`: Desktop main processes that share a data dir, after confirmation, through `NSRunningApplication.terminate()` (graceful). No SIGKILL. |
 | User's Dock | hats scrambles or loses pins | Opt-in only. Only tiles pointing at hats launchers change; `--dedupe-claude` keeps one Claude.app tile. Written through CFPreferences; no write when nothing changes. |

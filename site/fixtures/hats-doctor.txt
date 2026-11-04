@@ -1,0 +1,6 @@
+[ok]   claude-app: Claude Desktop 4.4212.0 at /Applications/Claude.app
+[ok]   claude-cli: claude CLI at ~/.local/bin/claude
+[ok]   install: hats 0.1.2 at /opt/homebrew/Cellar/hats/0.1.2/bin/hats, installed with Homebrew; upgrade with: brew upgrade hats
+[ok]   sign-in: claude:// links open /Applications/Claude.app
+[warn] accounts: profiles work, personal are signed in to the same Claude account
+       if one of them should use another account, run: hats reset work

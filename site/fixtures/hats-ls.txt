@@ -1,0 +1,4 @@
+PROFILE   DESKTOP  SESSIONS  DESKTOP LOGIN  CLI LOGIN  ACCOUNT                       LAUNCHER
+default   running  0         yes            yes        you@example.com               Claude.app
+personal  running  1         yes            yes        me@example.org                ok
+work      running  1         yes            yes        you@acme.example (Acme Inc.)  ok

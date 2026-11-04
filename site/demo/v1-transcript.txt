@@ -1,0 +1,25 @@
+DRAFT: not recorded yet. Check against the final cut, then delete this line.
+
+See it run: a 75-second silent demo of hats, with captions. Terminal output uses sample data. Window contents are blurred.
+
+A title card reads: Signing out is not a workflow.
+
+In a terminal, the command brew install wearhats/tap/hats runs, then hats setup. One install, one guided step.
+
+Setup finds the folder ~/.claude-work, adopts it as a profile, adds a profile called personal, and asks before pinning. Each step prints the command it ran. It adopts the folders you already made.
+
+Launchers appear in the Dock, each with its own icon. A launcher for each account.
+
+Clicking Claude (Personal) opens a second window beside the first. Both accounts, both open.
+
+Clicking the same launcher again brings that window forward, and nothing new opens. Click again to focus.
+
+In a terminal, hats run personal starts the claude CLI. The CLI, on the same profile.
+
+hats ps lists the default, work and personal profiles, and one session shows the status waiting. Every Claude, on every account.
+
+hats focus with the session's name brings the right terminal forward. Jump to the one waiting for you.
+
+hats ls shows each profile's sample account, and hats doctor reports all checks as ok. Know which account is which.
+
+The end card shows the install line, brew install wearhats/tap/hats, the address wearhats.dev, and the notice: Unofficial. Not affiliated with Anthropic.

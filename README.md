@@ -50,7 +50,7 @@ existing install alone:
   Keychain queries ask for *attributes* only, never the secret. Of other
   processes' environments it keeps only `CLAUDE_CONFIG_DIR`. Claude's account
   files are parsed in memory and only the account ID, email, organization and
-  sign-in state are kept. It never reads, stores or relays tokens
+  sign-in state are kept. It never keeps, stores or relays tokens
   ([everything it reads and writes](docs/privacy.md)).
 
 ## Install
@@ -124,8 +124,8 @@ Full reference: [`docs/cli.md`](docs/cli.md).
 
 Sign-in links (`claude://…`) can open in a Claude window that is already
 running instead of the new one. If that happens, quit the other Claude windows
-(Cmd-Q), sign in to the new profile, then bring the rest back with
-`hats open --all`. If a profile still ends up on the wrong account,
+(Cmd-Q), sign in to the new profile, then bring the other profiles back with
+`hats open --all` (it skips `default`, so reopen Claude.app yourself). If a profile still ends up on the wrong account,
 `hats reset <name> --open` starts it fresh.
 
 ### Tips
@@ -143,17 +143,24 @@ running instead of the new one. If that happens, quit the other Claude windows
 ## Uninstall
 
 ```sh
-hats dock unpin && hats rm --all --purge   # launchers, their copies, Dock tiles, the /Applications link; data to the Trash
-brew uninstall hats                        # or: rm ~/.local/bin/hats
-rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats"
+hats dock unpin && hats rm --all --purge &&
+  rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats" &&
+  brew uninstall hats
 ```
 
-`rm` also removes the launcher copies hats placed (for example on the
-Desktop); delete any you moved elsewhere by hand. Claude Code's own logins for
+If you installed with the script, replace `brew uninstall hats` with
+`rm ~/.local/bin/hats`. `hats rm --all --purge` removes the launchers, the
+launcher copies hats placed (for example on the Desktop), their Dock tiles and
+the `/Applications/Hats` link, and moves profile data to the Trash. The
+commands are chained so that a refused or mistyped `rm --purge` stops there,
+and `rm -rf` never deletes data that didn't reach the Trash. The block has no inline comments, because zsh, the
+default macOS shell, doesn't treat `#` as a comment when you paste into it.
+Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins for
 profile config dirs stay in your Keychain as `Claude Code-credentials-<hash>`
 items; delete them in Keychain Access if you no longer need them (`hats rm
 --purge` prints the exact name). Your default Claude install was never
-modified, so there's nothing to restore.
+modified, so there's nothing to restore. `brew untap wearhats/tap` removes the
+tap too.
 
 ## Scope
 
@@ -167,8 +174,9 @@ hats runs on macOS only and organizes accounts you hold. It won't:
 - orchestrate agents;
 - help stretch usage limits across accounts.
 
-The reasons are in the [design rules](docs/design.md). Planned work is tracked
-in [issues](https://github.com/wearhats/hats/issues).
+The reasons are in the [design rules](docs/design.md). Ideas and requests are
+welcome in [Discussions](https://github.com/wearhats/hats/discussions) and
+[issues](https://github.com/wearhats/hats/issues).
 
 ## Docs
 
@@ -176,7 +184,7 @@ in [issues](https://github.com/wearhats/hats/issues).
 [What hats reads and writes](docs/privacy.md) · [Architecture](docs/architecture.md) ·
 [Releasing](docs/releasing.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
-Tested with Claude Desktop 4.29.0, Claude Code 2.1.312 and macOS 27.0.1.
+Tested with Claude Desktop 4.4212.0, Claude Code 2.1.312 and macOS 27.0.1.
 
 ## Thanks
 

@@ -46,4 +46,22 @@ process action), `docs/architecture.md` (modules, flows and platform notes),
 `docs/releasing.md` (channels and the release flow). release-please writes
 `CHANGELOG.md` from Conventional Commits, so describe a change in the PR title
 (the squash commit subject) and commit messages instead of editing the
-changelog.
+changelog. The website's copy in `site/src/` makes the same claims as those docs,
+so a change to a claim, command or status updates both in the same pull request.
+
+## Website
+
+`site/` is the wearhats.dev source: static Astro, no client framework, deployed
+to Cloudflare Workers static assets from `main`.
+
+- Run it with `just site-dev`, and test it with `just site-check`.
+- `just check` stays Swift only. The `site` CI job runs on every pull request,
+  because `docs/privacy.md`, `README.md` and the release manifest feed the build.
+- The CSP has no `'unsafe-inline'`: no inline scripts, no `<style>`, no `style=`
+  attributes. Nothing loads from another origin. The one exception is the Umami
+  pageview, sent from the committed `site/public/stats.js` with `connect-src`.
+- `/install.sh` is a zone redirect, never part of the site build.
+- Status labels live only in `site/src/data/status.ts`.
+- `site/fixtures/` holds output shown on the page. Its README says which files are
+  samples; the Demo section renders only when its media files exist.
+- No competitor names in tracked files, and no sample output captioned as real.
