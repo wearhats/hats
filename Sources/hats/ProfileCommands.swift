@@ -322,8 +322,8 @@ struct Remove: ParsableCommand {
             case .notLinked: break
             }
         } catch {
-            guard let failure = error as? HatsError, failure.kind != .conflict else { return }
-            Output.printWarning(failure.message, hint: failure.hint)
+            guard error.kind != .conflict else { return }
+            Output.printWarning(error.message, hint: error.hint)
         }
     }
 
