@@ -34,12 +34,14 @@ struct Sandbox {
         credentials: any CredentialProbe = FakeCredentialProbe(),
         claudeURLHandler: URL? = nil,
         install: HatsInstall? = nil,
-        accountID: uid_t = geteuid()
+        accountID: uid_t = geteuid(),
+        layout: Layout? = nil
     ) -> Doctor {
-        Doctor(
+        let layout = layout ?? self.layout
+        return Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
             urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere,
-            applicationsLink: applicationsLink(accountID: accountID), install: install)
+            applicationsLink: applicationsLink(accountID: accountID, layout: layout), install: install)
     }
 
     /// Never links into the real `/Applications`.

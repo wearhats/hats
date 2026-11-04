@@ -92,6 +92,27 @@ import Testing
         #expect(!Layout.isStrictlyInside(URL(filePath: "/a/bc"), root: root))
         #expect(!Layout.isStrictlyInside(URL(filePath: "/a/b/../c"), root: root))
     }
+
+    /// A path compares the same before and after it exists. On macOS the temporary
+    /// dir sits behind the `/var` symlink, so this also covers `/private`.
+    @Test func aMissingPathIsCanonicalLikeItsExistingParent() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let missing = sandbox.root.appending(path: "not/yet", directoryHint: .isDirectory)
+
+        #expect(missing.canonicalPath == sandbox.root.canonicalPath + "/not/yet")
+
+        try FileManager.default.createDirectory(at: missing, withIntermediateDirectories: true)
+        #expect(missing.canonicalPath == sandbox.root.canonicalPath + "/not/yet")
+    }
+
+    @Test func aMissingPathBelowASymlinkIsCanonicalLikeTheSamePathBelowItsTarget() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let real = try sandbox.makeDirectory("real")
+        let alias = sandbox.root.appending(path: "alias", directoryHint: .isDirectory)
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: real)
+
+        #expect(alias.appending(path: "missing").canonicalPath == real.appending(path: "missing").canonicalPath)
+    }
 }
 
 @Suite struct ProfileStoreTests {

@@ -101,6 +101,22 @@ import Testing
         #expect(LauncherBuilder.marker(in: taken)?.name.rawValue == "work")
     }
 
+    /// The launcher dir, however it is reached, holds the launcher itself, so
+    /// replacing the "copy" there would delete the launcher before copying it.
+    @Test func copyRefusesTheLauncherDirItself() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let builder = sandbox.launchers
+        let work = try sandbox.store.create(ProfileName("work")).profile
+        let bundle = try builder.build(for: work, hatsPath: "/usr/bin/true")
+        try sandbox.applicationsLink.link()
+
+        for destination in [sandbox.layout.launcherDir, sandbox.applicationsLink.url] {
+            #expect(throws: HatsError.self, "\(destination.plainPath)") { try builder.copy(for: work.name, to: destination) }
+            #expect(LauncherBuilder.marker(in: bundle)?.name == work.name, "\(destination.plainPath)")
+            #expect(builder.status(for: work.name)?.copies == [], "\(destination.plainPath)")
+        }
+    }
+
     @Test func registersTheBundleThroughTheInjectedRegistrar() throws {
         let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
         let registrar = FakeRegistrar()

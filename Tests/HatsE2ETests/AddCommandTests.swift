@@ -13,7 +13,7 @@ struct AddCommandTests {
         let bundle = sandbox.launcher("Work")
         #expect(result.stdout.hasPrefix("Created profile 'work'.\n"), "\(result)")
         #expect(result.stdout.contains("  launcher  \(bundle)\n"), "\(result)")
-        let howToOpen = #"  open      Spotlight "Claude (Work)", hats dock pin work, or hats launcher reveal"#
+        let howToOpen = #"  open      Spotlight "Claude (Work)" or hats launcher reveal"#
         #expect(result.stdout.contains("  launcher  \(bundle)\n\(howToOpen)\n"), "\(result)")
         #expect(result.stdout.contains("  desktop   \(dir)/desktop\n"), "\(result)")
         #expect(result.stdout.contains("  code      \(dir)/code\n"), "\(result)")
@@ -134,6 +134,7 @@ struct AddCommandTests {
         #expect(try sandbox.dockTiles().count == 1)
         #expect(try sandbox.events("dock-write").count == 1)
         #expect(try sandbox.events("dock-restart").count == 1)
+        #expect(!result.stdout.contains("hats dock pin"), "already pinned\n\(result)")
     }
 
     @Test func openLaunchesAndPrintsTheSignInGuidance() throws {

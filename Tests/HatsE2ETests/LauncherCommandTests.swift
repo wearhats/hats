@@ -139,6 +139,7 @@ struct LauncherCommandTests {
         let theirs = "\(sandbox.root)/other-user/Applications/Hats"
         try sandbox.makeDirectory(theirs)
         try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+        try sandbox.actAsAnotherAccount()
         let before = try sandbox.snapshot()
 
         for command in ["link", "unlink"] {
@@ -148,6 +149,53 @@ struct LauncherCommandTests {
             #expect(result.stderr.contains("links to \(theirs)"), "\(command): \(result)")
             #expect(try sandbox.snapshot() == before, "\(command): \(result)")
         }
+    }
+
+    @Test func unlinkRemovesThisAccountsOldLinkWhereverItPoints() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let old = "\(sandbox.root)/Volumes/Data/launchers"
+        try sandbox.makeDirectory(old)
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: old)
+
+        let linked = try sandbox.hats(["launcher", "link"])
+
+        #expect(linked.exit == 1, "\(linked)")
+        #expect(linked.stderr.contains("hats launcher unlink"), "\(linked)")
+
+        let unlinked = try sandbox.hats(["launcher", "unlink"])
+
+        #expect(unlinked.exit == 0, "\(unlinked)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
+        #expect(sandbox.exists(old))
+    }
+
+    /// `sudo` keeps HOME, so hats as root would leave root-owned dirs in this home.
+    @Test func linkRefusesToRunAsAnotherAccountThanTheHomeOwner() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        try sandbox.actAsAnotherAccount()
+        let before = try sandbox.snapshot()
+
+        let result = try sandbox.hats(["launcher", "link"])
+
+        #expect(result.exit == 1, "\(result)")
+        #expect(result.stderr.contains("without sudo"), "\(result)")
+        #expect(try sandbox.snapshot() == before, "\(result)")
+    }
+
+    /// Reached through the link, the launcher dir looks like any other folder.
+    @Test func copyToTheLinkKeepsTheLauncher() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+
+        let result = try sandbox.hats(["launcher", "copy", "work", "--to", sandbox.applicationsLink])
+
+        #expect(result.exit != 0, "\(result)")
+        #expect(sandbox.exists("\(sandbox.launcher("Work"))/Contents/MacOS/launch"), "\(result)")
+        #expect(try sandbox.marker(in: sandbox.launcher("Work"))["copies"] == nil, "\(result)")
     }
 
     @Test func linkWithALauncherDirInsideTheApplicationsDirSaysNoLinkIsNeeded() throws {
