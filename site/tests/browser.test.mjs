@@ -202,7 +202,7 @@ test('pause stops the session, and picking a command shows it', async () => {
   await page.close();
 });
 
-test('hats open splits the screen, and its Dock launchers open or focus windows', async () => {
+test('hats open splits the screen, and the launchers in its Hats folder open or focus windows', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   const page = await context.newPage();
   await page.goto(server.origin, { waitUntil: 'networkidle' });
@@ -211,13 +211,15 @@ test('hats open splits the screen, and its Dock launchers open or focus windows'
   assert.equal(await page.locator('.desk-window-default').isVisible(), true);
   assert.equal(await page.locator('.desk-window-work').isVisible(), true, 'hats open work opened it');
   assert.equal(await page.locator('.desk-window-personal').isVisible(), false);
-  await page.getByRole('button', { name: 'Claude (Personal) launcher' }).click();
+  await page.getByRole('button', { name: 'Claude (Personal)' }).click();
   assert.equal(await page.locator('.desk-window-personal').isVisible(), true);
   assert.equal(await session(page).getAttribute('data-focus'), 'personal');
   assert.equal(await page.locator('[data-desk-status]').textContent(), 'Claude (Personal) opens.');
-  await page.getByRole('button', { name: 'Claude (Work) launcher' }).click();
+  await page.getByRole('button', { name: 'Claude (Work)' }).click();
   assert.equal(await session(page).getAttribute('data-focus'), 'work');
   assert.equal(await page.locator('[data-desk-status]').textContent(), 'Claude (Work) comes forward.');
+  assert.equal(await page.locator('[data-launch="work"][data-picked]').count(), 1, 'Finder selects the clicked launcher');
+  assert.equal(await page.locator('[data-picked]').count(), 1);
   await page.locator('#session-tab-ls').click();
   assert.equal(await page.locator('.session-desk').isVisible(), false);
   await page.setViewportSize({ width: 768, height: 1024 });

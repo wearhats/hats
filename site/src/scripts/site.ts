@@ -70,7 +70,7 @@ const READING_MS_PER_LINE = 200;
  * on the last. The markup already holds every scene in full: this only hides and reveals, so the
  * text stays for readers without JavaScript and for search engines. Reduced motion skips playback.
  * The desktop beside `hats open` follows `data-desk` (open windows) and `data-focus` (the front one),
- * and its Dock launchers open or focus a window the way `hats open` does.
+ * and the launchers in its Hats folder open or focus a window the way `hats open` does.
  */
 function setUpSession(root: HTMLElement) {
   const toggle = root.querySelector<HTMLButtonElement>('[data-session-toggle]')!;
@@ -93,9 +93,11 @@ function setUpSession(root: HTMLElement) {
     showDesk('End');
   };
   let beforeLaunch = () => {};
-  for (const launcher of desk.querySelectorAll<HTMLButtonElement>('[data-launch]')) {
+  const launchers = [...desk.querySelectorAll<HTMLButtonElement>('[data-launch]')];
+  for (const launcher of launchers) {
     launcher.addEventListener('click', () => {
       beforeLaunch();
+      for (const other of launchers) other.toggleAttribute('data-picked', other === launcher);
       const id = launcher.dataset.launch!;
       const wasOpen = root.dataset.desk!.split(' ').includes(id);
       setDesk(wasOpen ? root.dataset.desk! : `${root.dataset.desk} ${id}`, id);
