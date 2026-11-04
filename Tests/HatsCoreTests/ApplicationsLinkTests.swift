@@ -95,6 +95,20 @@ import Testing
         #expect(try FileManager.default.contentsOfDirectory(atPath: sandbox.applicationsDir.plainPath).isEmpty)
     }
 
+    /// A missing launcher dir must compare like its existing parent, however the
+    /// path is spelled, as with `/private/var` and `/var` on macOS.
+    @Test func aMissingLauncherDirReachedThroughASymlinkStillNeedsNoLink() throws {
+        let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
+        let alias = sandbox.root.appending(path: "alias").plainPath
+        try FileManager.default.createSymbolicLink(atPath: alias, withDestinationPath: sandbox.applicationsDir.plainPath)
+        var environment = sandbox.environment
+        environment["HATS_LAUNCHER_DIR"] = alias + "/Hats"
+        let link = ApplicationsLink(layout: Layout(environment: environment), applicationsDir: sandbox.applicationsDir)
+
+        #expect(try link.link() == .notNeeded)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: sandbox.applicationsDir.plainPath).isEmpty)
+    }
+
     @Test func unlinkRemovesOnlyTheLink() throws {
         let sandbox = try Sandbox(); defer { sandbox.cleanUp() }
         let link = sandbox.applicationsLink

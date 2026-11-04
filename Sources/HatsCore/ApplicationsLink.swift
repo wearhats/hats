@@ -145,13 +145,26 @@ public struct ApplicationsLink: Sendable {
     }
 
     private static func isSame(_ lhs: URL, _ rhs: URL) -> Bool {
-        lhs.canonicalPath == rhs.canonicalPath || lhs.standardizedFileURL.plainPath == rhs.standardizedFileURL.plainPath
+        canonical(lhs) == canonical(rhs)
     }
 
-    /// Checks the written paths as well as the canonical ones, because a missing
-    /// path doesn't resolve the way its existing parent does.
     private static func isSameOrInside(_ url: URL, _ root: URL) -> Bool {
-        isSame(url, root) || Layout.isStrictlyInside(url, root: root)
-            || Layout.isStrictlyInside(URL(filePath: url.canonicalPath), root: URL(filePath: root.canonicalPath))
+        let path = canonical(url)
+        let parent = canonical(root)
+        return path == parent || path.hasPrefix(parent == "/" ? "/" : parent + "/")
+    }
+
+    /// `canonicalPath` of the deepest part that exists, plus the rest. A missing
+    /// launcher dir is common, and `canonicalPath` resolves a missing path
+    /// differently from an existing one (on macOS it strips `/private` only from
+    /// the existing one), so comparing them directly would miss a match.
+    static func canonical(_ url: URL) -> String {
+        var existing = url.standardizedFileURL
+        var missing: [String] = []
+        while !FileManager.default.fileExists(atPath: existing.plainPath), existing.plainPath != "/" {
+            missing.insert(existing.lastPathComponent, at: 0)
+            existing = existing.deletingLastPathComponent()
+        }
+        return missing.reduce(existing.canonicalPath) { $0 == "/" ? "/" + $1 : $0 + "/" + $1 }
     }
 }
