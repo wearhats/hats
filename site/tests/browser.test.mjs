@@ -136,7 +136,7 @@ test('install tabs follow the ARIA tabs pattern', async () => {
   const page = await context.newPage();
   await page.goto(server.origin, { waitUntil: 'networkidle' });
   const tabs = page.locator('#hero-tab-homebrew').locator('..').getByRole('tab');
-  assert.equal(await tabs.count(), 3);
+  assert.equal(await tabs.count(), 2);
   const shownCommand = await page.locator('#hero-panel-homebrew .command-text').evaluate((node) => node.innerText);
   assert.equal(shownCommand, '$ brew install wearhats/tap/hats');
   await page.locator('#hero-tab-homebrew').focus();
@@ -146,7 +146,7 @@ test('install tabs follow the ARIA tabs pattern', async () => {
   assert.equal(await page.locator('#hero-panel-homebrew').isVisible(), false);
   assert.equal(await page.locator('#hero-panel-script').isVisible(), true);
   await page.keyboard.press('End');
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-read');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-script');
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.evaluate(() => document.activeElement.id), 'hero-tab-homebrew');
 
@@ -156,34 +156,102 @@ test('install tabs follow the ARIA tabs pattern', async () => {
   await context.close();
 });
 
-test('dock tiles filter the sample output, by keyboard too', async () => {
-  const page = await browser.newPage();
+const session = (page) => page.locator('[data-session]');
+const shownScreen = (page) => page.locator('.session-screen:visible');
+
+test('the example session plays once and stops on hats ps', async () => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  await page.clock.install();
   await page.goto(server.origin, { waitUntil: 'networkidle' });
-  const visibleView = () => page.locator('[data-view]:visible').getAttribute('data-view');
-  assert.equal(await visibleView(), 'all');
-  await page.getByRole('button', { name: 'Show profile work' }).focus();
-  await page.keyboard.press('Enter');
-  assert.equal(await visibleView(), 'work');
-  assert.equal(await page.locator('[data-terminal-command]').textContent(), 'hats ps --profile work');
-  const workRows = await page.locator('[data-view="work"]').textContent();
-  assert.match(workRows, /api-4b/);
-  assert.doesNotMatch(workRows, /blog-1c/);
-  await page.getByRole('button', { name: 'Show profile acme' }).click();
-  assert.match(await page.locator('[data-view="acme"]').textContent(), /No running Claude instances\./);
-  await page.getByRole('button', { name: 'Show profile acme' }).click();
-  assert.equal(await visibleView(), 'all');
+  await page.clock.runFor(1500);
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-setup');
+  assert.equal(await page.locator('#session-panel-setup .typed').textContent(), 'hats setup');
+  assert.equal(await page.locator('#session-panel-setup .session-out:visible').count() > 0, true);
+  assert.equal(await page.locator('.session-desk').isVisible(), false, 'only hats open splits the screen');
+
+  await page.clock.runFor(60_000);
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ps');
+  assert.equal(await page.locator('#session-tab-ps').getAttribute('aria-selected'), 'true');
+  assert.equal(await page.locator('[data-session-toggle]').textContent(), 'Replay');
+  assert.match(await shownScreen(page).textContent(), /api-4b/);
+  assert.equal(await page.locator('.session-desk').isVisible(), false);
+  assert.equal(await page.locator('[aria-busy]').count(), 0);
+  await context.close();
+});
+
+test('pause stops the session, and picking a command shows it', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.clock.install();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  const toggle = page.locator('[data-session-toggle]');
+  await page.clock.runFor(1500);
+  assert.equal(await toggle.textContent(), 'Pause');
+  await toggle.click();
+  assert.equal(await toggle.textContent(), 'Play');
+  await page.clock.runFor(60_000);
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-setup', 'nothing advances while paused');
+  assert.equal(await page.locator('#session-panel-setup .typed').textContent(), 'hats setup');
+
+  await page.locator('#session-tab-ls').click();
+  await page.clock.runFor(2000);
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ls');
+  assert.equal(await page.locator('#session-panel-ls .typed').textContent(), 'hats ls');
+  assert.match(await shownScreen(page).textContent(), /you@acme\.example/);
+  assert.equal(await toggle.textContent(), 'Play');
   await page.close();
+});
+
+test('hats open splits the screen, and its Dock launchers open or focus windows', async () => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.locator('#session-tab-open').click();
+  assert.equal(await page.locator('.session-desk').isVisible(), true);
+  assert.equal(await page.locator('.desk-window-default').isVisible(), true);
+  assert.equal(await page.locator('.desk-window-work').isVisible(), true, 'hats open work opened it');
+  assert.equal(await page.locator('.desk-window-personal').isVisible(), false);
+  await page.getByRole('button', { name: 'Claude (Personal) launcher' }).click();
+  assert.equal(await page.locator('.desk-window-personal').isVisible(), true);
+  assert.equal(await session(page).getAttribute('data-focus'), 'personal');
+  assert.equal(await page.locator('[data-desk-status]').textContent(), 'Claude (Personal) opens.');
+  await page.getByRole('button', { name: 'Claude (Work) launcher' }).click();
+  assert.equal(await session(page).getAttribute('data-focus'), 'work');
+  assert.equal(await page.locator('[data-desk-status]').textContent(), 'Claude (Work) comes forward.');
+  await page.locator('#session-tab-ls').click();
+  assert.equal(await page.locator('.session-desk').isVisible(), false);
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.locator('#session-tab-open').click();
+  assert.equal(await page.locator('.session-desk').isVisible(), false, 'narrow screens keep the terminal alone');
+  await context.close();
+});
+
+test('with reduced motion the session is plain tabs, by keyboard too', async () => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  assert.equal(await page.locator('[data-session-toggle]').isVisible(), false);
+  assert.match(await shownScreen(page).textContent(), /Everyday commands:/);
+  await page.locator('#session-tab-setup').focus();
+  await page.keyboard.press('End');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'session-tab-ps');
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ps');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ls');
+  assert.equal(await session(page).getAttribute('data-scene'), 'ls');
+  await context.close();
 });
 
 test('the page works without JavaScript', async () => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(server.origin, { waitUntil: 'networkidle' });
-  for (const id of ['homebrew', 'script', 'read']) {
+  for (const id of ['homebrew', 'script']) {
     assert.equal(await page.locator(`#hero-panel-${id}`).isVisible(), true, id);
   }
   assert.equal(await page.locator('#hero-tab-homebrew').isVisible(), false);
-  assert.match(await page.locator('[data-view="all"]').textContent(), /personal/);
+  assert.equal(await page.locator('.session-screen:visible').count(), 5, 'every example command is shown');
+  assert.equal(await page.locator('#session-tab-setup').isVisible(), false);
   assert.equal(await page.locator('[data-copy]:visible').count(), 0);
   await context.close();
 });

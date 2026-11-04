@@ -34,8 +34,45 @@ test('no page makes a banned claim', () => {
 });
 
 test('fixture output is captioned as a sample until it is captured from a release', () => {
-  assert.match(home.text, /Sample output of hats ps\./);
+  assert.match(home.text, /Sample output, not a recording\./);
   assert.doesNotMatch(home.text, /\breal\b[^.]{0,40}\boutput\b/i);
+});
+
+test('the example session ships every scene in full, for readers without JavaScript and for search engines', () => {
+  for (const line of [
+    '$ hats add work --code-dir',
+    'Everyday commands:',
+    'Launched Claude (Work), pid 81655.',
+    "Claude Code starts here with work's own login, history and settings.",
+    'you@acme.example (Acme Inc.)',
+    'api-4b',
+  ]) {
+    assert.ok(home.text.includes(line), line);
+  }
+});
+
+test("the example session's fixed sentences are the CLI's own", () => {
+  const sources = ['SetupCommand.swift', 'Prompt.swift', 'ProfileCommands.swift']
+    .map((file) => read(join(SITE_ROOT, '../Sources/hats', file)))
+    .join('\n');
+  for (const sentence of [
+    "hats keeps your current Claude.app and ~/.claude as the 'default' profile and never changes them.",
+    'Found a Claude Code config dir you made yourself: ',
+    'Turn it into a profile? Its login and history stay as they are.',
+    'Add a profile for another account?',
+    'Name for your other account (for example personal, work, acme)',
+    'Pin the new launcher(s) to the Dock? This restarts the Dock.',
+    'Also put a copy on the Desktop?',
+    'now to sign in?',
+    'Sign in inside the new window. If the browser hands the login to another Claude window,',
+    'Everyday commands:',
+    'focus or launch a profile\'s Claude Desktop (--all for every profile)',
+    'case .focused(let pid): print("Focused Claude (',
+    'case .launched(let pid): print("Launched Claude (',
+    'Pinned \\(url.deletingPathExtension().lastPathComponent) to the Dock.',
+  ]) {
+    assert.ok(sources.includes(sentence), sentence);
+  }
 });
 
 test('the demo section renders only when its media exists', () => {
@@ -124,6 +161,8 @@ test('the home page carries the install commands and the separate notices', () =
   assert.ok(home.text.includes('brew install wearhats/tap/hats'));
   assert.ok(home.text.includes('curl -fsSL https://wearhats.dev/install.sh | sh'));
   assert.ok(home.text.includes('curl -fsSLO https://wearhats.dev/install.sh && less install.sh && sh install.sh'));
+  assert.ok(home.html.includes('id="install-tab-read"'), 'the Install section keeps the read-it-first option');
+  assert.ok(!home.html.includes('id="hero-tab-read"') && !home.html.includes('id="cta-tab-read"'), 'the quick installs offer two choices');
   assert.match(home.text, /No telemetry\. One update check, which you can turn off\./);
   assert.match(home.text, /Not affiliated with or endorsed by Anthropic\./);
   assert.match(home.text, /not affiliated with, endorsed by or sponsored by Anthropic, PBC\./);

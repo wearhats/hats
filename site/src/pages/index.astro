@@ -3,16 +3,14 @@ import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import InstallTabs from '../components/InstallTabs.astro';
-import HeroTerminal from '../components/HeroTerminal.astro';
-import DockStrip from '../components/DockStrip.astro';
-import WindowsIllustration from '../components/WindowsIllustration.astro';
+import HeroSession from '../components/HeroSession.astro';
 import HoodDiagram from '../components/HoodDiagram.astro';
 import StatusChip from '../components/StatusChip.astro';
 import Demo from '../components/Demo.astro';
 import { inline } from '../lib/inline';
 import { APPS } from '../data/apps';
 import { VERSION } from '../data/release';
-import { DESCRIPTION, INSTALL_OPTIONS, LICENSE_URL, MAINTAINER_URL, NOTICE, REPO_URL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
+import { DESCRIPTION, INSTALL_OPTIONS, LICENSE_URL, MAINTAINER_SITE, MAINTAINER_URL, NOTICE, REPO_URL, READ_FIRST_INSTALL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
 import { COMPARISON, COMPARISON_HEADERS, FAQ, FEATURES, HATS_ROW, NOT_YET, PRIVACY, PROBLEMS } from '../data/copy';
 
 const eyebrow = `macOS · ${APPS.map(({ name }) => name).join(' + ')} · open source`;
@@ -27,7 +25,7 @@ const structuredData = JSON.stringify({
   license: LICENSE_URL,
   downloadUrl: `${REPO_URL}/releases`,
   softwareVersion: VERSION,
-  author: { '@type': 'Person', name: 'Max Novak' },
+  author: { '@type': 'Person', name: 'Max Novak', url: MAINTAINER_SITE, sameAs: [MAINTAINER_URL] },
 });
 ---
 
@@ -36,10 +34,12 @@ const structuredData = JSON.stringify({
   <Header />
   <main id="main">
     <section class="hero wrap" aria-labelledby="hero-title">
-      <div class="hero-copy">
+      <div class="hero-head">
         <p class="eyebrow">{eyebrow}</p>
         <h1 id="hero-title">Wear every hat at once.</h1>
         <p class="lede">{SUBHEAD}</p>
+      </div>
+      <div class="hero-copy">
         <InstallTabs name="hero" options={INSTALL_OPTIONS} />
         <p class="hero-facts">Then run <code>hats setup</code>. macOS 14+ · Free, MIT</p>
         <p class="hero-facts">No telemetry. One update check, which you can turn off.</p>
@@ -49,11 +49,7 @@ const structuredData = JSON.stringify({
         </p>
         <p class="notice">{NOTICE}</p>
       </div>
-      <div class="desk">
-        <div class="desk-windows"><WindowsIllustration /></div>
-        <HeroTerminal />
-        <DockStrip />
-      </div>
+      <div class="hero-session"><HeroSession /></div>
     </section>
 
     <section class="section" id="problem" aria-labelledby="problem-title">
@@ -227,7 +223,7 @@ const structuredData = JSON.stringify({
     <section class="section" id="install" aria-labelledby="install-title">
       <div class="wrap">
         <h2 id="install-title">Install</h2>
-        <InstallTabs name="install" options={[...INSTALL_OPTIONS, SOURCE_INSTALL]} />
+        <InstallTabs name="install" options={[...INSTALL_OPTIONS, READ_FIRST_INSTALL, SOURCE_INSTALL]} />
         <dl class="install-facts">
           <div>
             <dt>Requirements</dt>
@@ -298,7 +294,7 @@ const structuredData = JSON.stringify({
       <div class="wrap">
         <h2 id="maker-title">Who's behind it</h2>
         <p class="prose-width">
-          This is a personal open-source project by <a href={MAINTAINER_URL}><strong>Max Novak</strong></a>. I built it because
+          This is a personal open-source project by <a href={MAINTAINER_SITE}><strong>Max Novak</strong></a> (<a href={MAINTAINER_URL}>GitHub</a>). I built it because
           I run several Claude accounts on one Mac and wanted them all open at once, without touching my install. Issues and
           pull requests are welcome.
         </p>

@@ -9,3 +9,16 @@
 .install .tabpanel-label {
   display: block;
 }
+
+.session .session-tabs {
+  display: none;
+}
+
+.session .session-screen[hidden] {
+  display: block;
+  border-top: 1px solid #2a2f37;
+}
+
+.session .session-screen {
+  height: auto;
+}

@@ -443,21 +443,26 @@ summary {
 
 .hero {
   display: grid;
-  gap: 2.5rem;
+  gap: 1.5rem 3.5rem;
   padding-block: 2.5rem 4rem;
 }
 
 @media (min-width: 1024px) {
   .hero {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-    gap: 3.5rem;
-    align-items: start;
-    padding-block: 4.5rem 5rem;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    padding-block: 3.5rem 5rem;
+  }
+
+  .hero-session {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
   }
 }
 
+.hero-head,
 .hero-copy,
-.desk {
+.hero-session {
   min-width: 0;
 }
 
@@ -472,7 +477,7 @@ summary {
 
 .hero .lede {
   font-size: 1.1875em;
-  margin-bottom: 1.75rem;
+  margin-bottom: 0;
 }
 
 .hero-facts {
@@ -541,8 +546,7 @@ summary {
 }
 
 .install :focus-visible,
-.terminal :focus-visible,
-.terminal-view:focus-visible {
+.session :focus-visible {
   outline-color: var(--term-ink);
 }
 
@@ -596,181 +600,419 @@ summary {
   cursor: pointer;
 }
 
-.desk {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 1rem;
-  display: grid;
-  gap: 0.875rem;
-}
-
-.desk-windows {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .desk {
-    padding: 1.25rem;
-  }
-
-  .desk-windows {
-    display: block;
-    margin-bottom: -2rem;
-  }
-}
-
-.terminal {
-  position: relative;
+.session-terminal {
   background: var(--term-bg);
   color: var(--term-ink);
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 24px 48px -24px rgb(15 17 21 / 0.45);
+  overflow: hidden;
+  min-width: 0;
 }
 
-.terminal-view {
-  margin: 0;
-  padding: 0.875rem 1rem 0.5rem;
-  overflow-x: auto;
-  font: 400 0.75rem/1.65 var(--font-mono);
+.session-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2a2f37;
 }
 
-.terminal-line {
-  display: block;
-  min-width: max-content;
+.session-lights,
+.desk-lights {
+  display: none;
+  gap: 0.4375rem;
 }
 
-.terminal-head {
+.session-lights span,
+.desk-lights span {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: #3a404a;
+}
+
+@media (min-width: 640px) {
+  .session-lights {
+    display: flex;
+  }
+}
+
+.session-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.session-tabs button {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: #b4bac4;
+  font: 400 0.8125rem/1 var(--font-mono);
+  min-height: 2rem;
+  padding: 0.25rem 0.625rem;
+  cursor: pointer;
+}
+
+.session-tabs button:hover {
+  color: var(--term-ink);
+}
+
+.session-tabs button[aria-selected='true'] {
+  background: #262b33;
+  color: var(--term-ink);
   font-weight: 700;
 }
 
-.typed {
-  display: inline-block;
-  vertical-align: bottom;
-  white-space: pre;
+.session-tab-prefix {
+  display: none;
 }
 
-.terminal-caption {
+@media (min-width: 640px) {
+  .session-tab-prefix {
+    display: inline;
+  }
+}
+
+/* A fixed height, so switching commands never moves the page; longer output scrolls, as in a terminal. */
+.session-screen {
   margin: 0;
-  padding: 0 1rem 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--term-ink);
+  padding: 1rem;
+  height: calc(18 * 1.7em + 2rem);
+  overflow: auto;
+  font: 400 0.75rem/1.7 var(--font-mono);
 }
 
-.terminal-caption code {
-  background: none;
-  color: inherit;
-  padding: 0;
+@media (min-width: 768px) {
+  .session-screen {
+    padding: 1.25rem 1.5rem;
+    height: calc(18 * 1.7em + 2.5rem);
+    font-size: 0.875rem;
+  }
 }
 
-@media (max-width: 639px) {
-  .col-pid,
-  .col-age,
-  .col-name,
-  .col-cwd {
+/* The split adds 4rem of desktop around the terminal, so its screen is 4rem shorter and the hero keeps one height. */
+@media (min-width: 1024px) {
+  .session-screen {
+    height: 29.25rem;
+  }
+
+  .session[data-scene='open'] .session-screen {
+    height: 25.25rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* Room for all five tabs on one line beside the desktop. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .session[data-scene='open'] .session-lights {
     display: none;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .terminal-animated .typed {
-    width: 7ch;
-    overflow: hidden;
-    animation: type-command 1.2s steps(7) both;
-  }
+.session-line {
+  display: block;
+  min-width: max-content;
+}
 
-  .terminal-animated .terminal-rows {
-    animation: show-rows 200ms ease-out 1.2s both;
-  }
+.session-line[hidden] {
+  display: none;
+}
 
-  @keyframes type-command {
-    from {
-      width: 0;
-    }
+.session-wrap {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
-    to {
-      width: 7ch;
-    }
-  }
+.session-note {
+  color: #9aa2af;
+}
 
-  /* Not 0: at 0 the browser reports these rows as the largest paint when they appear, tying LCP to this delay. */
-  @keyframes show-rows {
-    from {
-      opacity: 0.01;
-    }
+.session-line + .session-line:not(.session-out) {
+  margin-top: 0.25rem;
+}
 
-    to {
-      opacity: 1;
-    }
+.session-head {
+  font-weight: 700;
+}
+
+.typed {
+  white-space: pre;
+}
+
+.session-screen [data-typing]::after {
+  content: '';
+  display: inline-block;
+  width: 0.6em;
+  height: 1.15em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: currentColor;
+}
+
+@media (max-width: 639px) {
+  .hide-narrow {
+    display: none;
   }
 }
 
-.dock {
+.session-foot {
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.875rem;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  padding: 0.625rem 0.875rem 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid #2a2f37;
 }
 
-.dock-group {
+.session-caption {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.session-toggle {
+  flex: none;
+  background: none;
+  border: 1px solid #8a909c;
+  border-radius: 6px;
+  color: var(--term-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  min-height: 1.75rem;
+  padding: 0.125rem 0.75rem;
+  cursor: pointer;
+}
+
+.session-desk {
+  display: none;
+}
+
+/* Only `hats open` splits the screen: the terminal on one side, a Mac desktop with its Dock on the other. */
+@media (min-width: 1024px) {
+  .session[data-scene='open'] {
+    --wallpaper: linear-gradient(140deg, #c3d4ee 0%, #d9cfee 55%, #c8e2d1 100%);
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1.5rem;
+    padding: 2.5rem 1.5rem 1.5rem;
+    border-radius: 16px;
+    background: var(--wallpaper);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+
+  /* The menu bar. */
+  .session[data-scene='open']::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1.25rem;
+    border-radius: 16px 16px 0 0;
+    background: rgb(255 255 255 / 0.45);
+  }
+
+  .session[data-scene='open'] .session-desk {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1024px) and (prefers-color-scheme: dark) {
+  .session[data-scene='open'] {
+    --wallpaper: linear-gradient(140deg, #1c2a42 0%, #2b2142 55%, #1b3527 100%);
+  }
+
+  .session[data-scene='open']::before {
+    background: rgb(0 0 0 / 0.35);
+  }
+}
+
+.desk-windows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.desk-window {
+  display: none;
+  min-height: 9rem;
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgb(15 17 21 / 0.5);
+  overflow: hidden;
+}
+
+.desk-window-default {
+  grid-column: 1 / -1;
+}
+
+.session[data-desk~='default'] .desk-window-default,
+.session[data-desk~='work'] .desk-window-work,
+.session[data-desk~='personal'] .desk-window-personal {
+  display: block;
+}
+
+.session[data-focus='default'] .desk-window-default,
+.session[data-focus='work'] .desk-window-work,
+.session[data-focus='personal'] .desk-window-personal {
+  box-shadow: 0 0 0 1px var(--line-strong), 0 0 0 3px rgb(21 101 192 / 0.35), 0 18px 36px -18px rgb(15 17 21 / 0.5);
+}
+
+.desk-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.desk-lights {
+  display: flex;
+  flex: none;
+  gap: 0.3125rem;
+  margin-right: 0.125rem;
+}
+
+.desk-lights span {
+  width: 0.5625rem;
+  height: 0.5625rem;
+  background: var(--line-strong);
+  opacity: 0.5;
+}
+
+.desk-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78125rem;
+  font-weight: 600;
+}
+
+.session[data-focus='default'] .desk-window-default .desk-titlebar,
+.session[data-focus='work'] .desk-window-work .desk-titlebar,
+.session[data-focus='personal'] .desk-window-personal .desk-titlebar {
+  color: var(--ink);
+}
+
+.session[data-focus='default'] .desk-window-default .desk-lights span,
+.session[data-focus='work'] .desk-window-work .desk-lights span,
+.session[data-focus='personal'] .desk-window-personal .desk-lights span {
+  opacity: 1;
+}
+
+.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(1),
+.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(1),
+.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(1) {
+  background-color: #ff5f57;
+}
+
+.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(2),
+.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(2),
+.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(2) {
+  background-color: #febc2e;
+}
+
+.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(3),
+.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(3),
+.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(3) {
+  background-color: #28c840;
+}
+
+.desk-body {
+  display: grid;
+  gap: 0.625rem;
+  padding: 1rem;
+}
+
+.desk-tile {
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.desk-hint {
+  margin: auto 0 -0.5rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.desk-dock {
+  align-self: center;
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem 0.375rem;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.55);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 12px 24px -12px rgb(15 17 21 / 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  .desk-dock {
+    background: rgb(30 34 41 / 0.7);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 12px 24px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+.desk-launcher {
   display: grid;
   justify-items: center;
-  gap: 0.375rem;
-}
-
-.dock-tiles {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.dock-tile {
-  display: block;
+  gap: 0.25rem;
   background: none;
   border: 0;
   border-radius: 12px;
   padding: 0;
-  position: relative;
   cursor: pointer;
-  transition: transform 150ms ease-out;
 }
 
-.dock-tile:disabled {
-  cursor: default;
+.desk-launcher .tile {
+  width: 2.75rem;
+  height: 2.75rem;
 }
 
-.dock-tile:not(:disabled):hover {
-  transform: translateY(-2px);
-}
-
-.dock-tile[aria-pressed='true']::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -0.3125rem;
-  width: 1rem;
-  height: 3px;
-  margin-left: -0.5rem;
-  border-radius: 2px;
+.desk-running {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
   background: var(--ink);
+  opacity: 0;
 }
 
-.dock-divider {
-  align-self: stretch;
-  width: 1px;
-  background: var(--line-strong);
-  margin-block: 0.25rem 1.5rem;
+.session[data-desk~='default'] [data-launch='default'] .desk-running,
+.session[data-desk~='work'] [data-launch='work'] .desk-running,
+.session[data-desk~='personal'] [data-launch='personal'] .desk-running {
+  opacity: 0.8;
 }
 
-.dock-label {
-  font-size: 0.75rem;
-  line-height: 1.25;
-  color: var(--muted);
-  text-align: center;
-  max-width: 8rem;
+@media (prefers-reduced-motion: no-preference) {
+  .desk-window {
+    animation: window-open 250ms ease-out;
+  }
+
+  .desk-launcher {
+    transition: transform 150ms ease-out;
+  }
+
+  .desk-launcher:hover {
+    transform: translateY(-3px);
+  }
+
+  @keyframes window-open {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 .section {
