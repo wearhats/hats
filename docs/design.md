@@ -46,7 +46,7 @@ profile can land in another window. The workaround is in the
 
 ### 2. No tokens, no sign-in routing, no limit stretching
 
-- hats never reads, stores, copies or relays Claude credentials or session
+- hats never keeps, stores, copies or relays Claude credentials or session
   tokens. Keychain queries ask for attributes, never the secret. Account files
   are parsed whole in memory (JSON can't be read selectively, and Desktop's
   `config.json` holds its token cache), and only the identifiers listed in
@@ -141,7 +141,10 @@ input, calls the core and renders the result. A launcher is a short shell
 script that runs `hats open <name>`, so fixes ship without rebuilding
 launchers. hats calls native APIs rather than subprocesses or AppleScript, so
 focusing a window needs no Automation prompt. The only programs it `exec`s are
-`claude` and the user's own commands.
+`claude` and the user's own commands. The launcher script, not hats, holds the
+one AppleScript: when the `hats` binary is gone it runs `osascript` to show an
+alert, because nothing else is left to tell the user. That alert controls no
+other app, so it needs no Automation prompt either.
 
 Why a script launcher: AppleScript applets trigger Automation prompts and can
 fail silently, and a compiled stub would need signing per bundle.
@@ -155,9 +158,12 @@ hats never moves or deletes an adopted config dir: `rm --purge` keeps it, and
 ### 9. One network request, and it only warns
 
 The only network request is the update check: a GET of GitHub's latest-release
-API, at most once a day, sending nothing but the User-Agent. It runs only for a
-person at a terminal (not for launchers, scripts, piped output or CI), and
-`HATS_NO_UPDATE_CHECK=1` turns it off. A newer release produces a notice with
+API, at most once a day, sending the User-Agent and the HTTP client's standard
+headers, and nothing about the user, their profiles or their Mac. It runs only
+when stderr is a terminal, to reach a person who will see the notice: never for
+launchers, `run`, `exec` or CI, nor when stderr is redirected. A script or
+pipeline started from a terminal still makes it, because its stderr is
+usually that terminal. `HATS_NO_UPDATE_CHECK=1` turns it off. A newer release produces a notice with
 the upgrade command. hats never downloads, installs or replaces itself.
 
 Why: users of the install script have no package manager to tell them about

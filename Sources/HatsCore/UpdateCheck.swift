@@ -27,8 +27,9 @@ public protocol ReleaseFeed: Sendable {
     func latestVersion() async throws -> String
 }
 
-/// GitHub's "latest release" API: one unauthenticated GET that sends nothing
-/// but the User-Agent, and keeps nothing from the reply but `tag_name`.
+/// GitHub's "latest release" API: one unauthenticated GET that sends the
+/// User-Agent and URLSession's standard headers, and keeps nothing from the
+/// reply but `tag_name`.
 public struct GitHubReleaseFeed: ReleaseFeed {
     public static let endpoint = URL(string: "https://api.github.com/repos/wearhats/hats/releases/latest")!
 
@@ -86,8 +87,8 @@ public struct UpdateCheck: Sendable {
         self.now = now
     }
 
-    /// Off for dev builds, scripts, launchers and CI: only a person at a
-    /// terminal sees the notice, so nobody else should cause the request.
+    /// Off for dev builds, launchers, CI and redirected stderr: the notice goes
+    /// to stderr, so only a terminal there means someone may read it.
     public static func isEnabled(currentVersion: String, environment: [String: String], stderrIsTerminal: Bool) -> Bool {
         guard stderrIsTerminal, SemanticVersion(currentVersion) != nil else { return false }
         return [optOutVariable, "CI"].allSatisfy { environment[$0]?.isEmpty ?? true }
