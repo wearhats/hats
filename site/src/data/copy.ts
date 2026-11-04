@@ -1,4 +1,5 @@
 import { TESTED_WITH } from './release';
+import { DISCUSSIONS_URL } from './site';
 import { expected, shipped, type Status } from './status';
 
 export const PROBLEMS = [
@@ -169,6 +170,6 @@ export const FAQ = [
   ['How do I check what I\'m installing?', 'The script verifies the SHA-256, and build provenance when `gh` is signed in. You can read it first, verify a download with `gh attestation verify`, or build from source. The code has one dependency and is MIT licensed.'],
   ['Windows or Linux?', 'Not in v1.'],
   ['What does it cost?', 'Nothing. MIT licence.'],
-  ['Only Claude?', "For now. hats works with Claude Desktop and Claude Code. Tell us which other app you'd want in [Discussions](https://github.com/wearhats/hats/discussions)."],
+  ['Only Claude?', `For now. hats works with Claude Desktop and Claude Code. Tell us which other app you'd want in [Discussions](${DISCUSSIONS_URL}).`],
   ['Who makes this?', 'Max Novak, as a personal open-source project.'],
 ];

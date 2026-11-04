@@ -3,7 +3,7 @@ import setup from '../../fixtures/hats-setup.txt?raw';
 import ls from '../../fixtures/hats-ls.txt?raw';
 import ps from '../../fixtures/hats-ps.txt?raw';
 import Tile from './Tile.astro';
-import { layoutRows, parseTable } from '../lib/table';
+import { layoutRows, parseTable, type Table } from '../lib/table';
 
 type Cell = { text: string; hide?: string };
 type Line =
@@ -15,26 +15,34 @@ type Scene = { id: string; note: string; command: string; output: Line[] };
 /** Columns a phone hides, so a row still fits on one line. */
 const HIDE_NARROW = new Set(['SESSIONS', 'LAUNCHER', 'DESKTOP LOGIN', 'CLI LOGIN', 'PID', 'AGE', 'NAME', 'CWD']);
 const QUESTION = /^(.*\] )(.*)$/;
-const OPENS = /^\$ hats open (\S+)$/;
 
 const text = (source: string): Line[] =>
   source.trimEnd().split('\n').map((line) => {
     const question = line.match(QUESTION);
     if (question) return { kind: 'ask', question: question[1], answer: question[2] };
     // A space, not an empty string: an empty block collapses and the blank line would vanish.
-    return { kind: 'text', text: line || ' ', opens: line.match(OPENS)?.[1] };
+    return { kind: 'text', text: line || ' ' };
   });
 
-const table = (source: string, name: string): Line[] => {
-  const parsed = parseTable(source, name);
-  return layoutRows(parsed).map((cells, index) => ({
+const table = (parsed: Table): Line[] =>
+  layoutRows(parsed).map((cells, index) => ({
     kind: 'row',
     head: index === 0,
     cells: cells.map((cell, column) => ({ text: cell, hide: HIDE_NARROW.has(parsed.headers[column]) ? 'hide-narrow' : undefined })),
   }));
-};
 
-const after = (note: string, opens?: string): Line => ({ kind: 'text', text: `# ${note}`, opens });
+const LS = parseTable(ls, 'hats ls');
+const PS = parseTable(ps, 'hats ps');
+
+/** Reads the scene's details from the fixtures, so it never contradicts the tables beside it. */
+function cell({ headers, rows }: Table, header: string, ...key: string[]): string {
+  const row = rows.find((cells) => key.every((value, index) => cells[index] === value));
+  if (!row) throw new Error(`no fixture row for ${key.join(' ')}`);
+  return row[headers.indexOf(header)];
+}
+const accountOf = (profile: string) => cell(LS, 'ACCOUNT', profile).replace(/ \(.*\)$/, '');
+
+const after = (note: string): Line => ({ kind: 'text', text: `# ${note}` });
 
 const SCENES: Scene[] = [
   {
@@ -47,7 +55,7 @@ const SCENES: Scene[] = [
     id: 'open',
     note: "Open a profile's Claude Desktop, or bring it forward. Its launcher in ~/Applications/Hats, or in the Dock, does the same.",
     command: 'hats open work',
-    output: [{ kind: 'text', text: 'Launched Claude (Work), pid 81655.', opens: 'work' }],
+    output: [{ kind: 'text', text: `Launched Claude (Work), pid ${cell(PS, 'PID', 'work', 'desktop')}.`, opens: 'work' }],
   },
   {
     id: 'run',
@@ -59,13 +67,13 @@ const SCENES: Scene[] = [
     id: 'ls',
     note: "Every profile, whether it's signed in, and to which account.",
     command: 'hats ls',
-    output: table(ls, 'hats ls'),
+    output: table(LS),
   },
   {
     id: 'ps',
     note: "Every running Claude and its profile. Sessions show whether they're busy or waiting for you.",
     command: 'hats ps',
-    output: table(ps, 'hats ps'),
+    output: table(PS),
   },
 ];
 
@@ -78,9 +86,9 @@ const DESK_END = { desk: 'default work', focus: 'work' };
  * `hats ls` shows for it. Only profiles have a launcher in the Hats folder; Claude.app stays in /Applications.
  */
 const WINDOWS = [
-  { id: 'default', title: 'Claude', tile: 'claude-app', account: 'you@example.com', launcher: false },
-  { id: 'work', title: 'Claude (Work)', tile: 'work', account: 'you@acme.example', launcher: true },
-  { id: 'personal', title: 'Claude (Personal)', tile: 'personal', account: 'me@example.org', launcher: true },
+  { id: 'default', title: 'Claude', tile: 'claude-app', account: accountOf('default'), launcher: false },
+  { id: 'work', title: 'Claude (Work)', tile: 'work', account: accountOf('work'), launcher: true },
+  { id: 'personal', title: 'Claude (Personal)', tile: 'personal', account: accountOf('personal'), launcher: true },
 ] as const;
 const LAUNCHERS = WINDOWS.filter(({ launcher }) => launcher);
 ---
@@ -113,7 +121,7 @@ const LAUNCHERS = WINDOWS.filter(({ launcher }) => launcher);
             ? <span class:list={['session-line', 'session-out', { 'session-head': line.head }]}>{line.cells.map(({ text, hide }) => <span class={hide}>{text}</span>)}</span>
             : line.kind === 'ask'
               ? <span class="session-line session-out session-wrap" data-ask>{line.question}<span class="answer">{line.answer}</span></span>
-              : <span class:list={['session-line', 'session-out', 'session-wrap', { 'session-note': line.text.startsWith('# ') }]} data-opens={scene.id === 'open' ? line.opens : undefined}>{line.text}</span>
+              : <span class:list={['session-line', 'session-out', 'session-wrap', { 'session-note': line.text.startsWith('# ') }]} data-opens={line.opens}>{line.text}</span>
         )}</pre>
       ))
     }
@@ -126,7 +134,13 @@ const LAUNCHERS = WINDOWS.filter(({ launcher }) => launcher);
     <div class="desk-stage">
       {
         WINDOWS.map(({ id, title, tile, account }) => (
-          <div class:list={['desk-window', `desk-window-${id}`]} aria-hidden="true">
+          <div
+            class:list={['desk-window', `desk-window-${id}`]}
+            data-window={id}
+            data-open={DESK_END.desk.split(' ').includes(id) ? '' : undefined}
+            data-front={DESK_END.focus === id ? '' : undefined}
+            aria-hidden="true"
+          >
             <div class="desk-titlebar">
               <span class="desk-lights"><span></span><span></span><span></span></span>
               <span class="desk-title">{title}</span>

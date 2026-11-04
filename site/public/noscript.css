@@ -16,7 +16,7 @@
 
 .session .session-screen[hidden] {
   display: block;
-  border-top: 1px solid #2a2f37;
+  border-top: 1px solid var(--term-line);
 }
 
 .session .session-screen {

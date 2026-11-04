@@ -8,13 +8,12 @@ interface Option {
 interface Props {
   name: string;
   options: readonly Option[];
-  compact?: boolean;
 }
 
-const { name, options, compact = false } = Astro.props;
+const { name, options } = Astro.props;
 ---
 
-<div class:list={['install', { 'install-compact': compact }]} data-tabs>
+<div class="install" data-tabs>
   <div class="tablist" role="tablist" aria-label="Ways to install hats">
     {
       options.map(({ id, label }, index) => (

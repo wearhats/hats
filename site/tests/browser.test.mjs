@@ -4,11 +4,13 @@ import { join, extname } from 'node:path';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
-import { SITE_ROOT, buildInto, cspFromHeaders, startWrangler } from './support.mjs';
+import { MISSING_PAGE, PAGES, SITE_ROOT, VIEWPORTS, buildInto, cspFromHeaders, startWrangler } from './support.mjs';
 
-const PAGES = ['/', '/privacy', '/this-page-does-not-exist'];
-const VIEWPORTS = [{ width: 360, height: 800 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }];
+const ALL_PAGES = [...PAGES, MISSING_PAGE];
 const ANALYTICS_DIST = 'dist-analytics';
+// Built while the other tests run; the analytics test awaits it, and the catch only defers the error to there.
+const analyticsBuild = buildInto(ANALYTICS_DIST, { PUBLIC_UMAMI_WEBSITE_ID: '00000000-0000-4000-8000-000000000000' });
+analyticsBuild.catch(() => {});
 
 let server;
 let browser;
@@ -36,12 +38,12 @@ function watchPage(page) {
 }
 
 test('built pages load cleanly under the real CSP, from their own origin only', async () => {
-  for (const path of PAGES) {
+  for (const path of ALL_PAGES) {
     const page = await browser.newPage();
     const { problems, requests } = watchPage(page);
-    const response = await page.goto(server.origin + path, { waitUntil: 'networkidle' });
+    const response = await page.goto(server.origin + path);
     assert.match(response.headers()['content-security-policy'], /script-src 'self'/, path);
-    const expected = path === '/this-page-does-not-exist' ? 404 : 200;
+    const expected = path === MISSING_PAGE ? 404 : 200;
     assert.equal(response.status(), expected, path);
     const real = problems.filter((text) => !(expected === 404 && /404/.test(text)));
     assert.deepEqual(real, [], path);
@@ -67,7 +69,7 @@ test('the CSP really is enforced by this harness', async () => {
 
 test('JetBrains Mono loads from the site', async () => {
   const page = await browser.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   const loaded = await page.evaluate(async () => {
     await document.fonts.ready;
     return document.fonts.check("700 16px 'JetBrains Mono'");
@@ -102,39 +104,31 @@ test('redirects and plumbing behave as deployed', async () => {
   assert.match(font.headers.get('cache-control'), /immutable/);
 });
 
-test('axe finds no violations in either colour scheme at any width', async () => {
+test('axe finds no violations in either colour scheme, and no page scrolls sideways, at any width', async () => {
   for (const colorScheme of ['light', 'dark']) {
-    for (const viewport of VIEWPORTS) {
-      const context = await browser.newContext({ colorScheme, viewport, reducedMotion: 'reduce' });
-      for (const path of PAGES) {
-        const page = await context.newPage();
-        await page.goto(server.origin + path, { waitUntil: 'networkidle' });
-        const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
-        const summary = violations.map(({ id, nodes }) => `${id}: ${nodes.map((node) => node.target).join(', ')}`);
-        assert.deepEqual(summary, [], `${path} ${colorScheme} ${viewport.width}px`);
-        await page.close();
-      }
-      await context.close();
-    }
-  }
-});
-
-test('no page scrolls sideways at any width', async () => {
-  for (const viewport of VIEWPORTS) {
-    const page = await browser.newPage({ viewport });
-    for (const path of PAGES) {
-      await page.goto(server.origin + path, { waitUntil: 'networkidle' });
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      assert.ok(overflow <= 0, `${path} overflows by ${overflow}px at ${viewport.width}`);
-    }
-    await page.close();
+    await Promise.all(
+      VIEWPORTS.map(async (viewport) => {
+        const context = await browser.newContext({ colorScheme, viewport, reducedMotion: 'reduce' });
+        for (const path of ALL_PAGES) {
+          const page = await context.newPage();
+          await page.goto(server.origin + path);
+          const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+          const summary = violations.map(({ id, nodes }) => `${id}: ${nodes.map((node) => node.target).join(', ')}`);
+          assert.deepEqual(summary, [], `${path} ${colorScheme} ${viewport.width}px`);
+          const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+          assert.ok(overflow <= 0, `${path} overflows by ${overflow}px at ${viewport.width}`);
+          await page.close();
+        }
+        await context.close();
+      }),
+    );
   }
 });
 
 test('install tabs follow the ARIA tabs pattern', async () => {
   const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
   const page = await context.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   const tabs = page.locator('#hero-tab-homebrew').locator('..').getByRole('tab');
   assert.equal(await tabs.count(), 2);
   const shownCommand = await page.locator('#hero-panel-homebrew .command-text').evaluate((node) => node.innerText);
@@ -158,12 +152,15 @@ test('install tabs follow the ARIA tabs pattern', async () => {
 
 const session = (page) => page.locator('[data-session]');
 const shownScreen = (page) => page.locator('.session-screen:visible');
+// Autoplay starts when the observer reports the session in view, which the page's fake clock doesn't drive.
+const autoplayStarted = (page) => page.locator('[data-session-toggle]', { hasText: 'Pause' }).waitFor();
 
 test('the example session plays once and stops on hats ps', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   await page.clock.install();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
+  await autoplayStarted(page);
   await page.clock.runFor(1500);
   assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-setup');
   assert.equal(await page.locator('#session-panel-setup .typed').textContent(), 'hats setup');
@@ -183,10 +180,10 @@ test('the example session plays once and stops on hats ps', async () => {
 test('pause stops the session, and picking a command shows it', async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.clock.install();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   const toggle = page.locator('[data-session-toggle]');
+  await autoplayStarted(page);
   await page.clock.runFor(1500);
-  assert.equal(await toggle.textContent(), 'Pause');
   await toggle.click();
   assert.equal(await toggle.textContent(), 'Play');
   await page.clock.runFor(60_000);
@@ -205,7 +202,7 @@ test('pause stops the session, and picking a command shows it', async () => {
 test('hats open splits the screen, and the launchers in its Hats folder open or focus windows', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   const page = await context.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   await page.locator('#session-tab-open').click();
   assert.equal(await page.locator('.session-desk').isVisible(), true);
   assert.equal(await page.locator('.desk-window-default').isVisible(), true);
@@ -231,7 +228,7 @@ test('hats open splits the screen, and the launchers in its Hats folder open or 
 test('a launcher clicked during a replay keeps its window when the replay ends', async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.clock.install();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   await page.locator('#session-tab-open').click();
   await page.getByRole('button', { name: 'Claude (Personal)' }).click();
   await page.clock.runFor(10_000);
@@ -244,7 +241,7 @@ test('a launcher clicked during a replay keeps its window when the replay ends',
 test('autoplay never overrides a command the visitor picked before the session came into view', async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 120 } });
   await page.clock.install();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   const toggle = page.locator('[data-session-toggle]');
   assert.equal(await toggle.textContent(), 'Play', 'too little of the session shows for autoplay to start');
   await page.locator('#session-tab-ls').dispatchEvent('click');
@@ -259,7 +256,7 @@ test('autoplay never overrides a command the visitor picked before the session c
 test('a desk reset also clears the picked launcher and its announcement', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   const page = await context.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   await page.locator('#session-tab-open').click();
   await page.getByRole('button', { name: 'Claude (Personal)' }).click();
   await page.locator('#session-tab-ls').click();
@@ -273,7 +270,7 @@ test('a desk reset also clears the picked launcher and its announcement', async 
 test('with reduced motion the session is plain tabs, by keyboard too', async () => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   assert.equal(await page.locator('[data-session-toggle]').isVisible(), false);
   assert.match(await shownScreen(page).textContent(), /Everyday commands:/);
   await page.locator('#session-tab-setup').focus();
@@ -289,7 +286,7 @@ test('with reduced motion the session is plain tabs, by keyboard too', async () 
 test('the page works without JavaScript', async () => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.goto(server.origin);
   for (const id of ['homebrew', 'script']) {
     assert.equal(await page.locator(`#hero-panel-${id}`).isVisible(), true, id);
   }
@@ -344,7 +341,7 @@ async function openAsProduction(dist) {
 }
 
 test('with a website ID, the tag sends one pageview through the CSP, and the script stays first-party', async () => {
-  buildInto(ANALYTICS_DIST, { PUBLIC_UMAMI_WEBSITE_ID: '00000000-0000-4000-8000-000000000000' });
+  await analyticsBuild;
   const tag = readFileSync(join(SITE_ROOT, ANALYTICS_DIST, 'index.html'), 'utf8').match(/<script[^>]*stats\.js[^>]*>/)?.[0];
   assert.ok(tag, 'no analytics tag');
   assert.match(tag, /src="\/stats\.js"/);

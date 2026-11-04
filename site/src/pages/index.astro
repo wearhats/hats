@@ -8,12 +8,10 @@ import HoodDiagram from '../components/HoodDiagram.astro';
 import StatusChip from '../components/StatusChip.astro';
 import Demo from '../components/Demo.astro';
 import { inline } from '../lib/inline';
-import { APPS } from '../data/apps';
 import { VERSION } from '../data/release';
 import { DESCRIPTION, INSTALL_OPTIONS, LICENSE_URL, MAINTAINER_SITE, MAINTAINER_URL, NOTICE, REPO_URL, READ_FIRST_INSTALL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
 import { COMPARISON, COMPARISON_HEADERS, FAQ, FEATURES, HATS_ROW, NOT_YET, PRIVACY, PROBLEMS } from '../data/copy';
 
-const eyebrow = `macOS · ${APPS.map(({ name }) => name).join(' + ')} · open source`;
 const structuredData = JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
@@ -35,7 +33,7 @@ const structuredData = JSON.stringify({
   <main id="main">
     <section class="hero wrap" aria-labelledby="hero-title">
       <div class="hero-head">
-        <p class="eyebrow">{eyebrow}</p>
+        <p class="eyebrow">macOS · Claude Desktop + Claude Code · open source</p>
         <h1 id="hero-title">Wear every hat at once.</h1>
         <p class="lede">{SUBHEAD}</p>
       </div>
@@ -306,7 +304,7 @@ const structuredData = JSON.stringify({
     <section class="section final-cta" aria-labelledby="cta-title">
       <div class="wrap">
         <h2 id="cta-title">One line to try it.</h2>
-        <InstallTabs name="cta" options={INSTALL_OPTIONS} compact />
+        <InstallTabs name="cta" options={INSTALL_OPTIONS} />
         <p class="hero-facts">Then run <code>hats setup</code>.</p>
       </div>
     </section>

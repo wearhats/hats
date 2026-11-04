@@ -4,10 +4,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DIST, SITE_ROOT, filesIn, gzipSize, htmlFiles, read, rel, visibleText } from './support.mjs';
+import { DIST, SITE_ROOT, decodeEntities, filesIn, foreignReferences, gzipSize, htmlFiles, read, rel, visibleText } from './support.mjs';
 
 const DESCRIPTION_LENGTH = (html) => html.match(/<meta name="description" content="([^"]*)"/)[1].length;
-const pages = htmlFiles().map((file) => ({ name: rel(file), html: read(file), text: visibleText(read(file)) }));
+const pages = htmlFiles().map((file) => {
+  const html = read(file);
+  return { name: rel(file), html, text: visibleText(html) };
+});
 const home = pages.find((page) => page.name === 'index.html');
 const privacy = pages.find((page) => page.name === 'privacy.html');
 
@@ -104,18 +107,9 @@ test('no page mentions internal planning terms', () => {
   }
 });
 
-const RESOURCE_ATTRIBUTES = /<(script|img|source|video|audio|track|iframe|embed|object)\b[^>]*?\s(?:src|srcset|poster|data)="([^"]+)"/g;
-
 test('nothing on a page loads from another origin', () => {
   for (const { name, html } of pages) {
-    for (const [, tag, url] of html.matchAll(RESOURCE_ATTRIBUTES)) {
-      assert.ok(url.startsWith('/') && !url.startsWith('//'), `${name}: <${tag}> loads ${url}`);
-    }
-    for (const [link] of html.matchAll(/<link\b[^>]*>/g)) {
-      if (/rel="canonical"/.test(link)) continue;
-      const href = link.match(/href="([^"]+)"/)?.[1] ?? '';
-      assert.ok(href.startsWith('/') && !href.startsWith('//'), `${name}: ${link}`);
-    }
+    assert.deepEqual(foreignReferences(html), [], name);
   }
   for (const file of filesIn(DIST).filter((path) => /\.(css|js)$/.test(path) && !path.endsWith('stats.js'))) {
     assert.doesNotMatch(read(file), /(url\(|@import\s+|from\s*["']|import\(["'])\s*["']?(https?:)?\/\//, rel(file));
@@ -156,9 +150,6 @@ const uninstallBlocks = () => [
   ['README.md', read(join(SITE_ROOT, '../README.md')).match(/^hats dock unpin[\s\S]*?^\s*brew uninstall hats.*$/m)[0]],
   ['index.html', decodeEntities(home.html.match(/<pre class="uninstall"[^>]*>([\s\S]*?)<\/pre>/)[1])],
 ];
-
-const decodeEntities = (html) =>
-  html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&amp;/g, '&');
 
 // Pasted into a terminal: stock zsh has interactivecomments off, so an inline `#` would end the chain.
 const SHELLS = [

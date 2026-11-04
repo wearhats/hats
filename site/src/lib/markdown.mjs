@@ -1,4 +1,6 @@
-const REPO_DOCS = 'https://github.com/wearhats/hats/blob/main/docs/';
+import { REPO_URL } from '../data/site.ts';
+
+const REPO_DOCS = `${REPO_URL}/blob/main/docs/`;
 
 function walk(node, visit) {
   visit(node);

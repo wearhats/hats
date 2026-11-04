@@ -1,12 +1,12 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { startWrangler } from '../tests/support.mjs';
+import { MISSING_PAGE, PAGES, VIEWPORTS, startWrangler } from '../tests/support.mjs';
 
 // Usage: pnpm run screenshots <output-dir> [path...]
 const [outDir = 'test-results/screenshots', ...requested] = process.argv.slice(2);
-const paths = requested.length ? requested : ['/', '/privacy', '/this-page-does-not-exist'];
-const WIDTHS = [360, 768, 1280];
+const paths = requested.length ? requested : [...PAGES, MISSING_PAGE];
+const WIDTHS = VIEWPORTS.map(({ width }) => width);
 
 mkdirSync(outDir, { recursive: true });
 const server = await startWrangler(8790);

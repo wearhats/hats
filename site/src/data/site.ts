@@ -4,6 +4,7 @@ export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 export const PRIVACY_SOURCE_URL = `${REPO_URL}/blob/main/docs/privacy.md`;
 export const MAINTAINER_URL = 'https://github.com/maximn';
 export const MAINTAINER_SITE = 'https://maxondev.com';
+export const UMAMI_ORIGIN = 'https://umami.maxondev.com';
 
 export const TITLE = 'hats: run several Claude accounts side by side on macOS';
 export const DESCRIPTION =

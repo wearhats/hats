@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import lighthouse from 'lighthouse';
-import { startWrangler } from './support.mjs';
+import { PAGES, startWrangler } from './support.mjs';
 
 const MIN_SCORE = 0.95;
 // Desktop scoring is stricter and swings by 0.1 on a shared machine, on unchanged code. The budgets are set on mobile.
@@ -15,8 +15,8 @@ const browser = await chromium.launch({ args: [`--remote-debugging-port=${PORT}`
 let failed = false;
 
 try {
-  for (const [name, formFactor] of [['mobile', 'mobile'], ['desktop', 'desktop']]) {
-    for (const path of ['/', '/privacy']) {
+  for (const formFactor of ['mobile', 'desktop']) {
+    for (const path of PAGES) {
       const config = {
         extends: 'lighthouse:default',
         settings:
@@ -24,22 +24,26 @@ try {
             ? { preset: 'desktop', formFactor, screenEmulation: { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false } }
             : { formFactor },
       };
-      // One run swings widely on a busy machine, so judge the median, as Lighthouse's own docs advise.
-      const runs = [];
-      for (let run = 0; run < RUNS; run += 1) {
-        runs.push((await lighthouse(server.origin + path, { port: PORT, output: 'json', logLevel: 'error' }, config)).lhr);
-      }
-      const lhr = runs.sort((a, b) => a.categories.performance.score - b.categories.performance.score)[Math.floor(RUNS / 2)];
-      const scores = Object.fromEntries(Object.values(lhr.categories).map((category) => [category.id, category.score]));
-      const lcp = lhr.audits['largest-contentful-paint'].numericValue;
-      const cls = lhr.audits['cumulative-layout-shift'].numericValue;
-      console.log(name, path, JSON.stringify(scores), `LCP ${Math.round(lcp)}ms`, `CLS ${cls.toFixed(3)}`);
+      const runLighthouse = async (onlyCategories) =>
+        (await lighthouse(server.origin + path, { port: PORT, output: 'json', logLevel: 'error', onlyCategories }, config)).lhr;
+      // Performance swings widely on a busy machine, so judge its median, as Lighthouse's own docs advise.
+      // The other categories come out the same every run, so they run once.
+      const full = await runLighthouse();
+      const runs = [full];
+      for (let run = 1; run < RUNS; run += 1) runs.push(await runLighthouse(['performance']));
+      const median = runs.sort((a, b) => a.categories.performance.score - b.categories.performance.score)[Math.floor(RUNS / 2)];
+      const reportFor = (id) => (id === 'performance' ? median : full);
+      const scores = Object.fromEntries(Object.keys(full.categories).map((id) => [id, reportFor(id).categories[id].score]));
+      const lcp = median.audits['largest-contentful-paint'].numericValue;
+      const cls = median.audits['cumulative-layout-shift'].numericValue;
+      console.log(formFactor, path, JSON.stringify(scores), `LCP ${Math.round(lcp)}ms`, `CLS ${cls.toFixed(3)}`);
       for (const [id, score] of Object.entries(scores)) {
         const minimum = id === 'performance' && formFactor === 'desktop' ? MIN_DESKTOP_PERFORMANCE : MIN_SCORE;
         if (score < minimum) {
           failed = true;
-          const lost = Object.values(lhr.categories[id].auditRefs)
-            .map((ref) => lhr.audits[ref.id])
+          const report = reportFor(id);
+          const lost = Object.values(report.categories[id].auditRefs)
+            .map((ref) => report.audits[ref.id])
             .filter((audit) => audit.score !== null && audit.score < 1 && audit.scoreDisplayMode !== 'informative');
           console.error(`  ${id} below ${minimum}:`, lost.map((audit) => audit.id).join(', '));
         }

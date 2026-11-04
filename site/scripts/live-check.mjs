@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PAGES, foreignReferences } from '../tests/support.mjs';
 
 const APEX = 'https://wearhats.dev';
 const INSTALL_TARGET = 'https://github.com/wearhats/hats/releases/latest/download/install.sh';
@@ -25,6 +26,15 @@ async function check(name, run) {
 
 function expect(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+const fetched = new Map();
+/** Fetches each page once; the checks below share the response. */
+function page(path) {
+  if (!fetched.has(path)) {
+    fetched.set(path, fetch(APEX + path).then(async (response) => ({ status: response.status, headers: response.headers, html: await response.text() })));
+  }
+  return fetched.get(path);
 }
 
 await check('/install.sh redirects to the latest release asset', async () => {
@@ -50,14 +60,14 @@ await check('the install script parses and matches the release asset', async () 
 });
 
 await check('the apex serves the site', async () => {
-  const response = await fetch(APEX);
-  expect(response.status === 200, `status ${response.status}`);
-  expect(/Wear every hat at once\./.test(await response.text()), 'headline missing');
+  const { status, html } = await page('/');
+  expect(status === 200, `status ${status}`);
+  expect(/Wear every hat at once\./.test(html), 'headline missing');
 });
 
 await check('pages keep their promises: no cookies, the real CSP, nosniff', async () => {
-  for (const path of ['/', '/privacy']) {
-    const { headers } = await fetch(APEX + path);
+  for (const path of PAGES) {
+    const { headers } = await page(path);
     expect(headers.getSetCookie().length === 0, `${path} sets ${headers.getSetCookie().join('; ')}`);
     expect(/script-src 'self';/.test(headers.get('content-security-policy') ?? ''), `${path} has no CSP`);
     expect(!/unsafe-inline/.test(headers.get('content-security-policy') ?? ''), `${path} allows inline code`);
@@ -72,14 +82,10 @@ await check('www redirects to the apex', async () => {
 });
 
 await check('live HTML references no other origin, so the edge injected nothing', async () => {
-  for (const path of ['/', '/privacy']) {
-    const html = await (await fetch(APEX + path)).text();
-    const resources = [...html.matchAll(/<(?:script|img|iframe|source|video|audio|embed)\b[^>]*?\ssrc=["'](https?:)?\/\/([^"']+)["']/g)].map((match) => match[2]);
-    const links = [...html.matchAll(/<link\b[^>]*>/g)]
-      .map(([tag]) => tag)
-      .filter((tag) => !/rel="canonical"/.test(tag) && /href="(https?:)?\/\//.test(tag));
-    const hosts = [...html.matchAll(/data-host-url="([^"]+)"/g)].map((match) => match[1]).filter((origin) => origin !== ALLOWED_ORIGIN);
-    expect(resources.length + links.length + hosts.length === 0, `${path}: ${[...resources, ...links, ...hosts].join(', ')}`);
+  for (const path of PAGES) {
+    const { html } = await page(path);
+    const foreign = foreignReferences(html, [ALLOWED_ORIGIN]);
+    expect(foreign.length === 0, `${path}: ${foreign.join(', ')}`);
     expect(!/email-decode|cdn-cgi\/|beacon\.min\.js/.test(html), `${path}: Cloudflare injected a script`);
   }
 });

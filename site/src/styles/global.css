@@ -18,6 +18,12 @@
   --accent: #1565c0;
   --term-bg: #0f1115;
   --term-ink: #e6e8eb;
+  --term-line: #2a2f37;
+  --term-light: #3a404a;
+  --term-selected: #262b33;
+  --term-dim: #b4bac4;
+  --term-muted: #9aa2af;
+  --term-control: #8a909c;
   --warn: #8a5a00;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -82,7 +88,8 @@ code {
   overflow-wrap: anywhere;
 }
 
-h1 {
+h1,
+.h1-sample {
   font-size: clamp(2.5rem, 6vw, 4.5rem);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -156,61 +163,11 @@ h1 {
   height: 100%;
 }
 
-.windows {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.window {
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-top-width: 3px;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.window-work {
-  border-top-color: #1565c0;
-}
-
-.window-personal {
-  border-top-color: #2e7d32;
-}
-
-.window-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.625rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.window-bar .tile {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.window-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.window-body {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.75rem 0.625rem 1rem;
-}
-
 .bar {
   display: block;
   height: 0.5rem;
   border-radius: 4px;
   background: var(--surface-2);
-}
-
-.bar-long {
-  width: 92%;
 }
 
 .bar-mid {
@@ -221,41 +178,8 @@ h1 {
   width: 44%;
 }
 
-.holding-header {
-  padding-block: 1.5rem;
-}
-
 .holding {
   padding-block: 2rem 4rem;
-}
-
-.install-list {
-  margin: 2rem 0;
-  max-width: 44rem;
-  background: var(--term-bg);
-  color: var(--term-ink);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-}
-
-.install-list div {
-  padding-block: 0.625rem;
-}
-
-.install-list dt {
-  font-size: 0.875rem;
-  color: var(--term-ink);
-  opacity: 0.8;
-}
-
-.install-list dd {
-  margin: 0;
-}
-
-.install-list code {
-  background: none;
-  padding: 0;
-  color: var(--term-ink);
 }
 
 .footer-links {
@@ -587,10 +511,11 @@ summary {
   user-select: none;
 }
 
-.copy {
+.copy,
+.session-toggle {
   flex: none;
   background: none;
-  border: 1px solid #8a909c;
+  border: 1px solid var(--term-control);
   border-radius: 6px;
   color: var(--term-ink);
   font: inherit;
@@ -614,7 +539,7 @@ summary {
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #2a2f37;
+  border-bottom: 1px solid var(--term-line);
 }
 
 .session-lights,
@@ -628,7 +553,7 @@ summary {
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 50%;
-  background: #3a404a;
+  background: var(--term-light);
 }
 
 @media (min-width: 640px) {
@@ -647,7 +572,7 @@ summary {
   background: none;
   border: 0;
   border-radius: 6px;
-  color: #b4bac4;
+  color: var(--term-dim);
   font: 400 0.8125rem/1 var(--font-mono);
   min-height: 2rem;
   padding: 0.25rem 0.625rem;
@@ -659,7 +584,7 @@ summary {
 }
 
 .session-tabs button[aria-selected='true'] {
-  background: #262b33;
+  background: var(--term-selected);
   color: var(--term-ink);
   font-weight: 700;
 }
@@ -726,7 +651,7 @@ summary {
 }
 
 .session-note {
-  color: #9aa2af;
+  color: var(--term-muted);
 }
 
 .session-line + .session-line:not(.session-out) {
@@ -763,7 +688,7 @@ summary {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.5rem 1rem 0.75rem;
-  border-top: 1px solid #2a2f37;
+  border-top: 1px solid var(--term-line);
 }
 
 .session-caption {
@@ -772,16 +697,7 @@ summary {
 }
 
 .session-toggle {
-  flex: none;
-  background: none;
-  border: 1px solid #8a909c;
-  border-radius: 6px;
-  color: var(--term-ink);
-  font: inherit;
-  font-size: 0.8125rem;
-  min-height: 1.75rem;
-  padding: 0.125rem 0.75rem;
-  cursor: pointer;
+  padding-inline: 0.75rem;
 }
 
 .session-desk {
@@ -867,15 +783,11 @@ summary {
   z-index: 3;
 }
 
-.session[data-desk~='default'] .desk-window-default,
-.session[data-desk~='work'] .desk-window-work,
-.session[data-desk~='personal'] .desk-window-personal {
+.desk-window[data-open] {
   display: flex;
 }
 
-.session[data-focus='default'] .desk-window-default,
-.session[data-focus='work'] .desk-window-work,
-.session[data-focus='personal'] .desk-window-personal {
+.desk-window[data-front] {
   z-index: 4;
   box-shadow: 0 0 0 1px var(--line-strong), 0 24px 44px -16px rgb(15 17 21 / 0.6);
 }
@@ -913,34 +825,24 @@ summary {
   font-weight: 600;
 }
 
-.session[data-focus='default'] .desk-window-default .desk-titlebar,
-.session[data-focus='work'] .desk-window-work .desk-titlebar,
-.session[data-focus='personal'] .desk-window-personal .desk-titlebar,
-.finder .desk-titlebar {
+/* The front window and the Finder have live controls; windows behind them are greyed out. */
+:is(.desk-window[data-front], .finder) .desk-titlebar {
   color: var(--ink);
 }
 
-.session[data-focus='default'] .desk-window-default .desk-lights span,
-.session[data-focus='work'] .desk-window-work .desk-lights span,
-.session[data-focus='personal'] .desk-window-personal .desk-lights span {
+:is(.desk-window[data-front], .finder) .desk-lights span {
   opacity: 1;
 }
 
-.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(1),
-.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(1),
-.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(1) {
+:is(.desk-window[data-front], .finder) .desk-lights span:nth-child(1) {
   background-color: #ff5f57;
 }
 
-.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(2),
-.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(2),
-.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(2) {
+:is(.desk-window[data-front], .finder) .desk-lights span:nth-child(2) {
   background-color: #febc2e;
 }
 
-.session[data-focus='default'] .desk-window-default .desk-lights span:nth-child(3),
-.session[data-focus='work'] .desk-window-work .desk-lights span:nth-child(3),
-.session[data-focus='personal'] .desk-window-personal .desk-lights span:nth-child(3) {
+:is(.desk-window[data-front], .finder) .desk-lights span:nth-child(3) {
   background-color: #28c840;
 }
 
@@ -1015,22 +917,6 @@ summary {
   border-radius: 10px;
   box-shadow: 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgb(15 17 21 / 0.5);
   overflow: hidden;
-}
-
-.finder .desk-lights span {
-  opacity: 1;
-}
-
-.finder .desk-lights span:nth-child(1) {
-  background-color: #ff5f57;
-}
-
-.finder .desk-lights span:nth-child(2) {
-  background-color: #febc2e;
-}
-
-.finder .desk-lights span:nth-child(3) {
-  background-color: #28c840;
 }
 
 .finder-nav {
@@ -1499,73 +1385,6 @@ summary {
 
 .final-cta .install {
   margin-bottom: 0.75rem;
-}
-
-.not-found {
-  padding-block: 3rem 5rem;
-}
-
-.brand-sheet {
-  padding-block: 2rem 4rem;
-}
-
-.brand-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-
-.tile-large {
-  width: 6rem;
-  height: 6rem;
-}
-
-.tile-tiny {
-  width: 1rem;
-  height: 1rem;
-}
-
-.h1-sample {
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  margin: 0 0 1.5rem;
-}
-
-.swatches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-  gap: 1rem;
-  list-style: none;
-  padding: 0;
-}
-
-.swatch {
-  display: block;
-  height: 3rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  margin-bottom: 0.25rem;
-}
-
-.swatch-bg { background: var(--bg); }
-.swatch-surface { background: var(--surface); }
-.swatch-surface-2 { background: var(--surface-2); }
-.swatch-line { background: var(--line); }
-.swatch-line-strong { background: var(--line-strong); }
-.swatch-ink { background: var(--ink); }
-.swatch-muted { background: var(--muted); }
-.swatch-accent { background: var(--accent); }
-.swatch-term-bg { background: var(--term-bg); }
-.swatch-term-ink { background: var(--term-ink); }
-.swatch-warn { background: var(--warn); }
-
-.brand-card {
-  display: block;
-  max-width: 100%;
-  height: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

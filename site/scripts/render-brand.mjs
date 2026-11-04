@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
+import { layoutRows, parseTable } from '../src/lib/table.ts';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
@@ -10,14 +11,13 @@ const font = readFileSync(join(ROOT, 'public/fonts/jetbrains-mono.var.woff2')).t
 const mark = read('public/favicon.svg');
 const tiles = ['tile-claude-app', 'tile-work', 'tile-personal', 'tile-acme'].map((name) => read(`src/assets/brand/${name}.svg`));
 
-const CARD_COLUMNS = 5;
-const rows = read('fixtures/hats-ps.txt')
-  .trim()
-  .split('\n')
-  .map((line) => line.split(/\s{2,}/).slice(0, CARD_COLUMNS));
-const shown = [rows[0], ...rows.slice(2)].map(([profile, kind, , status, age]) => [profile, kind, status, age]);
-const widths = shown[0].map((_, column) => Math.max(...shown.map((row) => row[column].length)));
-const terminal = shown.map((row) => row.map((cell, column) => cell.padEnd(widths[column])).join('  ')).join('\n');
+// The card has room for these columns, and for every row but the stock install's.
+const CARD_COLUMNS = ['PROFILE', 'KIND', 'STATUS', 'AGE'];
+const ps = parseTable(read('fixtures/hats-ps.txt'), 'hats ps');
+const columns = CARD_COLUMNS.map((header) => ps.headers.indexOf(header));
+const pick = (cells) => columns.map((column) => cells[column]);
+const shown = { headers: pick(ps.headers), rows: ps.rows.filter(([profile]) => profile !== 'default').map(pick) };
+const terminal = layoutRows(shown).map((cells) => cells.join('')).join('\n');
 
 const card = (width, height) => `<!doctype html><meta charset="utf-8"><style>
 @font-face { font-family: JBM; src: url(data:font/woff2;base64,${font}) format('woff2'); font-weight: 100 800; }

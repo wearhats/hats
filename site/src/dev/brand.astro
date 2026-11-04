@@ -2,10 +2,11 @@
 import Base from '../layouts/Base.astro';
 import Logo from '../components/Logo.astro';
 import Tile from '../components/Tile.astro';
-import WindowsIllustration from '../components/WindowsIllustration.astro';
+import { TILES, type TileName } from '../assets/brand/tiles';
+import './brand.css';
 
-const TOKENS = ['bg', 'surface', 'surface-2', 'line', 'line-strong', 'ink', 'muted', 'accent', 'term-bg', 'term-ink', 'warn'];
-const TILES = ['work', 'personal', 'acme', 'default', 'claude-app'] as const;
+const TOKENS = ['bg', 'surface', 'surface-2', 'line', 'line-strong', 'ink', 'muted', 'accent', 'term-bg', 'term-ink', 'term-line', 'term-light', 'term-selected', 'term-dim', 'term-muted', 'term-control', 'warn'];
+const TILE_NAMES = Object.keys(TILES) as TileName[];
 ---
 
 <Base path="/brand" title="Brand sheet" noindex>
@@ -21,8 +22,8 @@ const TILES = ['work', 'personal', 'acme', 'default', 'claude-app'] as const;
       <img src="/favicon-32.png" width="32" height="32" alt="" />
     </p>
     <h2>Launcher tiles</h2>
-    <p class="brand-row">{TILES.map((name) => <Tile name={name} class="tile-large" />)}</p>
-    <p class="brand-row">{TILES.map((name) => <Tile name={name} class="tile-tiny" />)}</p>
+    <p class="brand-row">{TILE_NAMES.map((name) => <Tile name={name} class="tile-large" />)}</p>
+    <p class="brand-row">{TILE_NAMES.map((name) => <Tile name={name} class="tile-tiny" />)}</p>
     <h2>Tokens</h2>
     <ul class="swatches">
       {
@@ -38,8 +39,6 @@ const TILES = ['work', 'personal', 'acme', 'default', 'claude-app'] as const;
     <p class="h1-sample">Wear every hat at once.</p>
     <p>Body text in the system stack. Short sentences, facts over adjectives.</p>
     <p><code>hats ps --profile work</code></p>
-    <h2>Illustration</h2>
-    <WindowsIllustration />
     <h2>Social cards</h2>
     <p><img class="brand-card" src="/og/home.png" width="1200" height="630" alt="Open Graph card" /></p>
   </main>

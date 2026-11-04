@@ -70,7 +70,8 @@ const READING_MS_PER_LINE = 200;
  * on the last. The markup already holds every scene in full: this only hides and reveals, so the
  * text stays for readers without JavaScript and for search engines. Reduced motion skips playback.
  * The desktop beside `hats open` follows `data-desk` (open windows) and `data-focus` (the front one),
- * and the launchers in its Hats folder open or focus a window the way `hats open` does.
+ * mirrored onto each window as `data-open` and `data-front`, and the launchers in its Hats folder
+ * open or focus a window the way `hats open` does.
  */
 function setUpSession(root: HTMLElement) {
   const toggle = root.querySelector<HTMLButtonElement>('[data-session-toggle]')!;
@@ -85,11 +86,17 @@ function setUpSession(root: HTMLElement) {
   let autoplay: IntersectionObserver | undefined;
   const visitorTookOver = () => autoplay?.disconnect();
 
-  const setDesk = (desk: string, focus: string) => {
-    root.dataset.desk = desk;
-    root.dataset.focus = focus;
-  };
   const desk = root.querySelector<HTMLElement>('.session-desk')!;
+  const windows = [...desk.querySelectorAll<HTMLElement>('[data-window]')];
+  const setDesk = (open: string, focus: string) => {
+    root.dataset.desk = open;
+    root.dataset.focus = focus;
+    const opened = open.split(' ');
+    for (const deskWindow of windows) {
+      deskWindow.toggleAttribute('data-open', opened.includes(deskWindow.dataset.window!));
+      deskWindow.toggleAttribute('data-front', deskWindow.dataset.window === focus);
+    }
+  };
   const deskStatus = desk.querySelector('[data-desk-status]')!;
   const launchers = [...desk.querySelectorAll<HTMLButtonElement>('[data-launch]')];
   const showDesk = (when: 'Start' | 'End') => {
@@ -97,8 +104,11 @@ function setUpSession(root: HTMLElement) {
     for (const launcher of launchers) launcher.removeAttribute('data-picked');
     deskStatus.textContent = '';
   };
-  const showScene = (tab: HTMLButtonElement) => {
+  const setScene = (tab: HTMLButtonElement) => {
     root.dataset.scene = tab.id.replace('session-tab-', '');
+  };
+  const showScene = (tab: HTMLButtonElement) => {
+    setScene(tab);
     showDesk('End');
   };
   let beforeLaunch = () => {};
@@ -118,9 +128,7 @@ function setUpSession(root: HTMLElement) {
     current = tabs.indexOf(tab);
     if (reduceMotion) return showScene(tab);
     visitorTookOver();
-    stop();
-    resumeAt = (current + 1) % tabs.length;
-    setToggle(resumeAt === 0 ? 'Replay' : 'Play');
+    stopAfterCurrent();
     const mine = generation;
     playing = true;
     void playScene(tab, false, mine).then((finished) => {
@@ -155,6 +163,12 @@ function setUpSession(root: HTMLElement) {
     tabs.forEach(showWhole);
     showScene(tabs[current]);
   };
+  /** Stops on the current scene, so Play resumes with the next one. */
+  const stopAfterCurrent = () => {
+    stop();
+    resumeAt = (current + 1) % tabs.length;
+    setToggle(resumeAt === 0 ? 'Replay' : 'Play');
+  };
 
   async function type(element: HTMLElement, msPerKey: number, mine: number): Promise<boolean> {
     const text = fullText.get(element)!;
@@ -172,7 +186,7 @@ function setUpSession(root: HTMLElement) {
   async function playScene(tab: HTMLButtonElement, lineByLine: boolean, mine: number): Promise<boolean> {
     const screen = screenOf(tab);
     const lines = [...screen.querySelectorAll<HTMLElement>('.session-out')];
-    root.dataset.scene = tab.id.replace('session-tab-', '');
+    setScene(tab);
     showDesk('Start');
     screen.dataset.pending = '';
     screen.setAttribute('aria-busy', 'true');
@@ -223,10 +237,7 @@ function setUpSession(root: HTMLElement) {
 
   // A launcher acts on the final frame, so a playback still changing the desk has to end first.
   beforeLaunch = () => {
-    if (!playing) return;
-    stop();
-    resumeAt = (current + 1) % tabs.length;
-    setToggle(resumeAt === 0 ? 'Replay' : 'Play');
+    if (playing) stopAfterCurrent();
   };
   setToggle('Play');
   toggle.hidden = false;

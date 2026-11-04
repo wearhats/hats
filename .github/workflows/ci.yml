@@ -106,11 +106,22 @@ jobs:
           cache-dependency-path: site/pnpm-lock.yaml
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Find the Playwright version
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Install zsh
-        # The uninstall test pastes the commands into zsh, the default macOS shell.
-        run: sudo apt-get install -y --no-install-recommends zsh
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
+      - name: Install system packages
+        # Chromium's libraries, and zsh: the uninstall test pastes the commands into zsh, the default macOS shell.
+        run: |
+          pnpm exec playwright install-deps chromium
+          sudo apt-get install -y --no-install-recommends zsh
       - name: Build
         run: pnpm run build
       - name: Built output, CSP, axe
