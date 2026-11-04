@@ -108,6 +108,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
+      - name: Install zsh
+        # The uninstall test pastes the commands into zsh, the default macOS shell.
+        run: sudo apt-get install -y --no-install-recommends zsh
       - name: Build
         run: pnpm run build
       - name: Built output, CSP, axe

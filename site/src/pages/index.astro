@@ -258,12 +258,14 @@ const structuredData = JSON.stringify({
           <div>
             <dt>Uninstall</dt>
             <dd>
-              <pre class="uninstall" role="group" tabindex="0" aria-label="Uninstall commands">hats dock unpin && hats rm --all --purge &&   # launchers, their copies, Dock tiles; data to the Trash
+              <pre class="uninstall" role="group" tabindex="0" aria-label="Uninstall commands">hats dock unpin && hats rm --all --purge &&
   rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats" &&
-  brew uninstall hats                         # or: rm ~/.local/bin/hats</pre>
+  brew uninstall hats</pre>
               <p class="aside">
-                The commands are chained, so a refused or mistyped purge stops there and nothing gets deleted outright.
-                Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins stay in your Keychain as
+                If you installed with the script, replace <code>brew uninstall hats</code> with
+                <code>rm ~/.local/bin/hats</code>. <code>hats rm --all --purge</code> removes the launchers, their copies and
+                Dock tiles, and moves profile data to the Trash. The commands are chained, so a refused or mistyped purge
+                stops there and nothing gets deleted outright. Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins stay in your Keychain as
                 <code>Claude Code-credentials-&lt;hash&gt;</code> items; delete them in Keychain Access if you no longer need
                 them (<code>hats rm --purge</code> prints the exact name). Your default Claude install was never modified, so
                 there's nothing to restore. <code>brew untap wearhats/tap</code> removes the tap too.

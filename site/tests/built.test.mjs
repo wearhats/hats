@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DIST, SITE_ROOT, filesIn, gzipSize, htmlFiles, read, rel, visibleText } from './support.mjs';
 
@@ -150,9 +152,52 @@ test('/install.sh is never part of the site', () => {
   assert.ok(!filesIn(DIST).some((file) => file.endsWith('install.sh')));
 });
 
-test('the uninstall steps stop if the purge is refused', () => {
-  for (const source of [read(join(SITE_ROOT, '../README.md')), home.html.replace(/&amp;/g, '&')]) {
-    assert.match(source, /hats rm --all --purge &&[^\n]*\n\s*rm -rf [^\n]*&&\n\s*brew uninstall hats/);
+const uninstallBlocks = () => [
+  ['README.md', read(join(SITE_ROOT, '../README.md')).match(/^hats dock unpin[\s\S]*?^\s*brew uninstall hats.*$/m)[0]],
+  ['index.html', decodeEntities(home.html.match(/<pre class="uninstall"[^>]*>([\s\S]*?)<\/pre>/)[1])],
+];
+
+const decodeEntities = (html) =>
+  html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&amp;/g, '&');
+
+// Pasted into a terminal: stock zsh has interactivecomments off, so an inline `#` would end the chain.
+const SHELLS = [
+  ['zsh', '-f', '-i'],
+  ['bash', '--norc', '-i'],
+  ['sh', '-i'],
+];
+
+function pasteIntoShell(shell, block) {
+  const home = mkdtempSync(join(tmpdir(), 'hats-uninstall-'));
+  const bin = join(home, 'bin');
+  const log = join(home, 'calls.log');
+  mkdirSync(bin);
+  const stub = (name, body) => writeFileSync(join(bin, name), `#!/bin/sh\necho "${name} $*" >> "$CALLS"\n${body}\n`, { mode: 0o755 });
+  stub('hats', '[ "$1" = rm ] && exit 1; exit 0');
+  stub('rm', 'exit 0');
+  stub('brew', 'exit 0');
+  writeFileSync(log, '');
+  try {
+    spawnSync(shell[0], shell.slice(1), {
+      input: `${block}\nexit\n`,
+      env: { HOME: home, PATH: `${bin}:/usr/bin:/bin`, CALLS: log, TERM: 'dumb' },
+      cwd: home,
+      stdio: ['pipe', 'ignore', 'ignore'],
+      timeout: 10_000,
+    });
+    return read(log).trim().split('\n');
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
+
+test('pasted into any shell, the uninstall steps stop when the purge is refused', () => {
+  for (const [source, block] of uninstallBlocks()) {
+    assert.match(block, /hats rm --all --purge &&/, source);
+    for (const shell of SHELLS) {
+      const calls = pasteIntoShell(shell, block);
+      assert.deepEqual(calls, ['hats dock unpin', 'hats rm --all --purge'], `${source} in ${shell.join(' ')}`);
+    }
   }
 });
 

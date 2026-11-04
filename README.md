@@ -136,15 +136,19 @@ running instead of the new one. If that happens, quit the other Claude windows
 ## Uninstall
 
 ```sh
-hats dock unpin && hats rm --all --purge &&   # launchers, their copies, Dock tiles; data to the Trash
+hats dock unpin && hats rm --all --purge &&
   rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats" &&
-  brew uninstall hats                         # or: rm ~/.local/bin/hats
+  brew uninstall hats
 ```
 
-The commands are chained so that a refused or mistyped `rm --purge` stops
-there, and `rm -rf` never deletes data that didn't reach the Trash. `rm` also
-removes the launcher copies hats placed (for example on the
-Desktop); delete any you moved elsewhere by hand. Claude Code's own logins for
+If you installed with the script, replace `brew uninstall hats` with
+`rm ~/.local/bin/hats`. `hats rm --all --purge` removes the launchers, the
+launcher copies hats placed (for example on the Desktop) and their Dock tiles,
+and moves profile data to the Trash. The commands are chained so that a refused
+or mistyped `rm --purge` stops there, and `rm -rf` never deletes data that
+didn't reach the Trash. The block has no inline comments, because zsh, the
+default macOS shell, doesn't treat `#` as a comment when you paste into it.
+Delete any launcher copies you moved elsewhere by hand. Claude Code's own logins for
 profile config dirs stay in your Keychain as `Claude Code-credentials-<hash>`
 items; delete them in Keychain Access if you no longer need them (`hats rm
 --purge` prints the exact name). Your default Claude install was never
