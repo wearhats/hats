@@ -52,7 +52,8 @@ so a change to a claim, command or status updates both in the same pull request.
 ## Website
 
 `site/` is the wearhats.dev source: static Astro, no client framework, deployed
-to Cloudflare Workers static assets from `main`.
+to Cloudflare Workers static assets by CI's `deploy-site` job on `main` (see
+[releasing](docs/releasing.md#the-website)).
 
 - Run it with `just site-dev`, and test it with `just site-check`.
 - `just check` stays Swift only. The `site` CI job runs on every pull request,
