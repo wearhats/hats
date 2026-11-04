@@ -28,7 +28,7 @@ existing install alone:
 | | Stock install (`default`) | `hats add personal` |
 |---|---|---|
 | Desktop chats, login, connectors, MCP | `~/Library/Application Support/Claude` | `…/hats/profiles/personal/desktop` |
-| `claude` CLI and Desktop's Code tab (Cowork: expected, being verified) | `~/.claude` | `…/hats/profiles/personal/code` |
+| `claude` CLI, Desktop's Code tab and Cowork | `~/.claude` | `…/hats/profiles/personal/code` |
 | How you open it | Claude.app | `Claude (Personal).app`, or `hats open personal` |
 
 - **Never touches Claude.app or your default install.** No renaming, symlinking,
