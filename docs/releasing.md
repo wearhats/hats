@@ -41,6 +41,31 @@ release, with its repository name filled in, and the domain never serves
 anything a release didn't build. Use a temporary redirect, because clients may
 cache a permanent one. The long GitHub URL keeps working if the domain is down.
 
+## The website
+
+`site/` deploys to the `wearhats-site` Worker (static assets only) on every push
+to `main` that passes the `site` CI job. The `deploy-site` job ships the `dist/`
+that the `site` job built and tested, through `wrangler deploy`, and the live
+site check runs right after it. Runs on `main` queue rather than cancel each
+other, so a deploy is never cut off halfway.
+
+The apex `wearhats.dev` is the canonical origin, attached to the Worker as a
+custom domain in `site/wrangler.jsonc`. Two zone redirect rules run before the
+Worker: `/install.sh` (above), and `www.wearhats.dev/*` to the apex with a 301
+that keeps the path and query. The Worker has no `workers.dev` or preview URL,
+so the site has one origin.
+
+Credentials live in the `site` environment on `wearhats/hats` (deployment
+branches: `main` only):
+
+| Name | Kind | Used for |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | secret | API token with Account › Workers Scripts: Edit and Zone › Workers Routes: Edit on `wearhats.dev` only |
+| `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account that owns the Worker and the zone |
+
+To roll back, run `pnpm exec wrangler rollback` in `site/`, or revert the commit
+on `main`.
+
 ## Release assets
 
 Each GitHub Release carries:
