@@ -55,9 +55,6 @@ existing install alone:
 
 ## Install
 
-> **Not released yet.** Until the first release is out, the Homebrew and
-> script installs below don't work; build from source instead.
-
 Requires macOS 14+, Claude Desktop, and (for `run`) Claude Code.
 
 ```sh
