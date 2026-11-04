@@ -41,7 +41,10 @@ struct Setup: AsyncParsableCommand {
             print("$ hats add \(name)")
             added.append(try create(name, adopting: nil, context: context))
         }
-        guard !added.isEmpty else { return printNextSteps() }
+        guard !added.isEmpty else {
+            try offerApplicationsLink(context: context)
+            return printNextSteps()
+        }
 
         let names = added.map(\.name.rawValue).joined(separator: " ")
         if try Prompt.confirm("\nPin the new launcher(s) to the Dock? This restarts the Dock.", default: true) {
@@ -70,15 +73,40 @@ struct Setup: AsyncParsableCommand {
         printNextSteps()
     }
 
-    /// A failed link doesn't stop setup: the launchers work without it.
+    /// Asks only when a Yes can succeed: another account's link stays, and a
+    /// standard account can't write to the Applications dir, so those get a note
+    /// or nothing. Defaults to No because every account on this Mac sees the
+    /// folder. A failed link doesn't stop setup: the launchers work without it.
     private func offerApplicationsLink(context: Context) throws {
         let link = context.applicationsLink
         switch link.state() {
-        case .ours, .notNeeded: return
-        case .absent, .stale, .foreign: break
+        case .ours, .notNeeded, .foreign:
+            return
+        case .stale(let destination):
+            print(
+                """
+
+                \(link.url.plainPath) links to \(destination), not to your launcher dir \(link.launcherDir.plainPath). \
+                To show the launchers in Finder's Applications folder, run: hats launcher unlink && hats launcher link
+                """)
+            return
+        case .absent:
+            break
         }
-        let question = "Also show them in Finder's Applications folder? This adds a link at \(link.url.plainPath)."
-        guard try Prompt.confirm(question, default: true) else { return }
+        guard link.canWriteApplicationsDir else {
+            print(
+                """
+
+                To show the launchers in Finder's Applications folder, where other accounts on this Mac see them too, \
+                an admin account can run: \(link.manualCommand)
+                """)
+            return
+        }
+        let question = """
+            Also show the launchers in Finder's Applications folder? This adds a link at \(link.url.plainPath), \
+            and other accounts on this Mac will see the folder too.
+            """
+        guard try Prompt.confirm(question, default: false) else { return }
         print("$ hats launcher link")
         do {
             try context.linkApplications()
