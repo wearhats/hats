@@ -78,8 +78,12 @@ function setUpSession(root: HTMLElement) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // A newer playback, a pause or a tab the visitor picked bumps this, and older loops stop at their next step.
   let generation = 0;
+  // True from the start of a playback until it ends or is stopped, including the pauses between scenes.
+  let playing = false;
   let resumeAt = 0;
   let current = 0;
+  let autoplay: IntersectionObserver | undefined;
+  const visitorTookOver = () => autoplay?.disconnect();
 
   const setDesk = (desk: string, focus: string) => {
     root.dataset.desk = desk;
@@ -87,15 +91,20 @@ function setUpSession(root: HTMLElement) {
   };
   const desk = root.querySelector<HTMLElement>('.session-desk')!;
   const deskStatus = desk.querySelector('[data-desk-status]')!;
-  const showDesk = (when: 'Start' | 'End') => setDesk(desk.dataset[`desk${when}`]!, desk.dataset[`focus${when}`]!);
+  const launchers = [...desk.querySelectorAll<HTMLButtonElement>('[data-launch]')];
+  const showDesk = (when: 'Start' | 'End') => {
+    setDesk(desk.dataset[`desk${when}`]!, desk.dataset[`focus${when}`]!);
+    for (const launcher of launchers) launcher.removeAttribute('data-picked');
+    deskStatus.textContent = '';
+  };
   const showScene = (tab: HTMLButtonElement) => {
     root.dataset.scene = tab.id.replace('session-tab-', '');
     showDesk('End');
   };
   let beforeLaunch = () => {};
-  const launchers = [...desk.querySelectorAll<HTMLButtonElement>('[data-launch]')];
   for (const launcher of launchers) {
     launcher.addEventListener('click', () => {
+      visitorTookOver();
       beforeLaunch();
       for (const other of launchers) other.toggleAttribute('data-picked', other === launcher);
       const id = launcher.dataset.launch!;
@@ -108,10 +117,15 @@ function setUpSession(root: HTMLElement) {
   const { tabs, select } = setUpTabs(root, (tab) => {
     current = tabs.indexOf(tab);
     if (reduceMotion) return showScene(tab);
+    visitorTookOver();
     stop();
     resumeAt = (current + 1) % tabs.length;
     setToggle(resumeAt === 0 ? 'Replay' : 'Play');
-    void playScene(tab, false, generation);
+    const mine = generation;
+    playing = true;
+    void playScene(tab, false, mine).then((finished) => {
+      if (finished) playing = false;
+    });
   });
   if (reduceMotion) return;
 
@@ -137,6 +151,7 @@ function setUpSession(root: HTMLElement) {
   };
   const stop = () => {
     generation += 1;
+    playing = false;
     tabs.forEach(showWhole);
     showScene(tabs[current]);
   };
@@ -190,6 +205,7 @@ function setUpSession(root: HTMLElement) {
   async function play(from: number) {
     stop();
     const mine = generation;
+    playing = true;
     setToggle('Pause');
     for (current = from; current < tabs.length; current += 1) {
       const tab = tabs[current];
@@ -201,11 +217,13 @@ function setUpSession(root: HTMLElement) {
     }
     current = tabs.length - 1;
     resumeAt = 0;
+    playing = false;
     setToggle('Replay');
   }
 
+  // A launcher acts on the final frame, so a playback still changing the desk has to end first.
   beforeLaunch = () => {
-    if (toggle.dataset.state !== 'pause') return;
+    if (!playing) return;
     stop();
     resumeAt = (current + 1) % tabs.length;
     setToggle(resumeAt === 0 ? 'Replay' : 'Play');
@@ -213,6 +231,7 @@ function setUpSession(root: HTMLElement) {
   setToggle('Play');
   toggle.hidden = false;
   toggle.addEventListener('click', () => {
+    visitorTookOver();
     if (toggle.dataset.state === 'pause') {
       resumeAt = current;
       stop();
@@ -222,12 +241,12 @@ function setUpSession(root: HTMLElement) {
     }
   });
 
-  const observer = new IntersectionObserver((entries) => {
+  autoplay = new IntersectionObserver((entries) => {
     if (!entries.some((entry) => entry.isIntersecting)) return;
-    observer.disconnect();
+    visitorTookOver();
     void play(0);
   }, { threshold: 0.4 });
-  observer.observe(root);
+  autoplay.observe(root);
 }
 
 function setUpDisclosure() {

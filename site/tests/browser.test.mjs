@@ -228,6 +228,48 @@ test('hats open splits the screen, and the launchers in its Hats folder open or 
   await context.close();
 });
 
+test('a launcher clicked during a replay keeps its window when the replay ends', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.clock.install();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.locator('#session-tab-open').click();
+  await page.getByRole('button', { name: 'Claude (Personal)' }).click();
+  await page.clock.runFor(10_000);
+  assert.equal(await page.locator('.desk-window-personal').isVisible(), true);
+  assert.equal(await session(page).getAttribute('data-focus'), 'personal');
+  assert.equal(await page.locator('[data-launch="personal"][data-picked]').count(), 1);
+  await page.close();
+});
+
+test('autoplay never overrides a command the visitor picked before the session came into view', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 120 } });
+  await page.clock.install();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  const toggle = page.locator('[data-session-toggle]');
+  assert.equal(await toggle.textContent(), 'Play', 'too little of the session shows for autoplay to start');
+  await page.locator('#session-tab-ls').dispatchEvent('click');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.clock.runFor(3000);
+  assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ls');
+  assert.equal(await toggle.textContent(), 'Play');
+  await page.close();
+});
+
+test('a desk reset also clears the picked launcher and its announcement', async () => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(server.origin, { waitUntil: 'networkidle' });
+  await page.locator('#session-tab-open').click();
+  await page.getByRole('button', { name: 'Claude (Personal)' }).click();
+  await page.locator('#session-tab-ls').click();
+  await page.locator('#session-tab-open').click();
+  assert.equal(await page.locator('.desk-window-personal').isVisible(), false);
+  assert.equal(await page.locator('[data-picked]').count(), 0);
+  assert.equal(await page.locator('[data-desk-status]').textContent(), '');
+  await context.close();
+});
+
 test('with reduced motion the session is plain tabs, by keyboard too', async () => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
