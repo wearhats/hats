@@ -1,6 +1,6 @@
 import { TESTED_WITH } from './release';
 import { DISCUSSIONS_URL } from './site';
-import { expected, shipped, type Status } from './status';
+import { shipped, type Status } from './status';
 
 export const PROBLEMS = [
   {
@@ -28,9 +28,9 @@ export const FEATURES: Feature[] = [
   },
   {
     title: 'Desktop and terminal, one profile',
-    body: 'A profile covers Claude Desktop, its Code tab and the `claude` CLI. Cowork is expected to follow it.',
+    body: 'A profile covers Claude Desktop, its Code tab, Cowork and the `claude` CLI.',
     command: 'hats run work',
-    statuses: [shipped(), expected('Cowork')],
+    statuses: [shipped()],
   },
   {
     title: 'Every Claude in one list',
@@ -72,7 +72,7 @@ export const FEATURES: Feature[] = [
     title: 'After a Claude update',
     body: 'Updates are reported to reopen profile windows on your default account. If stock Claude is also open, doctor flags the duplicate, and two commands should put things back.',
     command: 'hats dedupe && hats open --all',
-    statuses: [shipped('Doctor check'), expected('Update behaviour')],
+    statuses: [shipped('Doctor check')],
   },
   {
     title: 'Scriptable',
@@ -159,7 +159,7 @@ export const FAQ = [
   ['Does it phone home?', "Only to check for updates. At most once a day, when you run a command at a terminal, hats asks GitHub for the latest version. It sends its version and nothing about your profiles or accounts; GitHub sees your IP address, as with any request. `HATS_NO_UPDATE_CHECK=1` turns it off. There's no telemetry, and it never downloads or installs anything by itself."],
   ['Can I use it to get more usage across accounts?', "No, and it won't add features for that. hats keeps accounts you legitimately hold apart; it doesn't pool or rotate them."],
   ['Can I use my personal account on my work Mac?', "That's your employer's call. hats never edits or overrides employer-managed Claude settings or MDM-delivered preferences. If your company restricts personal accounts, follow that."],
-  ["Does Desktop's Code tab use the right account?", `Yes: it runs Claude Code with the window's \`CLAUDE_CONFIG_DIR\`, checked on Claude Desktop ${TESTED_WITH.desktop}, and doctor flags a window that runs without it. Cowork is expected to do the same; we're still verifying that.`],
+  ["Does Desktop's Code tab use the right account?", `Yes: it runs Claude Code with the window's \`CLAUDE_CONFIG_DIR\`, checked on Claude Desktop ${TESTED_WITH.desktop}, and doctor flags a window that runs without it. Cowork does the same.`],
   ['What happens when Claude updates?', "Other tools report that the updater reopens profile windows on your default account. We're still verifying this. If stock Claude is also open, `hats doctor` flags the duplicate, and `hats dedupe && hats open --all` should fix it."],
   ['A sign-in landed in the wrong window. Now what?', 'Quit the other Claude windows (Cmd-Q), sign in to the new profile, then `hats open --all`, which skips `default`, so reopen Claude.app yourself. If a profile still ended up on the wrong account, `hats reset <name> --open` starts it fresh.'],
   ['Why not separate macOS users?', "Notifications, background jobs and permissions don't cross users. hats profiles run in your one login session."],

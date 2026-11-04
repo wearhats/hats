@@ -91,7 +91,6 @@ test('status labels are defined in one file', () => {
   for (const file of others) {
     assert.doesNotMatch(read(file), /Expected, being verified|['"`]Shipped['"`]/, rel(file, SITE_ROOT));
   }
-  assert.match(home.text, /Cowork: expected, being verified/);
 });
 
 test('the page metadata follows the content plan', () => {
