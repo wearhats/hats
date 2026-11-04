@@ -43,7 +43,7 @@ public struct ApplicationsLink: Sendable {
     }
 
     public func state() -> State {
-        if Self.isSameOrInside(launcherDir, applicationsDir) { return .notNeeded }
+        if launcherDirIsInApplicationsDir { return .notNeeded }
         let fm = FileManager.default
         guard let destination = try? fm.destinationOfSymbolicLink(atPath: url.plainPath) else {
             return (try? fm.attributesOfItem(atPath: url.plainPath)) == nil ? .absent : .foreign(destination: nil)
@@ -52,8 +52,12 @@ public struct ApplicationsLink: Sendable {
             destination.hasPrefix("/")
             ? URL(filePath: destination, directoryHint: .isDirectory)
             : applicationsDir.appending(path: destination, directoryHint: .isDirectory)
-        if Self.isSame(target, launcherDir) { return .ours(dangling: !fm.fileExists(atPath: url.plainPath)) }
-        if Self.isSameOrInside(target, home) { return .stale(destination: destination) }
+        let targetPath = target.canonicalPath
+        if targetPath == launcherDir.canonicalPath { return .ours(dangling: !fm.fileExists(atPath: url.plainPath)) }
+        let homePath = home.canonicalPath
+        if targetPath == homePath || Layout.isStrictlyInside(URL(filePath: targetPath), root: URL(filePath: homePath)) {
+            return .stale(destination: destination)
+        }
         return .foreign(destination: destination)
     }
 
@@ -146,27 +150,10 @@ public struct ApplicationsLink: Sendable {
         }
     }
 
-    private static func isSame(_ lhs: URL, _ rhs: URL) -> Bool {
-        canonical(lhs) == canonical(rhs)
-    }
-
-    private static func isSameOrInside(_ url: URL, _ root: URL) -> Bool {
-        let path = canonical(url)
-        let parent = canonical(root)
-        return path == parent || path.hasPrefix(parent == "/" ? "/" : parent + "/")
-    }
-
-    /// `canonicalPath` of the deepest part that exists, plus the rest. A missing
-    /// launcher dir is common, and `canonicalPath` resolves a missing path
-    /// differently from an existing one (on macOS it strips `/private` only from
-    /// the existing one), so comparing them directly would miss a match.
-    static func canonical(_ url: URL) -> String {
-        var existing = url.standardizedFileURL
-        var missing: [String] = []
-        while !FileManager.default.fileExists(atPath: existing.plainPath), existing.plainPath != "/" {
-            missing.insert(existing.lastPathComponent, at: 0)
-            existing = existing.deletingLastPathComponent()
-        }
-        return missing.reduce(existing.canonicalPath) { $0 == "/" ? "/" + $1 : $0 + "/" + $1 }
+    private var launcherDirIsInApplicationsDir: Bool {
+        let launcherPath = launcherDir.canonicalPath
+        let applicationsPath = applicationsDir.canonicalPath
+        return launcherPath == applicationsPath
+            || Layout.isStrictlyInside(URL(filePath: launcherPath), root: URL(filePath: applicationsPath))
     }
 }

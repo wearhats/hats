@@ -113,8 +113,19 @@ extension URL {
     }
 
     /// Canonical string form for equality checks between paths that came from
-    /// different sources (argv, env, our own layout).
+    /// different sources (argv, env, our own layout). A missing path canonicalizes
+    /// like its deepest existing parent plus the rest, so a path compares the same
+    /// before and after it exists: `resolvingSymlinksInPath` alone resolves a
+    /// missing path differently (on macOS it strips `/private` only from an
+    /// existing one, and leaves symlinks in a missing path's parents unresolved).
     var canonicalPath: String {
-        standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false).trimmingSuffix("/")
+        var existing = absoluteURL.standardizedFileURL
+        var missing: [String] = []
+        while !FileManager.default.fileExists(atPath: existing.plainPath), existing.plainPath != "/" {
+            missing.insert(existing.lastPathComponent, at: 0)
+            existing = existing.deletingLastPathComponent()
+        }
+        let resolved = existing.resolvingSymlinksInPath().plainPath
+        return missing.reduce(resolved) { $0 == "/" ? "/" + $1 : $0 + "/" + $1 }
     }
 }
