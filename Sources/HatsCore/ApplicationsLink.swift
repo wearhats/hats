@@ -2,21 +2,24 @@ import Foundation
 
 /// `/Applications/Hats`, a symlink to the launcher dir. Finder's sidebar shows
 /// `/Applications`, not the home folder's Applications, so without the link people
-/// don't find the launchers. Made only on request, and hats only ever removes a
-/// link that points at this user's launcher dir.
+/// don't find the launchers. Made only on request. Every account on the Mac shares
+/// `/Applications`, so hats only removes a link to this user's launcher dir or one
+/// this account made.
 public struct ApplicationsLink: Sendable {
     public static let name = "Hats"
 
     public enum State: Equatable, Sendable {
-        /// The launcher dir is already inside the Applications dir.
+        /// The launcher dir is the Applications dir or inside it, and nothing of
+        /// ours is at the link's path.
         case notNeeded
         case absent
-        /// A link to this user's launcher dir. It dangles when that dir is missing.
+        /// A link to this user's launcher dir, whoever made it. It dangles when
+        /// that dir is missing.
         case ours(dangling: Bool)
-        /// A link into this user's home that isn't the launcher dir, such as one
-        /// left from before `HATS_LAUNCHER_DIR` changed.
+        /// A link this account made that points elsewhere, such as one left from
+        /// before `HATS_LAUNCHER_DIR` changed.
         case stale(destination: String)
-        /// Another user's link (`destination`), or anything that isn't a link (`nil`).
+        /// Another account's link (`destination`), or anything that isn't a link (`nil`).
         case foreign(destination: String?)
     }
 
@@ -43,22 +46,25 @@ public struct ApplicationsLink: Sendable {
     }
 
     public func state() -> State {
-        if launcherDirIsInApplicationsDir { return .notNeeded }
         let fm = FileManager.default
-        guard let destination = try? fm.destinationOfSymbolicLink(atPath: url.plainPath) else {
-            return (try? fm.attributesOfItem(atPath: url.plainPath)) == nil ? .absent : .foreign(destination: nil)
+        guard let attributes = try? fm.attributesOfItem(atPath: url.plainPath) else {
+            return launcherDirIsInApplicationsDir ? .notNeeded : .absent
+        }
+        guard (attributes[.type] as? FileAttributeType) == .typeSymbolicLink,
+            let destination = try? fm.destinationOfSymbolicLink(atPath: url.plainPath)
+        else {
+            return launcherDirIsInApplicationsDir ? .notNeeded : .foreign(destination: nil)
         }
         let target =
             destination.hasPrefix("/")
             ? URL(filePath: destination, directoryHint: .isDirectory)
             : applicationsDir.appending(path: destination, directoryHint: .isDirectory)
-        let targetPath = target.canonicalPath
-        if targetPath == launcherDir.canonicalPath { return .ours(dangling: !fm.fileExists(atPath: url.plainPath)) }
-        let homePath = home.canonicalPath
-        if targetPath == homePath || Layout.isStrictlyInside(URL(filePath: targetPath), root: URL(filePath: homePath)) {
-            return .stale(destination: destination)
-        }
-        return .foreign(destination: destination)
+        if target.canonicalPath == launcherDir.canonicalPath { return .ours(dangling: !fm.fileExists(atPath: url.plainPath)) }
+        return ownerID(attributes) == accountID ? .stale(destination: destination) : .foreign(destination: destination)
+    }
+
+    public var canWriteApplicationsDir: Bool {
+        FileManager.default.isWritableFile(atPath: applicationsDir.plainPath)
     }
 
     /// Creates the link, and the launcher dir if it is missing so the link never
@@ -77,8 +83,10 @@ public struct ApplicationsLink: Sendable {
         case .absent:
             break
         }
-        guard FileManager.default.isWritableFile(atPath: applicationsDir.plainPath) else { throw needsAdmin }
+        // Before the check: the command printed for an admin must not make a
+        // dangling link, and the launcher dir is hats' own.
         try createLauncherDir()
+        guard canWriteApplicationsDir else { throw needsAdmin }
         do {
             try FileManager.default.createSymbolicLink(atPath: url.plainPath, withDestinationPath: launcherDir.plainPath)
         } catch let error as CocoaError where error.code == .fileWriteNoPermission {
@@ -89,16 +97,17 @@ public struct ApplicationsLink: Sendable {
         return .created
     }
 
-    /// Removes the link itself, never what it points at, and only when it is ours.
+    /// Removes the link itself, never what it points at, and only when it is
+    /// ours or this account's.
     @discardableResult
     public func unlink() throws(HatsError) -> UnlinkOutcome {
         let state = state()
         switch state {
         case .notNeeded, .absent:
             return .notLinked
-        case .stale, .foreign:
+        case .foreign:
             throw refusal(state)
-        case .ours:
+        case .ours, .stale:
             break
         }
         do {
@@ -106,19 +115,22 @@ public struct ApplicationsLink: Sendable {
         } catch let error as CocoaError where error.code == .fileWriteNoPermission {
             throw HatsError(
                 .environment, "only an admin account can remove \(url.plainPath)",
-                hint: "from an admin account, run: rm \(LauncherBuilder.shellQuote(url.plainPath))")
+                hint: "from an admin account, run: sudo rm \(LauncherBuilder.shellQuote(url.plainPath))")
         } catch {
             throw HatsError(.io, "cannot remove \(url.plainPath): \(error.localizedDescription)")
         }
         return .removed
     }
 
-    /// The command an admin can run instead of `link`.
+    /// The command an admin can run instead of `link`. With `sudo` the link
+    /// belongs to root rather than to the admin's account, whose own hats would
+    /// otherwise take it for a stale link of its own and could remove it.
     public var manualCommand: String {
-        "ln -s \(LauncherBuilder.shellQuote(launcherDir.plainPath)) \(LauncherBuilder.shellQuote(url.plainPath))"
+        "sudo ln -s \(LauncherBuilder.shellQuote(launcherDir.plainPath)) \(LauncherBuilder.shellQuote(url.plainPath))"
     }
 
     private func createLauncherDir() throws(HatsError) {
+        try requireRunningAsHomeOwner()
         do {
             try FileManager.default.createDirectory(at: launcherDir, withIntermediateDirectories: true)
         } catch {
@@ -126,7 +138,21 @@ public struct ApplicationsLink: Sendable {
         }
     }
 
-    /// Not `sudo hats`: hats running as root would link root's launcher dir.
+    /// `sudo` keeps HOME on macOS, so hats as root would make the launcher dir in
+    /// this home owned by root, and the link would belong to root.
+    private func requireRunningAsHomeOwner() throws(HatsError) {
+        guard let homeAttributes = try? FileManager.default.attributesOfItem(atPath: home.canonicalPath),
+            let owner = ownerID(homeAttributes), owner != accountID
+        else { return }
+        throw HatsError(
+            .environment, "hats is running as another account than the owner of \(home.plainPath), as under sudo",
+            hint: "run it without sudo: hats launcher link")
+    }
+
+    private func ownerID(_ attributes: [FileAttributeKey: Any]) -> uid_t? {
+        (attributes[.ownerAccountID] as? NSNumber)?.uint32Value
+    }
+
     private var needsAdmin: HatsError {
         HatsError(
             .environment, "only an admin account can add a link to \(applicationsDir.plainPath)",
@@ -138,7 +164,7 @@ public struct ApplicationsLink: Sendable {
         case .stale(let destination):
             HatsError(
                 .conflict, "\(url.plainPath) links to \(destination), not to your launcher dir \(launcherDir.plainPath)",
-                hint: "remove the old link with: rm \(LauncherBuilder.shellQuote(url.plainPath)), then run: hats launcher link")
+                hint: "remove the old link with: hats launcher unlink, then run: hats launcher link")
         case .foreign(let destination?):
             HatsError(
                 .conflict, "\(url.plainPath) links to \(destination), not to your launcher dir, so hats leaves it alone",

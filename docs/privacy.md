@@ -16,7 +16,7 @@ means it happens only for a command or flag that asks for it by name.
 | Profile dirs and `profile.json` | `$HATS_HOME/profiles/<name>/` | `add`, `setup`, `reset` (recreates empty dirs) | no (hats' own data) |
 | Launcher bundles and their marker | `$HATS_LAUNCHER_DIR` (`~/Applications/Hats`) | `add`, `setup`, `reset`, `launcher rebuild`; removed by `rm` | no (hats' own data) |
 | Launcher copies | a folder the user names (default `~/Desktop`), recorded in the launcher's marker | `add --desktop`, `launcher copy`, `setup` after asking; refreshed by rebuilds, removed by `rm` | yes |
-| A symlink to the launcher dir, so Finder's Applications folder shows the launchers | `/Applications/Hats` | `launcher link`, `setup` after asking; removed by `launcher unlink` and `rm --all`, only while it points at this user's launcher dir | yes |
+| A symlink to the launcher dir, so Finder's Applications folder shows the launchers | `/Applications/Hats` | `launcher link`, `setup` after asking (the question defaults to No, since every account on the Mac sees the folder); removed by `launcher unlink` and `rm --all`, only while it is this account's: it links to this user's launcher dir, or this account made it | yes |
 | Launch Services registration of launchers | the Launch Services database (`LSRegisterURL`) | whenever a launcher is built | no |
 | Dock `persistent-apps` preference, then a Dock restart (SIGTERM to the Dock, as `killall Dock` does; launchd restarts it) | `com.apple.dock` through CFPreferences | `add --pin`, `dock pin`, `dock unpin`, `setup` after asking | yes |
 | Update check state: when hats last asked and the latest version it heard of | `$HATS_HOME/update-check.json` | the update check below | no (hats' own data) |
@@ -38,7 +38,7 @@ Nothing else is written: never Claude.app, `~/Library/Application Support/Claude
 | Claude Code's `.claude.json` per profile, parsed in memory; only `oauthAccount.accountUuid`, `emailAddress`, `organizationName` are kept | account view |
 | Claude.app's `Info.plist`, and the `claude://` handler's bundle ID (Launch Services lookup) | locate Claude, doctor |
 | Whether `~/.claude` is a symlink | doctor (another tool may manage it) |
-| Whether `/Applications/Hats` exists, and where it links | `launcher link`, `launcher unlink`, `setup`, `rm --all`, doctor: hats changes only its own link |
+| Whether `/Applications/Hats` exists, where it links and which account owns it; which account owns HOME; the account hats runs as (`geteuid`); whether `/Applications` is writable | `launcher link`, `launcher unlink`, `setup`, `rm --all`, doctor: to tell this account's link from another account's, so hats changes only its own; to refuse `launcher link` under `sudo`, which keeps HOME; and so `setup` asks only when the link can be made |
 | Process table (`KERN_PROC_ALL`: PID, parent, start time, kernel name) | instance discovery |
 | Argv and environment block of candidate processes (`KERN_PROCARGS2`); only argv and `CLAUDE_CONFIG_DIR` are kept, other variables are skipped as raw bytes | profile attribution |
 | Keychain attribute query for `Claude Code-credentials[-<hash>]` (`kSecReturnAttributes`, never data) | CLI login present or not |

@@ -146,7 +146,7 @@ public struct Doctor: Sendable {
         return Finding(.ok, "sign-in", "claude:// links open \(handler.plainPath)")
     }
 
-    /// Silent without a link, or with one that isn't this user's: both are fine.
+    /// Silent without a link, or with another account's: both are fine.
     private func applicationsLinkFinding() -> Finding? {
         let check = "applications-link"
         let path = applicationsLink.url.plainPath
@@ -157,11 +157,11 @@ public struct Doctor: Sendable {
         case .ours(dangling: true):
             return Finding(
                 .warn, check, "\(path) links to \(launcherDir), which is missing",
-                hint: "re-create the launchers with: hats launcher rebuild, or remove the link with: hats launcher unlink")
+                hint: "re-create it with: hats launcher link && hats launcher rebuild, or remove the link with: hats launcher unlink")
         case .stale(let destination):
             return Finding(
                 .warn, check, "\(path) links to \(destination), not to the launcher dir \(launcherDir)",
-                hint: "remove it with: rm \(LauncherBuilder.shellQuote(path)), then run: hats launcher link")
+                hint: "remove it with: hats launcher unlink")
         case .notNeeded, .absent, .foreign:
             return nil
         }

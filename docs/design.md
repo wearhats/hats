@@ -103,11 +103,13 @@ asking) and the Trash (`reset`, `rm --purge`, after confirmation).
 - The Dock is written through CFPreferences. Only tiles that point at hats
   launchers change (`--dedupe-claude` also drops repeated Claude.app tiles).
   Nothing is written, and the Dock isn't restarted, when nothing changes.
-- Every account on the Mac shares `/Applications`. hats removes
-  `/Applications/Hats` (`launcher unlink`, `rm --all`) only while it links to
-  this user's launcher dir, and never replaces anything already there, such as
-  another user's link or a real folder. Why a link at all: Finder's sidebar
-  shows `/Applications`, so people looked there and didn't find the launchers.
+- Every account on the Mac shares `/Applications`, and sees the folder the link
+  adds, so `setup` says so and asks with a default of No. hats removes
+  `/Applications/Hats` (`launcher unlink`, `rm --all`) only while it is this
+  account's: it links to this user's launcher dir, or this account made it
+  (owns the link). hats never replaces anything already there, such as another
+  account's link or a real folder. Why a link at all: Finder's sidebar shows
+  `/Applications`, so people looked there and didn't find the launchers.
 - Claude processes are only ever asked to quit, as Cmd-Q does. hats never kills
   them.
 - Commands that remove or quit things (`rm`, `reset`, `dedupe`) have no

@@ -107,7 +107,8 @@ hats doctor                        # explain what's set up and what's wrong
 Launchers live in the Applications folder inside your home folder
 (`~/Applications/Hats`), and Spotlight finds them as "Claude (Personal)".
 `hats setup` can also show them in Finder's Applications folder, through a link
-at `/Applications/Hats` (an admin account is needed for that).
+at `/Applications/Hats` (an admin account is needed for that). Other accounts on
+the Mac will see that folder too.
 
 The everyday commands have one-letter shortcuts: `hats r` (`run`), `hats o`
 (`open`), `hats x` (`exec`) and `hats f` (`focus`).

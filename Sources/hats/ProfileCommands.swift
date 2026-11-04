@@ -67,7 +67,7 @@ struct Add: AsyncParsableCommand {
 
         print(created ? "Created profile '\(profile.name)'." : "Profile '\(profile.name)' already exists; launcher rebuilt.")
         print("  launcher  \(bundle.plainPath)")
-        print("  open      Spotlight \"Claude (\(profile.label))\", hats dock pin \(profile.name), or hats launcher reveal")
+        print("  open      Spotlight \"Claude (\(profile.label))\" or hats launcher reveal")
         print("  desktop   \(profile.desktopDir.plainPath)")
         print("  code      \(profile.codeDir.plainPath)\(profile.codeDirIsExternal ? " (adopted)" : "")")
         if let shortcut = profile.shortcut { print("  shortcut  \(shortcut)") }
@@ -78,11 +78,13 @@ struct Add: AsyncParsableCommand {
             print("\n" + Context.signInGuidance)
         }
         guard created, !open else { return }
+        let otherWayToOpen =
+            pin ? "or click it in the Dock" : "or double-click the launcher; hats dock pin \(profile.name) adds it to the Dock"
         print(
             """
 
             Next:
-              1. hats open \(profile.name)        (or double-click the launcher; hats dock pin \(profile.name) adds it to the Dock)
+              1. hats open \(profile.name)        (\(otherWayToOpen))
               2. Sign in. If the browser hands the login to another Claude window, quit the other
                  Claude windows (Cmd-Q), sign in, then reopen them with: hats open --all
               3. hats run \(profile.name)         then /login, to sign the claude CLI in to the same account
@@ -299,16 +301,30 @@ struct Remove: ParsableCommand {
             throw HatsError(.usage, "the default profile is the stock Claude install; hats never removes it")
         }
         for target in targets { try remove(target, context: context) }
-        if all { try removeApplicationsLink(context: context) }
+        if all { removeApplicationsLink(context: context) }
     }
 
-    /// Only a link of ours; another account's link or a stale one stays.
-    private func removeApplicationsLink(context: Context) throws {
+    /// Only this account's link; another account's stays. The launchers are
+    /// already gone by now, so a link that only an admin can remove is a warning,
+    /// not a failure.
+    private func removeApplicationsLink(context: Context) {
         let link = context.applicationsLink
-        guard case .ours = link.state() else { return }
-        if dryRun { return print("Would remove the link \(link.url.plainPath).") }
-        try link.unlink()
-        print("Removed the link \(link.url.plainPath).")
+        if dryRun {
+            switch link.state() {
+            case .ours, .stale: print("Would remove the link \(link.url.plainPath).")
+            case .notNeeded, .absent, .foreign: break
+            }
+            return
+        }
+        do {
+            switch try link.unlink() {
+            case .removed: print("Removed the link \(link.url.plainPath).")
+            case .notLinked: break
+            }
+        } catch {
+            guard let failure = error as? HatsError, failure.kind != .conflict else { return }
+            Output.printWarning(failure.message, hint: failure.hint)
+        }
     }
 
     private func remove(_ target: Profile, context: Context) throws {
@@ -391,7 +407,10 @@ struct Launcher: ParsableCommand {
     struct Link: ParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Show the launchers in Finder's Applications folder, through a link at /Applications/Hats.",
-            discussion: "Needs an admin account. Leaves anything already at /Applications/Hats alone."
+            discussion: """
+                Needs an admin account. Every account on this Mac sees the folder. Leaves another account's link, \
+                or a real folder, at /Applications/Hats alone.
+                """
         )
 
         func run() throws {
@@ -400,7 +419,8 @@ struct Launcher: ParsableCommand {
     }
 
     struct Unlink: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Remove the link at /Applications/Hats, if hats made it.")
+        static let configuration = CommandConfiguration(
+            abstract: "Remove the link at /Applications/Hats, if this account made it or it points at this account's launchers.")
 
         func run() throws {
             let link = try Context().applicationsLink
