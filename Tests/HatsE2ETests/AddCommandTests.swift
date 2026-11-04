@@ -13,6 +13,8 @@ struct AddCommandTests {
         let bundle = sandbox.launcher("Work")
         #expect(result.stdout.hasPrefix("Created profile 'work'.\n"), "\(result)")
         #expect(result.stdout.contains("  launcher  \(bundle)\n"), "\(result)")
+        let howToOpen = #"  open      Spotlight "Claude (Work)", hats dock pin work, or hats launcher reveal"#
+        #expect(result.stdout.contains("  launcher  \(bundle)\n\(howToOpen)\n"), "\(result)")
         #expect(result.stdout.contains("  desktop   \(dir)/desktop\n"), "\(result)")
         #expect(result.stdout.contains("  code      \(dir)/code\n"), "\(result)")
         #expect(result.stdout.contains("Next:\n"), "\(result)")

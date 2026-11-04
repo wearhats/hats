@@ -1,11 +1,13 @@
 import Foundation
 @testable import HatsCore
 
-/// A throwaway HOME, HATS_HOME and launcher dir per test.
+/// A throwaway HOME, HATS_HOME, launcher dir and Applications dir per test.
 struct Sandbox {
     let root: URL
     let layout: Layout
     let environment: [String: String]
+    /// Stands in for `/Applications`.
+    let applicationsDir: URL
 
     init() throws {
         root = FileManager.default.temporaryDirectory
@@ -20,6 +22,8 @@ struct Sandbox {
             "PATH": "/usr/bin:/bin",
         ]
         layout = Layout(environment: environment)
+        applicationsDir = root.appending(path: "Applications", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: applicationsDir, withIntermediateDirectories: true)
     }
 
     var store: ProfileStore { ProfileStore(layout: layout) }
@@ -33,8 +37,11 @@ struct Sandbox {
     ) -> Doctor {
         Doctor(
             layout: layout, processes: processes, credentials: credentials, environment: environment,
-            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere, install: install)
+            urlSchemeHandler: { _ in claudeURLHandler }, appSearch: .nowhere, applicationsDir: applicationsDir, install: install)
     }
+
+    /// Never links into the real `/Applications`.
+    var applicationsLink: ApplicationsLink { ApplicationsLink(layout: layout, applicationsDir: applicationsDir) }
 
     /// Never registers bundles with the real Launch Services database.
     var launchers: LauncherBuilder { LauncherBuilder(layout: layout, registrar: AppRegistrar { _ in }) }

@@ -62,6 +62,7 @@ struct Context {
     var credentials: any CredentialProbe { touchpoints.credentials }
     var launchers: LauncherBuilder { LauncherBuilder(layout: layout, registrar: touchpoints.registrar) }
     var dock: DockEditor { DockEditor(preferences: touchpoints.dock) }
+    var applicationsLink: ApplicationsLink { ApplicationsLink(layout: layout, applicationsDir: touchpoints.applicationsDir) }
 
     /// A folder named on the command line, which test mode must keep contained.
     func directoryArgument(_ path: String, flag: String) throws -> URL {

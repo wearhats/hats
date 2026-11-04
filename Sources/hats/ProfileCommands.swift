@@ -67,6 +67,7 @@ struct Add: AsyncParsableCommand {
 
         print(created ? "Created profile '\(profile.name)'." : "Profile '\(profile.name)' already exists; launcher rebuilt.")
         print("  launcher  \(bundle.plainPath)")
+        print("  open      Spotlight \"Claude (\(profile.label))\", hats dock pin \(profile.name), or hats launcher reveal")
         print("  desktop   \(profile.desktopDir.plainPath)")
         print("  code      \(profile.codeDir.plainPath)\(profile.codeDirIsExternal ? " (adopted)" : "")")
         if let shortcut = profile.shortcut { print("  shortcut  \(shortcut)") }
@@ -298,6 +299,16 @@ struct Remove: ParsableCommand {
             throw HatsError(.usage, "the default profile is the stock Claude install; hats never removes it")
         }
         for target in targets { try remove(target, context: context) }
+        if all { try removeApplicationsLink(context: context) }
+    }
+
+    /// Only a link of ours; another account's link or a stale one stays.
+    private func removeApplicationsLink(context: Context) throws {
+        let link = context.applicationsLink
+        guard case .ours = link.state() else { return }
+        if dryRun { return print("Would remove the link \(link.url.plainPath).") }
+        try link.unlink()
+        print("Removed the link \(link.url.plainPath).")
     }
 
     private func remove(_ target: Profile, context: Context) throws {
@@ -344,7 +355,7 @@ struct Remove: ParsableCommand {
 struct Launcher: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Manage launcher apps.",
-        subcommands: [Rebuild.self, Copy.self, Reveal.self]
+        subcommands: [Rebuild.self, Copy.self, Reveal.self, Link.self, Unlink.self]
     )
 
     fileprivate static let defaultHasNoLauncher = "the default profile is launched by Claude.app itself"
@@ -374,6 +385,29 @@ struct Launcher: ParsableCommand {
         func run() throws {
             let context = try Context()
             try revealLaunchers(layout: context.layout, opener: context.touchpoints.folderOpener)
+        }
+    }
+
+    struct Link: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Show the launchers in Finder's Applications folder, through a link at /Applications/Hats.",
+            discussion: "Needs an admin account. Leaves anything already at /Applications/Hats alone."
+        )
+
+        func run() throws {
+            try Context().linkApplications()
+        }
+    }
+
+    struct Unlink: ParsableCommand {
+        static let configuration = CommandConfiguration(abstract: "Remove the link at /Applications/Hats, if hats made it.")
+
+        func run() throws {
+            let link = try Context().applicationsLink
+            switch try link.unlink() {
+            case .removed: print("Removed the link \(link.url.plainPath).")
+            case .notLinked: print("No link at \(link.url.plainPath).")
+            }
         }
     }
 

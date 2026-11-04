@@ -106,6 +106,7 @@ struct SetupCommandTests {
         try sandbox.write(#"{"accessToken":"\#(sandbox.sentinel)"}"#, to: "\(adopted)/.claude.json")
         let adoptedBefore = try sandbox.read("\(adopted)/.claude.json")
         let app = try sandbox.makeApp()
+        try sandbox.makeApplicationsDir()
 
         let result = try sandbox.hatsOnTerminal(
             ["setup"],
@@ -115,6 +116,7 @@ struct SetupCommandTests {
                 PTYStep("Add a profile for another account? [y/N]", send: "y"),
                 PTYStep("Name for your other account", send: "personal"),
                 PTYStep("Pin the new launcher(s) to the Dock? This restarts the Dock. [Y/n]"),
+                PTYStep("Also show them in Finder's Applications folder? This adds a link at \(sandbox.applicationsLink). [Y/n]"),
                 PTYStep("Also put a copy on the Desktop? [y/N]"),
                 PTYStep("Open work, personal now to sign in? [Y/n]"),
             ],
@@ -123,8 +125,8 @@ struct SetupCommandTests {
         #expect(result.exit == 0, "\(result)")
         #expect(result.transcript.contains("Found a Claude Code config dir you made yourself: \(adopted)"), "\(result)")
         for line in [
-            "$ hats add work --code-dir '\(adopted)'", "$ hats add personal", "$ hats dock pin work personal", "$ hats open work",
-            "$ hats open personal",
+            "$ hats add work --code-dir '\(adopted)'", "$ hats add personal", "$ hats dock pin work personal", "$ hats launcher link",
+            "$ hats open work", "$ hats open personal",
         ] {
             #expect(result.transcript.contains(line), "\(line)\n\(result)")
         }
@@ -139,6 +141,7 @@ struct SetupCommandTests {
         #expect(tiles.contains { $0.hasSuffix("Claude%20(Work).app/") }, "\(tiles)")
         #expect(tiles.contains { $0.hasSuffix("Claude%20(Personal).app/") }, "\(tiles)")
         #expect(try sandbox.events("dock-restart").count == 1)
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
 
         let launches = try sandbox.events("launch")
         #expect(launches.allSatisfy { $0["app"] as? String == app })
@@ -172,6 +175,7 @@ struct SetupCommandTests {
             steps: [
                 PTYStep("Name for your other account (for example personal, work, acme) [personal]"),
                 PTYStep("Pin the new launcher(s) to the Dock? This restarts the Dock. [Y/n]", send: "n"),
+                PTYStep("Also show them in Finder's Applications folder?", send: "n"),
                 PTYStep("Also put a copy on the Desktop? [y/N]", send: "y"),
                 PTYStep("Open personal now to sign in? [Y/n]", send: "n"),
             ])
@@ -181,6 +185,47 @@ struct SetupCommandTests {
         #expect(sandbox.exists("\(sandbox.home)/Desktop/Claude (Personal).app"))
         #expect(try sandbox.dockTiles().isEmpty)
         #expect(try sandbox.events("launch").isEmpty)
+    }
+
+    @Test func theApplicationsQuestionIsSkippedWhenTheLinkIsAlreadyThere() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Name for your other account", send: "personal"),
+                PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also put a copy on the Desktop?"),
+                PTYStep("Open personal now to sign in?", send: "n"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(!result.transcript.contains("Finder's Applications folder"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+    }
+
+    @Test func aLinkThatCannotBeMadeIsReportedAndSetupCarriesOn() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let theirs = "\(sandbox.root)/other-user/Applications/Hats"
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+
+        let result = try sandbox.hatsOnTerminal(
+            ["setup"],
+            steps: [
+                PTYStep("Name for your other account", send: "personal"),
+                PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also show them in Finder's Applications folder?"),
+                PTYStep("Also put a copy on the Desktop?"),
+                PTYStep("Open personal now to sign in?", send: "n"),
+            ])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.transcript.contains("links to \(theirs)"), "\(result)")
+        #expect(result.transcript.contains("Everyday commands:"), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == theirs)
     }
 
     @Test func aDeclinedCandidateIsLeftAlone() throws {
@@ -195,6 +240,7 @@ struct SetupCommandTests {
                 PTYStep("Turn it into a profile?", send: "n"),
                 PTYStep("Name for your other account", send: "personal"),
                 PTYStep("Pin the new launcher(s)", send: "n"),
+                PTYStep("Also show them in Finder's Applications folder?", send: "n"),
                 PTYStep("Also put a copy on the Desktop?"),
                 PTYStep("Open personal now to sign in?", send: "n"),
             ])

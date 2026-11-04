@@ -13,6 +13,9 @@ public struct Touchpoints: Sendable {
     public let folderOpener: any FolderOpener
     public let urlSchemeHandler: @Sendable (String) -> URL?
     public let appSearch: ClaudeAppSearch
+    /// `/Applications`, which Finder's sidebar calls Applications. `launcher link`
+    /// puts the link to the launcher dir here.
+    public let applicationsDir: URL
     /// `nil` turns the update check off.
     public let releaseFeed: (any ReleaseFeed)?
 
@@ -26,6 +29,7 @@ public struct Touchpoints: Sendable {
         folderOpener: any FolderOpener,
         urlSchemeHandler: @escaping @Sendable (String) -> URL?,
         appSearch: ClaudeAppSearch,
+        applicationsDir: URL,
         releaseFeed: (any ReleaseFeed)?
     ) {
         self.processes = processes
@@ -37,6 +41,7 @@ public struct Touchpoints: Sendable {
         self.folderOpener = folderOpener
         self.urlSchemeHandler = urlSchemeHandler
         self.appSearch = appSearch
+        self.applicationsDir = applicationsDir
         self.releaseFeed = releaseFeed
     }
 }
@@ -54,6 +59,7 @@ extension Touchpoints {
             folderOpener: WorkspaceFolderOpener(),
             urlSchemeHandler: Doctor.systemURLSchemeHandler,
             appSearch: .system,
+            applicationsDir: URL(filePath: "/Applications", directoryHint: .isDirectory),
             releaseFeed: GitHubReleaseFeed(currentVersion: hatsVersion)
         )
     }

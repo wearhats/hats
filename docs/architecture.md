@@ -71,7 +71,15 @@ $HATS_HOME = ~/Library/Application Support/hats
   Claude (<Label>).app/           # launcher, regenerable at any time
     Contents/Resources/hats-launcher.json   # marker: {name, launcherVersion, hatsPath, copies?}
 ~/Desktop/Claude (<Label>).app/   # optional copy (add --desktop, launcher copy)
+/Applications/Hats -> ~/Applications/Hats   # optional link (launcher link, setup)
 ```
+
+The launchers live in the home folder's Applications because a standard
+account can't write to `/Applications`, and every account on the Mac shares
+it, so two users' `Claude (Work).app` would collide. Finder's sidebar shows
+`/Applications`, though, so `launcher link` and `setup` offer a link there.
+`ApplicationsLink` treats only a link to this user's launcher dir as its own,
+and leaves another user's link or a real folder in place.
 
 A launcher's marker records the paths of the copies hats placed. Rebuilds and
 `rm` revisit only those paths; hats never lists `~/Desktop` (or any other

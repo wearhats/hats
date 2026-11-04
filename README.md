@@ -93,6 +93,7 @@ script; `hats doctor` shows the command for your install. More in
 ```sh
 hats setup                         # guided: adopt existing dirs, add your other account
 hats add personal --pin            # profile + launcher in ~/Applications/Hats, pinned to the Dock
+hats launcher link                 # also show the launchers in Finder's Applications folder
 hats add work --shortcut w         # then hats run w works like hats run work
 hats open personal                 # or click the launcher; hats open --all opens every profile
 hats run personal                  # claude CLI on the personal account (then /login once)
@@ -102,6 +103,11 @@ hats ls                            # profiles, sign-in state, accounts (--size f
 hats reset personal --open         # it opened on the wrong account: start it fresh
 hats doctor                        # explain what's set up and what's wrong
 ```
+
+Launchers live in the Applications folder inside your home folder
+(`~/Applications/Hats`), and Spotlight finds them as "Claude (Personal)".
+`hats setup` can also show them in Finder's Applications folder, through a link
+at `/Applications/Hats` (an admin account is needed for that).
 
 The everyday commands have one-letter shortcuts: `hats r` (`run`), `hats o`
 (`open`), `hats x` (`exec`) and `hats f` (`focus`).
@@ -136,7 +142,7 @@ running instead of the new one. If that happens, quit the other Claude windows
 ## Uninstall
 
 ```sh
-hats dock unpin && hats rm --all --purge   # launchers, their copies, Dock tiles; data to the Trash
+hats dock unpin && hats rm --all --purge   # launchers, their copies, Dock tiles, the /Applications link; data to the Trash
 brew uninstall hats                        # or: rm ~/.local/bin/hats
 rm -rf ~/Applications/Hats "$HOME/Library/Application Support/hats"
 ```

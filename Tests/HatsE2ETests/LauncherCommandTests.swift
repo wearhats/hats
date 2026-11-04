@@ -107,6 +107,60 @@ struct LauncherCommandTests {
         #expect(sandbox.exists(sandbox.launcherDir))
         #expect(try sandbox.events("reveal").map { $0["path"] as? String } == [sandbox.launcherDir])
     }
+
+    @Test func linkShowsTheLaunchersInTheApplicationsDirAndUnlinkTakesItAway() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+
+        let linked = try sandbox.hats(["launcher", "link"])
+
+        #expect(linked.exit == 0, "\(linked)")
+        #expect(linked.stdout.contains("Linked \(sandbox.applicationsLink) to \(sandbox.launcherDir)."), "\(linked)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+        #expect(sandbox.exists("\(sandbox.applicationsLink)/Claude (Work).app/Contents/MacOS/launch"))
+
+        let again = try sandbox.hats(["launcher", "link"])
+
+        #expect(again.exit == 0, "\(again)")
+        #expect(again.stdout.contains("already links to \(sandbox.launcherDir)"), "\(again)")
+
+        let unlinked = try sandbox.hats(["launcher", "unlink"])
+
+        #expect(unlinked.exit == 0, "\(unlinked)")
+        #expect(unlinked.stdout == "Removed the link \(sandbox.applicationsLink).\n", "\(unlinked)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
+        #expect(sandbox.exists("\(sandbox.launcher("Work"))/Contents/MacOS/launch"), "unlink removes only the link")
+    }
+
+    @Test func linkAndUnlinkLeaveAnotherUsersLinkAlone() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let theirs = "\(sandbox.root)/other-user/Applications/Hats"
+        try sandbox.makeDirectory(theirs)
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+        let before = try sandbox.snapshot()
+
+        for command in ["link", "unlink"] {
+            let result = try sandbox.hats(["launcher", command])
+
+            #expect(result.exit == 1, "\(command): \(result)")
+            #expect(result.stderr.contains("links to \(theirs)"), "\(command): \(result)")
+            #expect(try sandbox.snapshot() == before, "\(command): \(result)")
+        }
+    }
+
+    @Test func linkWithALauncherDirInsideTheApplicationsDirSaysNoLinkIsNeeded() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let before = try sandbox.snapshot()
+
+        let result = try sandbox.hats(["launcher", "link"], environment: ["HATS_LAUNCHER_DIR": sandbox.applicationsLink])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("No link needed"), "\(result)")
+        #expect(try sandbox.snapshot() == before, "\(result)")
+    }
 }
 
 /// The generated script itself, run the way Launch Services runs it: from

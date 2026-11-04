@@ -174,6 +174,37 @@ struct RemoveCommandTests {
         #expect(rows.map { $0["name"] as? String } == ["default"])
     }
 
+    @Test func allRemovesTheApplicationsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+        #expect(try sandbox.hats(["launcher", "link"]).exit == 0)
+
+        let dryRun = try sandbox.hats(["rm", "--all", "--dry-run"])
+
+        #expect(dryRun.stdout.contains("Would remove the link \(sandbox.applicationsLink)."), "\(dryRun)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == sandbox.launcherDir)
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(result.stdout.contains("Removed the link \(sandbox.applicationsLink)."), "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == nil)
+    }
+
+    @Test func allLeavesAnotherUsersApplicationsLink() throws {
+        let sandbox = try E2ESandbox()
+        try sandbox.makeApplicationsDir()
+        let theirs = "\(sandbox.root)/other-user/Applications/Hats"
+        try FileManager.default.createSymbolicLink(atPath: sandbox.applicationsLink, withDestinationPath: theirs)
+        #expect(try sandbox.hats(["add", "work"]).exit == 0)
+
+        let result = try sandbox.hats(["rm", "--all"])
+
+        #expect(result.exit == 0, "\(result)")
+        #expect(sandbox.linkDestination(sandbox.applicationsLink) == theirs)
+    }
+
     @Test func removingTwiceIsFineUntilTheDataIsGone() throws {
         let sandbox = try E2ESandbox()
         #expect(try sandbox.hats(["add", "work"]).exit == 0)

@@ -67,6 +67,16 @@ extension Context {
         }
     }
 
+    func linkApplications() throws {
+        let link = applicationsLink
+        switch try link.link() {
+        case .created: print("Linked \(link.url.plainPath) to \(link.launcherDir.plainPath). Finder's Applications folder now shows Hats.")
+        case .alreadyLinked: print("\(link.url.plainPath) already links to \(link.launcherDir.plainPath).")
+        case .notNeeded:
+            print("No link needed: \(link.launcherDir.plainPath) is already inside \(link.applicationsDir.plainPath).")
+        }
+    }
+
     static let signInGuidance = """
         Sign in inside the new window. If the browser hands the login to another Claude window,
         quit the other Claude windows (Cmd-Q), sign in, then reopen them with: hats open --all

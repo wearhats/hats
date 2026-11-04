@@ -48,6 +48,7 @@ struct Setup: AsyncParsableCommand {
             print("$ hats dock pin \(names)")
             try context.pinToDock(added, dedupeClaude: false)
         }
+        try offerApplicationsLink(context: context)
         if try Prompt.confirm("Also put a copy on the Desktop?", default: false) {
             print("$ hats launcher copy \(names)")
             for profile in added {
@@ -67,6 +68,23 @@ struct Setup: AsyncParsableCommand {
             print("\n" + Context.signInGuidance)
         }
         printNextSteps()
+    }
+
+    /// A failed link doesn't stop setup: the launchers work without it.
+    private func offerApplicationsLink(context: Context) throws {
+        let link = context.applicationsLink
+        switch link.state() {
+        case .ours, .notNeeded: return
+        case .absent, .stale, .foreign: break
+        }
+        let question = "Also show them in Finder's Applications folder? This adds a link at \(link.url.plainPath)."
+        guard try Prompt.confirm(question, default: true) else { return }
+        print("$ hats launcher link")
+        do {
+            try context.linkApplications()
+        } catch let error as HatsError {
+            Output.printWarning(error.message, hint: error.hint)
+        }
     }
 
     private func create(_ name: ProfileName, adopting dir: URL?, context: Context) throws -> Profile {
