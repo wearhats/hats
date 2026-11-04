@@ -1,0 +1,191 @@
+---
+import setup from '../../fixtures/hats-setup.txt?raw';
+import ls from '../../fixtures/hats-ls.txt?raw';
+import ps from '../../fixtures/hats-ps.txt?raw';
+import Tile from './Tile.astro';
+import { layoutRows, parseTable, type Table } from '../lib/table';
+
+type Cell = { text: string; hide?: string };
+type Line =
+  | { kind: 'text'; text: string; opens?: string }
+  | { kind: 'ask'; question: string; answer: string }
+  | { kind: 'row'; cells: Cell[]; head: boolean };
+type Scene = { id: string; note: string; command: string; output: Line[] };
+
+/** Columns a phone hides, so a row still fits on one line. */
+const HIDE_NARROW = new Set(['SESSIONS', 'LAUNCHER', 'DESKTOP LOGIN', 'CLI LOGIN', 'PID', 'AGE', 'NAME', 'CWD']);
+const QUESTION = /^(.*\] )(.*)$/;
+
+const text = (source: string): Line[] =>
+  source.trimEnd().split('\n').map((line) => {
+    const question = line.match(QUESTION);
+    if (question) return { kind: 'ask', question: question[1], answer: question[2] };
+    // A space, not an empty string: an empty block collapses and the blank line would vanish.
+    return { kind: 'text', text: line || ' ' };
+  });
+
+const table = (parsed: Table): Line[] =>
+  layoutRows(parsed).map((cells, index) => ({
+    kind: 'row',
+    head: index === 0,
+    cells: cells.map((cell, column) => ({ text: cell, hide: HIDE_NARROW.has(parsed.headers[column]) ? 'hide-narrow' : undefined })),
+  }));
+
+const LS = parseTable(ls, 'hats ls');
+const PS = parseTable(ps, 'hats ps');
+
+/** Reads the scene's details from the fixtures, so it never contradicts the tables beside it. */
+function cell({ headers, rows }: Table, header: string, ...key: string[]): string {
+  const row = rows.find((cells) => key.every((value, index) => cells[index] === value));
+  if (!row) throw new Error(`no fixture row for ${key.join(' ')}`);
+  return row[headers.indexOf(header)];
+}
+const accountOf = (profile: string) => cell(LS, 'ACCOUNT', profile).replace(/ \(.*\)$/, '');
+
+const after = (note: string): Line => ({ kind: 'text', text: `# ${note}` });
+
+const SCENES: Scene[] = [
+  {
+    id: 'setup',
+    note: 'First run. It adopts the Claude Code dirs you already have, adds your other account, and asks before every step.',
+    command: 'hats setup',
+    output: text(setup),
+  },
+  {
+    id: 'open',
+    note: "Open a profile's Claude Desktop, or bring it forward. Its launcher in ~/Applications/Hats, or in the Dock, does the same.",
+    command: 'hats open work',
+    output: [{ kind: 'text', text: `Launched Claude (Work), pid ${cell(PS, 'PID', 'work', 'desktop')}.`, opens: 'work' }],
+  },
+  {
+    id: 'run',
+    note: 'Start Claude Code as one of your profiles, in this terminal.',
+    command: 'hats run work',
+    output: [after("Claude Code starts here with work's own login, history and settings.")],
+  },
+  {
+    id: 'ls',
+    note: "Every profile, whether it's signed in, and to which account.",
+    command: 'hats ls',
+    output: table(LS),
+  },
+  {
+    id: 'ps',
+    note: "Every running Claude and its profile. Sessions show whether they're busy or waiting for you.",
+    command: 'hats ps',
+    output: table(PS),
+  },
+];
+
+/** The desktop beside `hats open`: your usual Claude is open, and the command opens Work. */
+const DESK_START = { desk: 'default', focus: 'default' };
+const DESK_END = { desk: 'default work', focus: 'work' };
+
+/**
+ * A neutral chat window, never a copy of Claude's own interface. Each is signed in to the account
+ * `hats ls` shows for it. Only profiles have a launcher in the Hats folder; Claude.app stays in /Applications.
+ */
+const WINDOWS = [
+  { id: 'default', title: 'Claude', tile: 'claude-app', account: accountOf('default'), launcher: false },
+  { id: 'work', title: 'Claude (Work)', tile: 'work', account: accountOf('work'), launcher: true },
+  { id: 'personal', title: 'Claude (Personal)', tile: 'personal', account: accountOf('personal'), launcher: true },
+] as const;
+const LAUNCHERS = WINDOWS.filter(({ launcher }) => launcher);
+---
+
+<div class="session" data-session data-scene={SCENES[0].id} data-desk={DESK_END.desk} data-focus={DESK_END.focus}>
+  <div class="session-terminal">
+    <div class="session-bar">
+      <span class="session-lights" aria-hidden="true"><span></span><span></span><span></span></span>
+      <div class="session-tabs" role="tablist" aria-label="Example commands">
+        {
+          SCENES.map(({ id }, index) => (
+            <button
+              type="button"
+              role="tab"
+              id={`session-tab-${id}`}
+              aria-selected={index === 0 ? 'true' : 'false'}
+              aria-controls={`session-panel-${id}`}
+              tabindex={index === 0 ? 0 : -1}
+            >
+              <span class="session-tab-prefix">hats </span>{id}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+    {
+      SCENES.map((scene, index) => (
+        <pre class="session-screen" role="tabpanel" id={`session-panel-${scene.id}`} aria-labelledby={`session-tab-${scene.id}`} tabindex="0" hidden={index !== 0}><span class="session-line session-wrap session-note"># {scene.note}</span><span class="session-line session-wrap"><span class="prompt" aria-hidden="true">$ </span><span class="typed">{scene.command}</span></span>{scene.output.map((line) =>
+          line.kind === 'row'
+            ? <span class:list={['session-line', 'session-out', { 'session-head': line.head }]}>{line.cells.map(({ text, hide }) => <span class={hide}>{text}</span>)}</span>
+            : line.kind === 'ask'
+              ? <span class="session-line session-out session-wrap" data-ask>{line.question}<span class="answer">{line.answer}</span></span>
+              : <span class:list={['session-line', 'session-out', 'session-wrap', { 'session-note': line.text.startsWith('# ') }]} data-opens={line.opens}>{line.text}</span>
+        )}</pre>
+      ))
+    }
+    <div class="session-foot">
+      <p class="session-caption">Sample output, not a recording.</p>
+      <button type="button" class="session-toggle" data-session-toggle hidden>Play</button>
+    </div>
+  </div>
+  <div class="session-desk" role="group" aria-label="Illustration of a Mac desktop" data-desk-start={DESK_START.desk} data-focus-start={DESK_START.focus} data-desk-end={DESK_END.desk} data-focus-end={DESK_END.focus}>
+    <div class="desk-stage">
+      {
+        WINDOWS.map(({ id, title, tile, account }) => (
+          <div
+            class:list={['desk-window', `desk-window-${id}`]}
+            data-window={id}
+            data-open={DESK_END.desk.split(' ').includes(id) ? '' : undefined}
+            data-front={DESK_END.focus === id ? '' : undefined}
+            aria-hidden="true"
+          >
+            <div class="desk-titlebar">
+              <span class="desk-lights"><span></span><span></span><span></span></span>
+              <span class="desk-title">{title}</span>
+            </div>
+            <div class="chat">
+              <div class="chat-side">
+                <span class="chat-account"><Tile name={tile} />{account}</span>
+                <span class="bar"></span>
+                <span class="bar bar-mid"></span>
+                <span class="bar bar-short"></span>
+                <span class="bar bar-mid"></span>
+              </div>
+              <div class="chat-main">
+                <span class="chat-bubble chat-mine"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar bar-mid"></span>
+                <span class="chat-reply"></span>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+    <div class="finder" role="group" aria-label="Finder, Applications, Hats folder">
+      <div class="desk-titlebar">
+        <span class="desk-lights"><span></span><span></span><span></span></span>
+        <span class="finder-nav" aria-hidden="true">‹ ›</span>
+        <span class="desk-title">Hats</span>
+      </div>
+      <div class="finder-items">
+        {
+          LAUNCHERS.map(({ id, tile, title }) => (
+            <button type="button" class="desk-launcher" data-launch={id} data-title={title}>
+              <Tile name={tile} />
+              <span class="desk-launcher-name">{title}</span>
+            </button>
+          ))
+        }
+      </div>
+      <div class="finder-status">
+        <span class="finder-path" aria-hidden="true">you › Applications › Hats</span>
+        <span>Click a launcher to open or focus it.</span>
+      </div>
+    </div>
+    <p class="visually-hidden" aria-live="polite" data-desk-status></p>
+  </div>
+</div>

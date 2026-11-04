@@ -1,0 +1,60 @@
+.brand-sheet {
+  padding-block: 2rem 4rem;
+}
+
+.brand-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tile-large {
+  width: 6rem;
+  height: 6rem;
+}
+
+.tile-tiny {
+  width: 1rem;
+  height: 1rem;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.swatch {
+  display: block;
+  height: 3rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  margin-bottom: 0.25rem;
+}
+
+.swatch-bg { background: var(--bg); }
+.swatch-surface { background: var(--surface); }
+.swatch-surface-2 { background: var(--surface-2); }
+.swatch-line { background: var(--line); }
+.swatch-line-strong { background: var(--line-strong); }
+.swatch-ink { background: var(--ink); }
+.swatch-muted { background: var(--muted); }
+.swatch-accent { background: var(--accent); }
+.swatch-term-bg { background: var(--term-bg); }
+.swatch-term-ink { background: var(--term-ink); }
+.swatch-warn { background: var(--warn); }
+.swatch-term-line { background: var(--term-line); }
+.swatch-term-light { background: var(--term-light); }
+.swatch-term-selected { background: var(--term-selected); }
+.swatch-term-dim { background: var(--term-dim); }
+.swatch-term-muted { background: var(--term-muted); }
+.swatch-term-control { background: var(--term-control); }
+
+.brand-card {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

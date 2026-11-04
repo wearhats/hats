@@ -1,0 +1,7 @@
+minimumReleaseAge: 4320
+blockExoticSubdeps: true
+strictDepBuilds: true
+allowBuilds:
+  esbuild: true
+  sharp: false
+  workerd: true

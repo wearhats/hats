@@ -1,0 +1,64 @@
+---
+import '../styles/global.css';
+import { TITLE, DESCRIPTION, UMAMI_ORIGIN } from '../data/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  path: string;
+  noindex?: boolean;
+}
+
+const { title = TITLE, description = DESCRIPTION, path, noindex = false } = Astro.props;
+const canonical = new URL(path, Astro.site).href;
+const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="preload" href="/fonts/jetbrains-mono.var.woff2" as="font" type="font/woff2" crossorigin />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="hats" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/og/home.png', Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="hats, a tool for running several Claude accounts side by side on a Mac. Unofficial; not affiliated with Anthropic."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <noscript><link rel="stylesheet" href="/noscript.css" /></noscript>
+    <slot name="head" />
+    {
+      umamiWebsiteId && (
+        <script
+          is:inline
+          defer
+          src="/stats.js"
+          data-website-id={umamiWebsiteId}
+          data-host-url={UMAMI_ORIGIN}
+          data-domains={Astro.site!.hostname}
+          data-do-not-track="true"
+          data-exclude-search="true"
+          data-exclude-hash="true"
+        />
+      )
+    }
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>

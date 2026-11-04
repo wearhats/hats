@@ -1,0 +1,13 @@
+---
+interface Props {
+  href?: string;
+}
+
+const { href } = Astro.props;
+const Element = href ? 'a' : 'span';
+---
+
+<Element class="logo" href={href}>
+  <img class="logo-mark" src="/favicon.svg" width="32" height="32" alt="" />
+  <span class="wordmark">hats</span>
+</Element>

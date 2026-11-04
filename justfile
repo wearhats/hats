@@ -62,5 +62,17 @@ linux:
       tar --exclude=./.build -cf - Package.swift Package.resolved Sources Tests | tar -xf - -C /work && \
       cd /work && swift build --target HatsCore && swift test --parallel'
 
-# Everything to run before pushing: lint, tests and packaging.
+# Everything to run before pushing: lint, tests and packaging. Swift only; the site has site-check.
 check: lint test package
+
+# Run the website locally with live reload.
+site-dev:
+    cd site && pnpm install --frozen-lockfile && pnpm run dev
+
+# Build the website into site/dist.
+site-build:
+    cd site && pnpm install --frozen-lockfile && pnpm run build
+
+# Build the website and run its tests, as the site CI job does. Needs Chromium once: cd site && pnpm exec playwright install chromium
+site-check: site-build
+    cd site && pnpm run test && pnpm run lighthouse

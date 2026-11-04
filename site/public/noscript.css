@@ -1,0 +1,24 @@
+.install .tablist {
+  display: none;
+}
+
+.install .tabpanel[hidden] {
+  display: block;
+}
+
+.install .tabpanel-label {
+  display: block;
+}
+
+.session .session-tabs {
+  display: none;
+}
+
+.session .session-screen[hidden] {
+  display: block;
+  border-top: 1px solid var(--term-line);
+}
+
+.session .session-screen {
+  height: auto;
+}

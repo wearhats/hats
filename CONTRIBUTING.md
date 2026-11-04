@@ -36,6 +36,19 @@ just linux          # builds and tests HatsCore in the swift:6.4-noble image
 `just lint`, `just test` and `just check` need the macOS toolchain, so they
 don't run on Linux.
 
+### Website
+
+The site in `site/` needs Node 24 and [pnpm](https://pnpm.io), and runs on any OS:
+
+```sh
+just site-dev       # live reload at http://localhost:4321
+just site-check     # build, then the built-output, browser and Lighthouse checks
+```
+
+The browser tests need Chromium once: `cd site && pnpm exec playwright install chromium`.
+`cd site && pnpm run preview` serves the build through Wrangler's local runtime,
+with `_headers` and `_redirects` applied, and deploys nothing.
+
 ## Tests
 
 | Layer | What | How |

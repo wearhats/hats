@@ -1,0 +1,36 @@
+hats keeps your current Claude.app and ~/.claude as the 'default' profile and never changes them.
+The default profile's claude CLI is signed in as you@example.com.
+
+Found a Claude Code config dir you made yourself: /Users/you/.claude-work
+Turn it into a profile? Its login and history stay as they are. [Y/n] y
+Profile name [work] 
+$ hats add work --code-dir '/Users/you/.claude-work'
+Launcher: /Users/you/Applications/Hats/Claude (Work).app
+
+Add a profile for another account? [y/N] y
+
+Name for your other account (for example personal, work, acme) [client] personal
+$ hats add personal
+Launcher: /Users/you/Applications/Hats/Claude (Personal).app
+
+Pin the new launcher(s) to the Dock? This restarts the Dock. [Y/n] y
+$ hats dock pin work personal
+Pinned Claude (Work) to the Dock.
+Pinned Claude (Personal) to the Dock.
+Also put a copy on the Desktop? [y/N] 
+Open work, personal now to sign in? [Y/n] y
+$ hats open work
+Launched Claude (Work), pid 81655.
+$ hats open personal
+Launched Claude (Personal), pid 81792.
+
+Sign in inside the new window. If the browser hands the login to another Claude window,
+quit the other Claude windows (Cmd-Q), sign in, then reopen them with: hats open --all
+
+Everyday commands:
+  hats ls                  profiles, sign-in state and accounts
+  hats ps                  every running Claude, across profiles
+  hats open <name>         focus or launch a profile's Claude Desktop (--all for every profile)
+  hats run <name>          the claude CLI as that profile
+  hats reset <name>        start a profile fresh if it opened on the wrong account
+  hats doctor              check everything

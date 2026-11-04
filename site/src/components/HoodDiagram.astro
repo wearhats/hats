@@ -1,0 +1,47 @@
+---
+import { TILES } from '../assets/brand/tiles';
+
+const nested = (svg: string, y: number) => svg.replace('<svg ', `<svg x="24" y="${y}" width="24" height="24" `);
+
+const COLUMNS = [
+  { x: 60, label: 'profile' },
+  { x: 180, label: 'Desktop data (--user-data-dir)' },
+  { x: 500, label: 'Claude Code config (CLAUDE_CONFIG_DIR)' },
+  { x: 820, label: 'opened by' },
+];
+
+const ROWS = [
+  { y: 160, tile: TILES.default, cells: ['default', '~/Library/…/Claude', '~/.claude', 'Claude.app'] },
+  { y: 214, tile: TILES.work, cells: ['work', '…/hats/profiles/work/desktop', '~/.claude-work (adopted)', 'Claude (Work)'] },
+  { y: 268, tile: TILES.personal, cells: ['personal', '…/hats/profiles/personal/desktop', '…/hats/profiles/personal/code', 'Claude (Personal)'] },
+];
+---
+
+<div class="hood-scroll" tabindex="0" role="group" aria-label="Diagram of profiles, scrolls sideways">
+  <svg
+    class="hood-diagram"
+    viewBox="0 0 1000 310"
+    role="img"
+    aria-label="One Claude.app, never modified, is launched as a new instance per profile. Default uses the stock folders and opens as Claude.app. Work uses its own Desktop data folder and an adopted ~/.claude-work, and opens as Claude (Work). Personal uses its own Desktop data and config folders, and opens as Claude (Personal)."
+  >
+    <rect class="hood-box" x="270" y="8" width="460" height="44" rx="8"></rect>
+    <text class="hood-strong" x="500" y="35" text-anchor="middle">Claude.app (one install, never modified)</text>
+    <path class="hood-line" d="M500 52v30"></path>
+    <text class="hood-note" x="516" y="74">launched as a new instance per profile</text>
+    <path class="hood-line" d="M36 96v-14h952v14"></path>
+    {COLUMNS.map(({ x, label }) => <text class="hood-head" x={x} y="124">{label}</text>)}
+    {
+      ROWS.map(({ y, tile, cells }) => (
+        <>
+          <path class="hood-rule" d={`M24 ${y - 18}h964`} />
+          <Fragment set:html={nested(tile, y - 8)} />
+          {cells.map((cell, index) => (
+            <text class:list={[index === 0 ? 'hood-strong' : 'hood-path']} x={COLUMNS[index].x} y={y + 9}>
+              {cell}
+            </text>
+          ))}
+        </>
+      ))
+    }
+  </svg>
+</div>
