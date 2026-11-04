@@ -42,7 +42,7 @@ The site in `site/` needs Node 24 and [pnpm](https://pnpm.io), and runs on any O
 
 ```sh
 just site-dev       # live reload at http://localhost:4321
-just site-check     # build, then the built-output and browser tests
+just site-check     # build, then the built-output, browser and Lighthouse checks
 ```
 
 The browser tests need Chromium once: `cd site && pnpm exec playwright install chromium`.

@@ -56,13 +56,9 @@ export async function startWrangler(port = 8788) {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     if (exited) throw new Error(`wrangler dev exited before serving:\n${output}`);
-    try {
-      if ((await fetch(origin, { redirect: 'manual' })).status === 200) {
-        return { origin, stop: () => process.kill(-child.pid) };
-      }
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
+    const status = await fetch(origin, { redirect: 'manual' }).then((response) => response.status, () => 0);
+    if (status === 200) return { origin, stop: () => process.kill(-child.pid) };
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
   process.kill(-child.pid);
   throw new Error(`wrangler dev did not start:\n${output}`);

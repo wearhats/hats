@@ -75,4 +75,4 @@ site-build:
 
 # Build the website and run its tests, as the site CI job does. Needs Chromium once: cd site && pnpm exec playwright install chromium
 site-check: site-build
-    cd site && pnpm run test
+    cd site && pnpm run test && pnpm run lighthouse
