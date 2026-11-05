@@ -4,6 +4,21 @@ All notable changes to this project are documented here. release-please writes
 each section from the commit messages, and versions follow
 [SemVer](https://semver.org/).
 
+## [0.2.0](https://github.com/wearhats/hats/compare/v0.1.2...v0.2.0) (2026-11-05)
+
+
+### Features
+
+* always print every key in --json output ([#23](https://github.com/wearhats/hats/issues/23)) ([435ca02](https://github.com/wearhats/hats/commit/435ca02762245566f17220a7739b14580a424587))
+* show launchers in Finder's Applications folder ([#37](https://github.com/wearhats/hats/issues/37)) ([889617c](https://github.com/wearhats/hats/commit/889617c66dd0fdc77858467e9d881b75ea6d9eeb))
+* **site:** count install copies and outbound clicks with Umami ([#43](https://github.com/wearhats/hats/issues/43)) ([c01af36](https://github.com/wearhats/hats/commit/c01af366f1324a7e08c6af93feff487cdac01b72))
+
+
+### Bug Fixes
+
+* refuse launcher rebuild default ([#29](https://github.com/wearhats/hats/issues/29)) ([f5ba789](https://github.com/wearhats/hats/commit/f5ba789e4c41b26fca4eda25e103b8f106c96de3))
+* resolve tilde paths against HOME and refuse paths that escape ([#22](https://github.com/wearhats/hats/issues/22)) ([1958df9](https://github.com/wearhats/hats/commit/1958df932961ddbc2c0651e5cf58e84d9d45a59c))
+
 ## [0.1.2](https://github.com/wearhats/hats/compare/v0.1.1...v0.1.2) (2026-11-02)
 
 
