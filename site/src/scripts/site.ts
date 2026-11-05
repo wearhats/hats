@@ -1,3 +1,5 @@
+import { track } from './analytics';
+
 type SelectTab = (tab: HTMLButtonElement, focus: boolean) => void;
 
 /** ARIA tabs. `onUserSelect` runs only for a click or key press, never for `select` called from code. */
@@ -44,6 +46,7 @@ function setUpCopyButtons(root: Element) {
         await navigator.clipboard.writeText(command);
         button.textContent = 'Copied';
         status.textContent = 'Copied to clipboard';
+        track('install_copied', { method: button.dataset.copy!, place: root.getAttribute('data-tabs')! });
       } catch {
         button.textContent = 'Copy failed';
         status.textContent = 'Could not copy. Select the command instead.';

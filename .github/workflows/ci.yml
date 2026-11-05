@@ -123,6 +123,10 @@ jobs:
   site:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # On the job, not the build step: the tests check the tag against it. A
+    # repository variable, because deploy-site ships this job's dist as built.
+    env:
+      PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.PUBLIC_UMAMI_WEBSITE_ID }}
     defaults:
       run:
         working-directory: site

@@ -59,8 +59,10 @@ to Cloudflare Workers static assets by CI's `deploy-site` job on `main` (see
 - `just check` stays Swift only. The `site` CI job runs on every pull request,
   because `docs/privacy.md`, `README.md` and the release manifest feed the build.
 - The CSP has no `'unsafe-inline'`: no inline scripts, no `<style>`, no `style=`
-  attributes. Nothing loads from another origin. The one exception is the Umami
-  pageview, sent from the committed `site/public/stats.js` with `connect-src`.
+  attributes. Nothing loads from another origin. The one exception is Umami:
+  pageviews and click events, sent from the committed `site/public/stats.js` with
+  `connect-src`. Events go through `track` in `site/src/scripts/analytics.ts`, and
+  `/privacy` names every one.
 - `/install.sh` is a zone redirect, never part of the site build.
 - Status labels live only in `site/src/data/status.ts`.
 - `site/fixtures/` holds output shown on the page. Its README says which files are

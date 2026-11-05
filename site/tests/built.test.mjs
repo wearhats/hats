@@ -108,7 +108,8 @@ test('no page mentions internal planning terms', () => {
 
 test('nothing on a page loads from another origin', () => {
   for (const { name, html } of pages) {
-    assert.deepEqual(foreignReferences(html), [], name);
+    // CI builds with the real website ID, and the tag then names the Umami host, as on the live site.
+    assert.deepEqual(foreignReferences(html, ['https://umami.maxondev.com']), [], name);
   }
   for (const file of filesIn(DIST).filter((path) => /\.(css|js)$/.test(path) && !path.endsWith('stats.js'))) {
     assert.doesNotMatch(read(file), /(url\(|@import\s+|from\s*["']|import\(["'])\s*["']?(https?:)?\/\//, rel(file));
@@ -134,9 +135,15 @@ test('the CSP allows no inline code and the Umami origin only for connections', 
   assert.equal(headers.match(/umami\.maxondev\.com/g).length, 1);
 });
 
-test('without a website ID there is no analytics tag', () => {
+test('the analytics tag is there only with a website ID, and carries that ID', () => {
+  const websiteId = process.env.PUBLIC_UMAMI_WEBSITE_ID;
   for (const { name, html } of pages) {
-    assert.doesNotMatch(html, /stats\.js|data-website-id|umami\.maxondev\.com"/, name);
+    if (!websiteId) {
+      assert.doesNotMatch(html, /stats\.js|data-website-id|umami\.maxondev\.com"/, name);
+      continue;
+    }
+    const ids = [...html.matchAll(/<script[^>]*stats\.js[^>]*>/g)].map(([tag]) => tag.match(/data-website-id="([^"]*)"/)?.[1]);
+    assert.deepEqual(ids, [websiteId], name);
   }
 });
 
@@ -201,7 +208,7 @@ test('the home page carries the install commands and the separate notices', () =
   assert.match(home.text, /No telemetry\. One update check, which you can turn off\./);
   assert.match(home.text, /Not affiliated with or endorsed by Anthropic\./);
   assert.match(home.text, /not affiliated with, endorsed by or sponsored by Anthropic, PBC\./);
-  assert.match(home.text, /It counts visits with self-hosted Umami\./);
+  assert.match(home.text, /It counts visits and a few clicks with self-hosted Umami\./);
 });
 
 test('words never run into an inline tag', () => {
