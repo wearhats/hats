@@ -8,9 +8,12 @@ import { MISSING_PAGE, PAGES, SITE_ROOT, VIEWPORTS, buildInto, cspFromHeaders, s
 
 const ALL_PAGES = [...PAGES, MISSING_PAGE];
 const ANALYTICS_DIST = 'dist-analytics';
-// Built while the other tests run; the analytics test awaits it, and the catch only defers the error to there.
+const NO_ANALYTICS_DIST = 'dist-no-analytics';
+// Built while the other tests run; the analytics tests await them, and the catch only defers the error to there.
+// dist itself carries the real website ID in CI, so the no-ID case gets a build of its own.
 const analyticsBuild = buildInto(ANALYTICS_DIST, { PUBLIC_UMAMI_WEBSITE_ID: '00000000-0000-4000-8000-000000000000' });
-analyticsBuild.catch(() => {});
+const noAnalyticsBuild = analyticsBuild.then(() => buildInto(NO_ANALYTICS_DIST, { PUBLIC_UMAMI_WEBSITE_ID: '' }));
+noAnalyticsBuild.catch(() => {});
 
 let server;
 let browser;
@@ -23,7 +26,7 @@ before(async () => {
 after(async () => {
   await browser?.close();
   server?.stop();
-  rmSync(join(SITE_ROOT, ANALYTICS_DIST), { recursive: true, force: true });
+  for (const dist of [ANALYTICS_DIST, NO_ANALYTICS_DIST]) rmSync(join(SITE_ROOT, dist), { recursive: true, force: true });
 });
 
 function watchPage(page) {
@@ -308,20 +311,37 @@ test('reduced motion shows the final frame at once', async () => {
 
 const CONTENT_TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png' };
 
+const REDIRECTS = new Map(
+  readFileSync(join(SITE_ROOT, 'public/_redirects'), 'utf8')
+    .split('\n')
+    .map((line) => line.trim().split(/\s+/))
+    .filter(([from, to]) => from?.startsWith('/') && to)
+    .map(([from, to]) => [from, to]),
+);
+
 /** Serves a build as https://wearhats.dev so data-domains matches. No request leaves this process. */
-async function openAsProduction(dist) {
-  const context = await browser.newContext();
+async function openAsProduction(dist, act = async () => {}) {
+  const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
   const pageviews = [];
+  const events = [];
   const elsewhere = [];
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url());
     if (url.origin === 'https://umami.maxondev.com') {
-      pageviews.push(`${route.request().method()} ${url.href}`);
+      const { type, payload } = JSON.parse(route.request().postData());
+      if (type === 'event' && payload.name) events.push({ name: payload.name, data: payload.data });
+      else pageviews.push(`${route.request().method()} ${url.href}`);
       return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{}' });
     }
     if (url.origin !== 'https://wearhats.dev') {
       elsewhere.push(url.href);
       return route.abort();
+    }
+    const redirect = REDIRECTS.get(url.pathname);
+    // A fulfilled 302 isn't routed again, so following it would really reach the target: stand in an empty page.
+    if (redirect) {
+      elsewhere.push(redirect);
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '' });
     }
     const file = join(SITE_ROOT, dist, url.pathname === '/' ? 'index.html' : url.pathname);
     if (!existsSync(file)) return route.fulfill({ status: 404, body: '' });
@@ -335,9 +355,10 @@ async function openAsProduction(dist) {
   const page = await context.newPage();
   const { problems } = watchPage(page);
   await page.goto('https://wearhats.dev/', { waitUntil: 'networkidle' });
+  await act(page);
   await page.waitForTimeout(500);
   await context.close();
-  return { pageviews, elsewhere, problems };
+  return { pageviews, events, elsewhere, problems };
 }
 
 test('with a website ID, the tag sends one pageview through the CSP, and the script stays first-party', async () => {
@@ -356,8 +377,29 @@ test('with a website ID, the tag sends one pageview through the CSP, and the scr
   assert.deepEqual(problems, []);
 });
 
+test('with a website ID, copying an install command and leaving the site send one event each', async () => {
+  await analyticsBuild;
+  const { events, elsewhere, problems } = await openAsProduction(ANALYTICS_DIST, async (page) => {
+    await page.locator('#install-tab-source').click();
+    await page.getByRole('button', { name: 'Copy the From source command' }).click();
+    await page.locator('[data-copy-status]', { hasText: 'Copied to clipboard' }).waitFor();
+    await page.getByRole('link', { name: 'How it works ↓' }).click();
+    await page.getByRole('link', { name: 'View on GitHub →' }).click({ button: 'middle' });
+    await page.getByRole('contentinfo').getByRole('link', { name: 'Docs' }).click();
+  });
+  assert.deepEqual(events, [
+    { name: 'install_copied', data: { method: 'source', place: 'install' } },
+    { name: 'outbound_clicked', data: { to: 'github.com/wearhats/hats' } },
+    { name: 'outbound_clicked', data: { to: '/docs' } },
+  ]);
+  assert.deepEqual(elsewhere, ['https://github.com/wearhats/hats', 'https://github.com/wearhats/hats/blob/main/docs/cli.md']);
+  assert.deepEqual(problems, []);
+});
+
 test('without a website ID, nothing is sent', async () => {
-  const { pageviews, elsewhere, problems } = await openAsProduction('dist');
+  await noAnalyticsBuild;
+  assert.doesNotMatch(readFileSync(join(SITE_ROOT, NO_ANALYTICS_DIST, 'index.html'), 'utf8'), /stats\.js|data-website-id/);
+  const { pageviews, elsewhere, problems } = await openAsProduction(NO_ANALYTICS_DIST);
   assert.deepEqual(pageviews, []);
   assert.deepEqual(elsewhere, []);
   assert.deepEqual(problems, []);

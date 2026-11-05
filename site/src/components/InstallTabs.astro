@@ -13,7 +13,7 @@ interface Props {
 const { name, options } = Astro.props;
 ---
 
-<div class="install" data-tabs>
+<div class="install" data-tabs={name}>
   <div class="tablist" role="tablist" aria-label="Ways to install hats">
     {
       options.map(({ id, label }, index) => (
@@ -36,7 +36,7 @@ const { name, options } = Astro.props;
         <span class="tabpanel-label">{label}</span>
         <div class="command">
           <code class="command-text" role="group" tabindex="0" aria-label={`${label} install command`}><span class="prompt" aria-hidden="true">$ </span><span data-command>{command}</span></code>
-          <button type="button" class="copy" data-copy aria-label={`Copy the ${label} command`} hidden>Copy</button>
+          <button type="button" class="copy" data-copy={id} aria-label={`Copy the ${label} command`} hidden>Copy</button>
         </div>
       </div>
     ))

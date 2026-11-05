@@ -63,6 +63,11 @@ branches: `main` only):
 | `CLOUDFLARE_API_TOKEN` | secret | API token with Account › Workers Scripts: Edit and Zone › Workers Routes: Edit on `wearhats.dev` only |
 | `CLOUDFLARE_ACCOUNT_ID` | variable | The Cloudflare account that owns the Worker and the zone |
 
+The Umami website ID is a repository variable, `PUBLIC_UMAMI_WEBSITE_ID`, not
+part of the `site` environment: the `site` job reads it at build time, and
+`deploy-site` ships that build unchanged. It isn't a secret, since every page
+carries it. Without it the build has no analytics tag.
+
 To roll back, run `pnpm exec wrangler rollback` in `site/`, or revert the commit
 on `main`.
 
