@@ -156,7 +156,11 @@ test('install tabs follow the ARIA tabs pattern', async () => {
 const session = (page) => page.locator('[data-session]');
 const shownScreen = (page) => page.locator('.session-screen:visible');
 // Autoplay starts when the observer reports the session in view, which the page's fake clock doesn't drive.
-const autoplayStarted = (page) => page.locator('[data-session-toggle]', { hasText: 'Pause' }).waitFor();
+// The hero illustration sits above the session, so it starts below the fold.
+async function autoplayStarted(page) {
+  await session(page).scrollIntoViewIfNeeded();
+  await page.locator('[data-session-toggle]', { hasText: 'Pause' }).waitFor();
+}
 
 test('the example session plays once and stops on hats ps', async () => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -249,6 +253,7 @@ test('autoplay never overrides a command the visitor picked before the session c
   assert.equal(await toggle.textContent(), 'Play', 'too little of the session shows for autoplay to start');
   await page.locator('#session-tab-ls').dispatchEvent('click');
   await page.setViewportSize({ width: 1280, height: 900 });
+  await session(page).scrollIntoViewIfNeeded();
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.clock.runFor(3000);
   assert.equal(await shownScreen(page).getAttribute('id'), 'session-panel-ls');

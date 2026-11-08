@@ -1,9 +1,8 @@
 ---
 import setup from '../../fixtures/hats-setup.txt?raw';
-import ls from '../../fixtures/hats-ls.txt?raw';
-import ps from '../../fixtures/hats-ps.txt?raw';
 import Tile from './Tile.astro';
-import { layoutRows, parseTable, type Table } from '../lib/table';
+import { layoutRows, type Table } from '../lib/table';
+import { LS, PS, accountOf, cell } from '../lib/fixtures';
 
 type Cell = { text: string; hide?: string };
 type Line =
@@ -31,16 +30,6 @@ const table = (parsed: Table): Line[] =>
     cells: cells.map((cell, column) => ({ text: cell, hide: HIDE_NARROW.has(parsed.headers[column]) ? 'hide-narrow' : undefined })),
   }));
 
-const LS = parseTable(ls, 'hats ls');
-const PS = parseTable(ps, 'hats ps');
-
-/** Reads the scene's details from the fixtures, so it never contradicts the tables beside it. */
-function cell({ headers, rows }: Table, header: string, ...key: string[]): string {
-  const row = rows.find((cells) => key.every((value, index) => cells[index] === value));
-  if (!row) throw new Error(`no fixture row for ${key.join(' ')}`);
-  return row[headers.indexOf(header)];
-}
-const accountOf = (profile: string) => cell(LS, 'ACCOUNT', profile).replace(/ \(.*\)$/, '');
 
 const after = (note: string): Line => ({ kind: 'text', text: `# ${note}` });
 

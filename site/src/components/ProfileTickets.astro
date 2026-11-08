@@ -1,0 +1,39 @@
+---
+import Tile from './Tile.astro';
+import { LS, PS, accountOf, cell, orgOf } from '../lib/fixtures';
+
+/** A coat-check ticket per profile, filled from the same `hats ls` and `hats ps` samples as the example session. */
+const TICKETS = (['work', 'personal'] as const).map((profile, index) => ({
+  profile,
+  number: String(index + 1).padStart(2, '0'),
+  account: accountOf(profile),
+  org: orgOf(profile),
+  signedIn: cell(LS, 'DESKTOP LOGIN', profile) === 'yes' && cell(LS, 'CLI LOGIN', profile) === 'yes',
+  session: ['cli', cell(PS, 'STATUS', profile, 'cli'), cell(PS, 'NAME', profile, 'cli')].join(' · '),
+}));
+---
+
+<figure class="tickets">
+  <div class="tickets-rack">
+    <span class="tickets-rail" aria-hidden="true"></span>
+    <ul class="tickets-list">
+      {
+        TICKETS.map(({ profile, number, account, org, signedIn, session }) => (
+          <li class:list={['ticket', `profile-${profile}`]}>
+            <span class="ticket-hook" aria-hidden="true"></span>
+            <span class="ticket-grommet" aria-hidden="true"></span>
+            <div class="ticket-head">
+              <Tile name={profile} />
+              <span class="ticket-number" aria-hidden="true">No. {number}</span>
+            </div>
+            <p class="ticket-name">{profile}</p>
+            <p class="ticket-account">{account}</p>
+            <p class="ticket-detail">{org ?? (signedIn ? 'Desktop and CLI signed in' : 'Not signed in')}</p>
+            <p class="ticket-session">{session}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  <figcaption>Sample profiles. Each has its own login, history and settings, and <code>hats ls</code> and <code>hats ps</code> tell them apart.</figcaption>
+</figure>
