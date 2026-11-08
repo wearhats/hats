@@ -1,0 +1,61 @@
+---
+import Tile from './Tile.astro';
+import { accountOf } from '../lib/fixtures';
+
+/** Neutral chat windows, never a copy of Claude's own interface. Each is signed in to the account `hats ls` shows. */
+const WINDOWS = [
+  { id: 'work', title: 'Claude (Work)', account: accountOf('work') },
+  { id: 'personal', title: 'Claude (Personal)', account: accountOf('personal') },
+] as const;
+---
+
+<figure class="scene">
+  <div class="scene-art" role="img" aria-label="Illustration: your one Claude.app opens a separate Claude window for each profile, Work and Personal, each signed in to its own account.">
+    <div class="scene-windows" aria-hidden="true">
+      {
+        WINDOWS.map(({ id, title, account }) => (
+          <div class:list={['scene-window', `profile-${id}`]}>
+            <div class="scene-titlebar">
+              <span class="scene-lights"><span></span><span></span><span></span></span>
+              <span class="scene-title">{title}</span>
+            </div>
+            <div class="chat">
+              <div class="chat-side">
+                <span class="chat-account"><Tile name={id} />{account}</span>
+                <span class="bar"></span>
+                <span class="bar bar-mid"></span>
+                <span class="bar bar-short"></span>
+                <span class="bar bar-mid"></span>
+              </div>
+              <div class="chat-main">
+                <span class="chat-bubble chat-mine"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar bar-mid"></span>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+    <div class="scene-threads" aria-hidden="true">
+      <svg class="scene-thread scene-thread-work" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M100 100 C 100 40, 0 60, 0 0" vector-effect="non-scaling-stroke" />
+      </svg>
+      <svg class="scene-thread scene-thread-personal" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M0 100 C 0 40, 100 60, 100 0" vector-effect="non-scaling-stroke" />
+      </svg>
+    </div>
+    <div class="scene-dock" aria-hidden="true">
+      <div class="dock">
+        <Tile name="claude-app" class="dock-app" />
+        <span class="dock-divider"></span>
+        {WINDOWS.map(({ id }) => <Tile name={id} />)}
+      </div>
+      <div class="dock-labels">
+        <span class="dock-label-app">your Claude.app, untouched</span>
+        <span class="dock-label-launchers">hats launchers</span>
+      </div>
+    </div>
+  </div>
+</figure>

@@ -11,9 +11,10 @@ each file is replaced with a capture from a released version.
 | `hats-ls.txt` | `hats ls` | Sample |
 | `hats-doctor.txt` | `hats doctor` | Sample, not on the page yet |
 
-The hero's example session shows these files, laid out with the same column-width rule as `Output.printTable`. The
-three samples tell one story, so replace them together: setup adopts `work` and adds `personal`, opens both, and `ls`
-and `ps` then show both running. A question line is anything ending in `[default] ` followed by the typed answer.
+The hero's example session shows these files, laid out with the same column-width rule as `Output.printTable`. The hero
+illustration's windows and the profile tickets in "How it works" take their accounts and sessions from `hats-ls.txt` and
+`hats-ps.txt` too. The three samples tell one story, so replace them together: setup adopts `work` and adds `personal`,
+opens both, and `ls` and `ps` then show both running. A question line is anything ending in `[default] ` followed by the typed answer.
 
 After replacing a file, run `pnpm run render:brand`, because the Open Graph card and GitHub preview use `hats-ps.txt`.
 When all of them are captures, change the caption in `src/components/HeroSession.astro` and the note in
