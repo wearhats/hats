@@ -92,7 +92,7 @@ test('redirects and plumbing behave as deployed', async () => {
     assert.equal(response.status, 302, path);
     assert.equal(response.headers.get('location'), location);
   }
-  for (const path of ['/robots.txt', '/sitemap.xml', '/.well-known/security.txt', '/favicon.svg']) {
+  for (const path of ['/robots.txt', '/sitemap.xml', '/llms.txt', '/.well-known/security.txt', '/favicon.svg']) {
     assert.equal((await fetch(server.origin + path)).status, 200, path);
   }
   const installScript = await fetch(`${server.origin}/install.sh`, { redirect: 'manual' });

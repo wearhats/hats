@@ -10,23 +10,11 @@ import HoodDiagram from '../components/HoodDiagram.astro';
 import StatusChip from '../components/StatusChip.astro';
 import Demo from '../components/Demo.astro';
 import { inline } from '../lib/inline';
-import { VERSION } from '../data/release';
-import { DESCRIPTION, INSTALL_OPTIONS, LICENSE_URL, MAINTAINER_SITE, MAINTAINER_URL, NOTICE, REPO_URL, READ_FIRST_INSTALL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
+import { homeStructuredData } from '../lib/structuredData';
+import { INSTALL_OPTIONS, MAINTAINER_SITE, MAINTAINER_URL, NOTICE, REPO_URL, READ_FIRST_INSTALL, SOURCE_INSTALL, SUBHEAD } from '../data/site';
 import { COMPARISON, COMPARISON_HEADERS, FAQ, FEATURES, HATS_ROW, NOT_YET, PRIVACY, PROBLEMS } from '../data/copy';
 
-const structuredData = JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'hats',
-  description: DESCRIPTION,
-  operatingSystem: 'macOS 14+',
-  applicationCategory: 'DeveloperApplication',
-  offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
-  license: LICENSE_URL,
-  downloadUrl: `${REPO_URL}/releases`,
-  softwareVersion: VERSION,
-  author: { '@type': 'Person', name: 'Max Novak', url: MAINTAINER_SITE, sameAs: [MAINTAINER_URL] },
-});
+const structuredData = homeStructuredData(Astro.site!);
 ---
 
 <Base path="/">
@@ -150,7 +138,7 @@ const structuredData = JSON.stringify({
 
     <section class="section" id="other-ways" aria-labelledby="other-title">
       <div class="wrap">
-        <h2 id="other-title">Other ways to run two accounts</h2>
+        <h2 id="other-title">Other ways to run two Claude accounts</h2>
         <p class="prose-width">
           People have found plenty of ways to do this, and the #18435 thread has many good ones. Here's how the approaches
           compare as of November 2026. Spot a mistake? <a href={`${REPO_URL}/pulls`}>Open a pull request</a>.

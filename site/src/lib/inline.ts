@@ -14,3 +14,17 @@ export function inline(source: string): string {
     })
     .join('');
 }
+
+/** The same copy as text only, for places that take no markup. */
+export function plain(source: string): string {
+  return source
+    .split(/(`[^`]+`)/)
+    .map((part) => {
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 1) return part.slice(1, -1);
+      return part
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1');
+    })
+    .join('');
+}
