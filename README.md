@@ -19,6 +19,8 @@ personal  cli      83110  busy     1m   blog-1c       ~/oss/blog
 
 > Unofficial community tool. Not affiliated with or endorsed by Anthropic.
 
+[Website](https://wearhats.dev) · [CLI reference](docs/cli.md) · [What hats reads and writes](docs/privacy.md)
+
 ## Why
 
 Claude Desktop holds one account per install, and the CLI one per config

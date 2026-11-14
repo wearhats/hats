@@ -14,6 +14,13 @@ const pages = htmlFiles().map((file) => {
 const home = pages.find((page) => page.name === 'index.html');
 const privacy = pages.find((page) => page.name === 'privacy.html');
 
+function structuredData(type) {
+  const graph = JSON.parse(home.html.match(/<script type="application\/ld\+json">(.+?)<\/script>/s)[1])['@graph'];
+  const node = graph.find((entry) => entry['@type'] === type);
+  assert.ok(node, `no ${type} in the structured data`);
+  return node;
+}
+
 // False statements about the tool. docs/privacy.md and design rule 9 are why each one is wrong.
 const BANNED_CLAIMS = [
   'no network',
@@ -95,9 +102,50 @@ test('status labels are defined in one file', () => {
 
 test('the page metadata follows the content plan', () => {
   assert.ok(DESCRIPTION_LENGTH(home.html) <= 155);
-  const structured = JSON.parse(home.html.match(/<script type="application\/ld\+json">(.+?)<\/script>/s)[1]);
-  assert.equal(structured['@type'], 'SoftwareApplication');
-  assert.equal(structured.softwareVersion, JSON.parse(read(join(SITE_ROOT, '../.release-please-manifest.json')))['.']);
+  const software = structuredData('SoftwareApplication');
+  assert.equal(software.softwareVersion, JSON.parse(read(join(SITE_ROOT, '../.release-please-manifest.json')))['.']);
+  assert.equal(software.url, 'https://wearhats.dev/');
+});
+
+test('the site names itself, with names people can search for', () => {
+  const website = structuredData('WebSite');
+  assert.equal(website.name, 'hats');
+  assert.deepEqual(website.alternateName, ['wearhats', 'hats for Claude']);
+  assert.equal(website.url, 'https://wearhats.dev/');
+});
+
+test('the structured questions are the ones on the page, as plain text', () => {
+  const questions = structuredData('FAQPage').mainEntity;
+  const section = home.html.match(/<section[^>]*id="faq"[\s\S]*?<\/section>/)[0];
+  const shown = [...section.matchAll(/<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>/g)].map(([, question, answer]) => [
+    visibleText(question).trim(),
+    visibleText(answer).trim(),
+  ]);
+  assert.ok(shown.length > 0);
+  assert.deepEqual(
+    questions.map((entry) => [entry.name, entry.acceptedAnswer.text]),
+    shown,
+  );
+});
+
+test('the sitemap lists every page a search engine may index, and nothing else', () => {
+  const listed = [...read(join(DIST, 'sitemap.xml')).matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url).sort();
+  const indexable = pages
+    .filter(({ html }) => !/<meta name="robots" content="noindex"/.test(html))
+    .map(({ html }) => html.match(/<link rel="canonical" href="([^"]+)"/)[1])
+    .sort();
+  assert.deepEqual(listed, indexable);
+});
+
+test('llms.txt links only to this site and the repository, and repeats the install commands', () => {
+  const text = read(join(DIST, 'llms.txt'));
+  assert.match(text, /^# hats\n\n> /);
+  assert.ok(text.includes('brew install wearhats/tap/hats'));
+  assert.ok(text.includes('https://wearhats.dev/privacy'));
+  for (const [, url] of text.matchAll(/\]\((https?:[^)]+)\)/g)) {
+    assert.match(url, /^https:\/\/(wearhats\.dev|github\.com\/wearhats\/hats)(\/|$)/, url);
+  }
+  for (const phrase of BANNED_CLAIMS) assert.ok(!text.toLowerCase().includes(phrase), phrase);
 });
 
 test('no page mentions internal planning terms', () => {
